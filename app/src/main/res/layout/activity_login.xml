@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/lyt_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_login"
+    android:orientation="vertical"
+    android:paddingHorizontal="28dp"
+    android:paddingTop="60dp"
+    android:paddingBottom="32dp">
+
+    <!-- LOGO iMoodle -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:layout_marginBottom="40dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/logo_i"
+            android:textColor="@color/color_acento"
+            android:textSize="56sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/logo_moodle"
+            android:textColor="@color/texto_principal"
+            android:textSize="56sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
+    <!-- Label Usuario -->
+    <TextView
+        android:id="@+id/txt_label_user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/label_user"
+        android:textColor="@color/texto_principal"
+        android:textSize="16sp"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Contenedor Input Usuario -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input_field"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_person"
+            android:contentDescription="@null"
+            app:tint="@color/texto_hint" />
+
+        <EditText
+            android:id="@+id/inp_user"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:hint="@string/hint_user"
+            android:autofillHints="username"
+            android:textColorHint="@color/texto_hint"
+            android:textColor="@color/texto_principal"
+            android:background="@null"
+            android:paddingStart="12dp"
+            android:paddingEnd="0dp"
+            android:textSize="16sp"
+            android:inputType="text" />
+    </LinearLayout>
+
+    <!-- Label Contraseña -->
+    <TextView
+        android:id="@+id/txt_label_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/label_password"
+        android:textColor="@color/texto_principal"
+        android:textSize="16sp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Contenedor Input Contraseña -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input_field"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_lock"
+            android:contentDescription="@null"
+            app:tint="@color/texto_hint" />
+
+        <EditText
+            android:id="@+id/inp_password"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:hint="@string/hint_password"
+            android:autofillHints="password"
+            android:textColorHint="@color/texto_hint"
+            android:textColor="@color/texto_principal"
+            android:background="@null"
+            android:paddingStart="12dp"
+            android:paddingEnd="0dp"
+            android:textSize="16sp"
+            android:inputType="textPassword" />
+
+        <ImageView
+            android:id="@+id/btn_toggle_pass"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_visibility_off"
+            android:contentDescription="@string/toggle_password_visibility"
+            app:tint="@color/texto_hint" />
+    </LinearLayout>
+
+    <!-- Label Centro (Provincia) -->
+    <TextView
+        android:id="@+id/txt_label_center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/label_center"
+        android:textColor="@color/texto_principal"
+        android:textSize="16sp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Contenedor Input Centro (Spinner) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input_field"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_center"
+            android:contentDescription="@null"
+            app:tint="@color/texto_hint" />
+
+        <Spinner
+            android:id="@+id/spinner_centro"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@null"
+            android:paddingStart="12dp"
+            android:paddingEnd="0dp"
+            android:spinnerMode="dropdown"/>
+    </LinearLayout>
+
+    <!-- Botón Iniciar Sesión -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="@string/action_login"
+        android:textColor="@color/texto_boton"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:background="@drawable/bg_button"
+        android:layout_marginTop="32dp"
+        android:stateListAnimator="@null" />
+
+    <!-- Spacer para empujar la versión hacia abajo -->
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="24dp"/>
+
+    <!-- Versión -->
+    <TextView
+        android:id="@+id/txt_footer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/prompt_no_oficial"
+        android:textColor="@color/texto_footer"
+        android:textSize="12sp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp" />
+
+</LinearLayout>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Dimensiones de las cabeceras de sección de listas.
+
+        Usadas por `CalendarAdapter.HeaderViewHolder` y
+        `CourseDetailAdapter.HeaderViewHolder`. Antes estaban en px
+        hardcodeados (`setPadding(40, 48, 40, 16)`), lo cual se veía
+        distinto en pantallas con distinta densidad (bug P2 #7).
+
+        Los valores están en dp para que se adapten al `density` del
+        dispositivo.
+    -->
+    <dimen name="list_header_horizontal_padding">16dp</dimen>
+    <dimen name="list_header_top_padding">12dp</dimen>
+    <dimen name="list_header_bottom_padding">8dp</dimen>
+</resources>

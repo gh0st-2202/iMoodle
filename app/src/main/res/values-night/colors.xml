@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondos -->
+    <color name="fondo_app">#0F1110</color> <!-- Fondo oscuro casi negro -->
+    <color name="fondo_input">#1A1C1B</color> <!-- Tarjetas en gris muy oscuro -->
+    <color name="borde_input">#333333</color>
+
+    <!-- Textos -->
+    <color name="texto_principal">#FFFFFF</color>
+    <color name="texto_secundario">#B0B0B0</color>
+    <color name="texto_hint">#808080</color>
+    <color name="texto_footer">#666666</color>
+
+    <!-- Acentos y Botones -->
+    <color name="color_acento">#2DD35B</color> <!-- Verde más brillante para contrastar en oscuro -->
+    <color name="color_acento_presionado">#00C853</color>
+    <color name="texto_boton">#000000</color> <!-- Texto negro sobre botón verde brillante -->
+
+    <!-- Mantén también los colores base si los usas en algún sitio -->
+    <color name="verde_junta">#087021</color>
+    <color name="verde_junta_oscuro">#065A1A</color>
+    <color name="verde_junta_suave">#1A3321</color>
+
+    <!-- ========================================== -->
+    <!-- PALETA AMPLIADA PARA EL HORARIO (24 COLORES) -->
+    <!-- ========================================== -->
+    <!-- Los mismos colores que en claro. Al ser tonos medios/bajos, contrastan bien con el fondo #1A1C1B -->
+    <color name="schedule_color_0">#4DB6AC</color>
+    <color name="schedule_color_1">#F06292</color>
+    <color name="schedule_color_2">#7986CB</color>
+    <color name="schedule_color_3">#FFD54F</color>
+    <color name="schedule_color_4">#9575CD</color>
+    <color name="schedule_color_5">#A1887F</color>
+    <color name="schedule_color_6">#4FC3F7</color>
+    <color name="schedule_color_7">#81C784</color>
+    <color name="schedule_color_8">#E57373</color>
+    <color name="schedule_color_9">#90A4AE</color>
+    <color name="schedule_color_10">#FFB74D</color>
+    <color name="schedule_color_11">#DCE775</color>
+    <color name="schedule_color_12">#4DD0E1</color>
+    <color name="schedule_color_13">#FF8A65</color>
+    <color name="schedule_color_14">#AED581</color>
+    <color name="schedule_color_15">#BA68C8</color>
+    <color name="schedule_color_16">#FFF176</color>
+    <color name="schedule_color_17">#64B5F6</color>
+    <color name="schedule_color_18">#BDBDBD</color>
+    <color name="schedule_color_19">#C0CA33</color>
+    <color name="schedule_color_20">#C62828</color>
+    <color name="schedule_color_21">#1565C0</color>
+    <color name="schedule_color_22">#2E7D32</color>
+    <color name="schedule_color_23">#6A1B9A</color>
+</resources>

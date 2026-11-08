@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Reglas de backup automático (Android 11 e inferiores).
+
+    Se excluye TODO lo sensible:
+    - sharedpref: contiene el wstoken cifrado con una clave de Keystore. La clave
+      no viaja en la copia, así que restaurarlo en otro dispositivo deja un fichero
+      indescifrable.
+    - database: caché de cursos/calendario del usuario; se vuelve a descargar.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="database" path="." />
+</full-backup-content>

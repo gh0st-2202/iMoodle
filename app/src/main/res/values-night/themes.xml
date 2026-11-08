@@ -1,0 +1,28 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.MiMoodleAndalucia" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+
+        <!-- Colores primarios basados en tu paleta -->
+        <item name="colorPrimary">@color/color_acento</item>
+        <item name="colorPrimaryVariant">@color/color_acento_presionado</item>
+        <item name="colorOnPrimary">@color/texto_boton</item>
+
+        <!-- Colores secundarios -->
+        <item name="colorSecondary">@color/color_acento</item>
+        <item name="colorSecondaryVariant">@color/color_acento_presionado</item>
+        <item name="colorOnSecondary">@color/texto_boton</item>
+
+        <!-- Fondo general -->
+        <item name="android:windowBackground">@color/fondo_app</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+
+        <!-- Estilos personalizados para los Chips (Material 2) -->
+        <item name="chipBackgroundColor">@color/fondo_input</item>
+        <item name="chipStrokeColor">@color/borde_input</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipIconTint">@color/color_acento</item>
+    </style>
+</resources>

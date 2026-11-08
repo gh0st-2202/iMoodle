@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="380dp"
+    android:height="1080dp"
+    android:viewportWidth="380"
+    android:viewportHeight="1080">
+
+    <!-- Color de fondo base (Moodle teal: rgb(0, 184, 148)) -->
+    <path
+        android:fillColor="#00B894"
+        android:pathData="M0,0h380v1080h-380z" />
+
+    <!-- Onda 1 (Gris claro) -->
+    <path
+        android:strokeColor="#40DDDDDD"
+        android:strokeWidth="30"
+        android:pathData="M-95,81 C-28.5,0 29,0 95,81 S219,162 285,81 S409,0 475,81"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Onda 2 (Gris oscuro) -->
+    <path
+        android:strokeColor="#40222222"
+        android:strokeWidth="30"
+        android:pathData="M-95,181 C-28.5,100 29,100 95,181 S219,262 285,181 S409,100 475,181"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Onda 3 (Gris claro) -->
+    <path
+        android:strokeColor="#40DDDDDD"
+        android:strokeWidth="30"
+        android:pathData="M-95,281 C-28.5,200 29,200 95,281 S219,362 285,281 S409,200 475,281"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Onda 4 (Gris oscuro) -->
+    <path
+        android:strokeColor="#40222222"
+        android:strokeWidth="30"
+        android:pathData="M-95,381 C-28.5,300 29,300 95,381 S219,462 285,381 S409,300 475,381"
+        android:fillColor="@android:color/transparent" />
+
+    <!-- Onda 5 (Gris claro) -->
+    <path
+        android:strokeColor="#40DDDDDD"
+        android:strokeWidth="30"
+        android:pathData="M-95,481 C-28.5,400 29,400 95,481 S219,562 285,481 S409,400 475,481"
+        android:fillColor="@android:color/transparent" />
+
+</vector>

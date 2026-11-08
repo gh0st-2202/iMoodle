@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">iMoodle</string>
+
+    <!-- Logo -->
+    <string name="logo_i">i</string>
+    <string name="logo_moodle">Moodle</string>
+
+    <!-- Formulario de Login -->
+    <string name="label_user">Usuario</string>
+    <string name="hint_user">Introduzca su usuario</string>
+    <string name="label_password">Contraseña</string>
+    <string name="hint_password">Introduzca su contraseña</string>
+    <string name="label_center">Provincia</string>
+    <string name="hint_select_province">Seleccione su provincia</string>
+    <string name="action_login">Iniciar sesión</string>
+    <string name="loading_connecting">Conectando…</string>
+    <string name="toggle_password_visibility">Mostrar u ocultar contraseña</string>
+    <string name="prompt_no_oficial">Esto NO es una aplicación oficial de la Junta de Andalucía</string>
+
+    <!-- Acciones comunes -->
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_logout">Cerrar Sesión</string>
+    <string name="action_download">Descargar</string>
+
+    <!-- Mensajes (Toasts) -->
+    <string name="toast_storage_error">Error crítico: Almacén seguro no disponible</string>
+    <string name="toast_welcome_back">Bienvenido de nuevo, %1$s</string>
+    <string name="toast_session_expired">La sesión ha caducado. Vuelve a entrar.</string>
+    <string name="toast_session_recovery_failed">No se pudo recuperar la sesión</string>
+    <string name="toast_login_success">Sesión iniciada en %1$s</string>
+    <string name="toast_no_notifications_permission">No recibirás recordatorios de tareas sin permiso de notificaciones</string>
+    <string name="toast_no_notifications_permission_short">No recibirás recordatorios de tareas</string>
+    <string name="toast_notifications_enabled">Notificaciones activadas</string>
+    <string name="toast_exact_alarm_settings">Abre los ajustes para permitir alarmas exactas</string>
+    <string name="toast_upload_in_development">Subida de archivos en desarrollo</string>
+    <string name="toast_downloading">Descargando %1$s…</string>
+    <string name="toast_download_error">Error al descargar. Inténtalo de nuevo.</string>
+
+    <!-- Errores (mensajes genéricos; detalle técnico en logcat, ver bug P2 #15) -->
+    <string name="error_bad_credentials">Usuario o contraseña incorrectos</string>
+    <string name="error_network">Error de red. Comprueba tu conexión.</string>
+    <string name="error_unexpected">Error inesperado. Inténtalo de nuevo.</string>
+    <string name="error_generic">Error. Inténtalo de nuevo.</string>
+    <string name="error_identify_user">No se pudo identificar al usuario. Cierra sesión y vuelve a entrar.</string>
+    <string name="error_open_url">No se pudo obtener el enlace</string>
+    <string name="error_unsafe_url">Enlace no admitido</string>
+    <string name="error_no_navigator">No hay ninguna app para abrir este enlace</string>
+    <string name="error_resource_no_files">Recurso sin archivos</string>
+    <string name="error_event_no_details">Detalle no disponible para este evento</string>
+    <string name="error_schedule_load">No se pudo cargar el horario. Desliza para reintentar.</string>
+
+    <!-- Diálogos -->
+    <string name="dialog_logout_message">¿Estás seguro de que quieres cerrar sesión?</string>
+    <string name="dialog_download_title">Descargar archivo</string>
+    <string name="dialog_download_message">¿Seguro que quieres descargar el archivo?\n\n%1$s</string>
+
+    <!-- Navegación Principal -->
+    <string name="nav_courses">Cursos</string>
+    <string name="nav_calendar">Agenda</string>
+    <string name="nav_schedule">Horario</string>
+    <string name="nav_messages">Mensajes</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="title_courses">Mis Cursos</string>
+    <string name="title_schedule">Mi Horario</string>
+    <string name="title_files">Archivos</string>
+    <string name="title_generic_module">Detalle del módulo</string>
+    <string name="title_web_link">Enlace</string>
+    <string name="title_moodle">Moodle</string>
+
+    <!-- Filtros y Estados -->
+    <string name="filter_all">Todos</string>
+    <string name="filter_in_progress">En curso</string>
+    <string name="filter_favorites">Favoritos</string>
+    <string name="empty_courses_title">Sin cursos todavía</string>
+    <string name="empty_courses_desc">Cuando te matricules aparecerán aquí automáticamente.</string>
+
+    <!-- Horario -->
+    <string name="empty_schedule_title">Sin clases</string>
+    <string name="empty_schedule_desc">No hay asignaturas programadas para este día.</string>
+    <string name="schedule_professor_prefix">Prof. %1$s</string>
+
+    <!-- Calendario -->
+    <string name="label_today">Hoy</string>
+    <string name="label_tomorrow">Mañana</string>
+
+    <!-- Detalle de tarea -->
+    <string name="label_due_date">Fecha de entrega: %1$s</string>
+    <string name="label_no_due_date">Sin fecha de entrega</string>
+    <string name="label_grade">Nota: %1$s</string>
+    <string name="label_no_description">Sin descripción</string>
+    <string name="status_submitted">Entregado</string>
+    <string name="status_draft">Borrador (no entregado)</string>
+    <string name="status_not_submitted">Sin entregar</string>
+    <string name="status_unknown">Estado desconocido</string>
+
+    <!-- Módulo genérico -->
+    <string name="label_no_description_module">Este módulo no tiene descripción.</string>
+
+    <!-- Foro -->
+    <string name="label_forum_author_date">Por %1$s · %2$s</string>
+    <plurals name="label_forum_replies">
+        <item quantity="one">%d respuesta</item>
+        <item quantity="other">%d respuestas</item>
+    </plurals>
+    <string name="label_unknown_date">Fecha desconocida</string>
+
+    <!-- Notificaciones -->
+    <string name="notification_channel_name">Recordatorios de Tareas</string>
+    <string name="notification_title_due_soon">Caduca pronto</string>
+    <string name="notification_default_task_name">Tarea pendiente</string>
+    <string name="notification_download_description">Descargando archivo del curso…</string>
+
+    <!-- Perfil del Alumno -->
+    <string name="profile_info_title">Información del Alumno</string>
+    <string name="profile_center">Centro</string>
+    <string name="profile_birthdate">Fecha de nacimiento</string>
+    <string name="profile_age">Edad</string>
+    <string name="profile_gender">Sexo</string>
+    <string name="profile_loading_info">Cargando datos de PASEN…</string>
+    <string name="profile_no_info">No se pudieron cargar los datos de PASEN.</string>
+</resources>

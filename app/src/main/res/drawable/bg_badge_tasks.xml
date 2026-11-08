@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Color de fondo (usará tu gris de borde, que se adapta a modo claro/oscuro) -->
+    <solid android:color="@color/borde_input" />
+
+    <!-- Bordes redondeados para que parezca una píldora o etiqueta -->
+    <corners android:radius="12dp" />
+
+</shape>
