@@ -14,51 +14,46 @@
     <color name="verde_junta_oscuro">#065A1A</color>
     <color name="verde_junta_suave">#E6F2E8</color>
 
-    <!-- ========================================== -->
-    <!-- COLORES SEMÁNTICOS (MODO CLARO)            -->
-    <!-- ========================================== -->
-    <!-- Fondos -->
+    <!-- COLORES SEMÁNTICOS (MODO CLARO) -->
     <color name="fondo_app">#F2F4F5</color>
     <color name="fondo_input">#FFFFFF</color>
     <color name="borde_input">#DADDE1</color>
 
-    <!-- Textos -->
     <color name="texto_principal">#212121</color>
     <color name="texto_secundario">#6B6B6B</color>
     <color name="texto_hint">#808080</color>
     <color name="texto_footer">#888888</color>
 
-    <!-- Acentos y Botones -->
-    <color name="color_acento">#087021</color> <!-- Verde corporativo -->
+    <color name="color_acento">#087021</color>
     <color name="color_acento_presionado">#065A1A</color>
     <color name="texto_boton">#FFFFFF</color>
 
-    <!-- ========================================== -->
-    <!-- PALETA AMPLIADA PARA EL HORARIO (24 COLORES) -->
-    <!-- ========================================== -->
-    <!-- Tonos Material 300/400 que contrastan bien en claro y oscuro -->
-    <color name="schedule_color_0">#4DB6AC</color> <!-- Teal -->
-    <color name="schedule_color_1">#F06292</color> <!-- Pink -->
-    <color name="schedule_color_2">#7986CB</color> <!-- Indigo -->
-    <color name="schedule_color_3">#FFD54F</color> <!-- Amber -->
-    <color name="schedule_color_4">#9575CD</color> <!-- Deep Purple -->
-    <color name="schedule_color_5">#A1887F</color> <!-- Brown -->
-    <color name="schedule_color_6">#4FC3F7</color> <!-- Light Blue -->
-    <color name="schedule_color_7">#81C784</color> <!-- Green -->
-    <color name="schedule_color_8">#E57373</color> <!-- Red -->
-    <color name="schedule_color_9">#90A4AE</color> <!-- Blue Grey -->
-    <color name="schedule_color_10">#FFB74D</color> <!-- Orange -->
-    <color name="schedule_color_11">#DCE775</color> <!-- Lime -->
-    <color name="schedule_color_12">#4DD0E1</color> <!-- Cyan -->
-    <color name="schedule_color_13">#FF8A65</color> <!-- Deep Orange -->
-    <color name="schedule_color_14">#AED581</color> <!-- Light Green -->
-    <color name="schedule_color_15">#BA68C8</color> <!-- Purple -->
-    <color name="schedule_color_16">#FFF176</color> <!-- Yellow -->
-    <color name="schedule_color_17">#64B5F6</color> <!-- Blue -->
-    <color name="schedule_color_18">#BDBDBD</color> <!-- Grey -->
-    <color name="schedule_color_19">#C0CA33</color> <!-- Lime Green -->
-    <color name="schedule_color_20">#C62828</color> <!-- Dark Red -->
-    <color name="schedule_color_21">#1565C0</color> <!-- Dark Blue -->
-    <color name="schedule_color_22">#2E7D32</color> <!-- Dark Green -->
-    <color name="schedule_color_23">#6A1B9A</color> <!-- Dark Purple -->
+    <!-- Color para botones deshabilitados (gris translúcido) -->
+    <color name="boton_deshabilitado">#1F000000</color> <!-- 12% de negro -->
+
+    <!-- PALETA AMPLIADA PARA EL HORARIO -->
+    <color name="schedule_color_0">#4DB6AC</color>
+    <color name="schedule_color_1">#F06292</color>
+    <color name="schedule_color_2">#7986CB</color>
+    <color name="schedule_color_3">#FFD54F</color>
+    <color name="schedule_color_4">#9575CD</color>
+    <color name="schedule_color_5">#A1887F</color>
+    <color name="schedule_color_6">#4FC3F7</color>
+    <color name="schedule_color_7">#81C784</color>
+    <color name="schedule_color_8">#E57373</color>
+    <color name="schedule_color_9">#90A4AE</color>
+    <color name="schedule_color_10">#FFB74D</color>
+    <color name="schedule_color_11">#DCE775</color>
+    <color name="schedule_color_12">#4DD0E1</color>
+    <color name="schedule_color_13">#FF8A65</color>
+    <color name="schedule_color_14">#AED581</color>
+    <color name="schedule_color_15">#BA68C8</color>
+    <color name="schedule_color_16">#FFF176</color>
+    <color name="schedule_color_17">#64B5F6</color>
+    <color name="schedule_color_18">#BDBDBD</color>
+    <color name="schedule_color_19">#C0CA33</color>
+    <color name="schedule_color_20">#C62828</color>
+    <color name="schedule_color_21">#1565C0</color>
+    <color name="schedule_color_22">#2E7D32</color>
+    <color name="schedule_color_23">#6A1B9A</color>
 </resources>

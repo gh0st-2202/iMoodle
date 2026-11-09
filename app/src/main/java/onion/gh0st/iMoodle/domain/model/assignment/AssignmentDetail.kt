@@ -3,76 +3,43 @@ package onion.gh0st.iMoodle.domain.model.assignment
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
 
 /**
- * Detalle completo de una tarea de Moodle.
+ * El "expediente" completo de una tarea de Moodle.
  *
- * ## Qué es esto
+ * ## ¿Qué es esto?
+ * Imagina que la tarea es un sobre físico. Esta clase representa todo el contenido de ese sobre:
+ * el nombre de la tarea, la fecha límite, si has entregado algo, la nota, los archivos que ha
+ * puesto el profesor, etc.
  *
- * Es la versión "completa" de una tarea. Incluye todo lo que tiene
- * `Assignment` (nombre, descripción, fechas, etc.) más:
+ * Es una clase "inmutable", lo que significa que una vez creada para mostrarla en pantalla,
+ * no se puede modificar. Si algo cambia, se crea un expediente nuevo.
  *
- * - El **estado de la entrega** del alumno.
- * - La **nota obtenida** (si está calificada).
- * - Los **archivos adjuntos** del enunciado (plantillas, PDFs, etc.).
- *
- * Se usa en la pantalla de detalle de tarea, que es donde el alumno
- * ve toda la información de una tarea concreta.
- *
- * ## Qué es el "estado desconocido"
- *
- * El campo [statusUnknown] es especialmente importante. Indica si la
- * app **pudo consultar** el estado de la entrega o no:
- *
- * - **`false`** (lo normal): el estado de la entrega es fiable. Si
- *   dice "sin entregar", es que no se ha entregado; si dice
- *   "entregado", es que se ha entregado.
- * - **`true`**: no se pudo consultar. Puede ser porque la red falló,
- *   porque Moodle devolvió un error, o porque el servidor no
- *   respondió. En este caso, los campos [submissionStatus],
- *   [submissionGrade], [gradeDisplay] y [submissionGraded] **no son
- *   fiables**, y la UI debe mostrarlos como "desconocidos" en lugar
- *   de asumir "sin entregar".
- *
- * ## Por qué es importante distinguir "sin entregar" de "desconocido"
- *
- * Imagina que el alumno ha entregado la tarea pero, al abrir el
- * detalle, la red falla y la app no puede consultar el estado. Si la
- * app asumiera "sin entregar", el alumno vería un mensaje falso y
- * podría pensar que no ha entregado. Con [statusUnknown], la app le
- * dice "no se pudo consultar", que es la verdad.
- *
- * @property id ID interno de la tarea en Moodle.
- * @property name Nombre visible de la tarea.
- * @property description Descripción en HTML, tal cual la envía
- *   Moodle.
- * @property dueDate Fecha límite de entrega en **segundos**, o
- *   `null` si no hay.
- * @property allowSubmissionsFromDate Fecha desde la que se permiten
- *   entregas, en **segundos**, o `null` si no hay restricción.
- * @property cutoffDate Fecha de corte a partir de la cual no se
- *   aceptan más entregas, en **segundos**, o `null` si no hay. Es
- *   una fecha "límite duro" que, si existe, anula la posibilidad de
- *   entregar aunque `dueDate` sea posterior.
- * @property maxGrade Nota máxima posible de la tarea.
- * @property submissionStatus Estado de la entrega (`"submitted"`,
- *   `"draft"`, `"new"`), o `null` si no está disponible.
- * @property submissionGrade Nota numérica obtenida, o `null` si no
- *   está calificada o la escala es cualitativa.
- * @property gradeDisplay Nota ya formateada por Moodle (por ejemplo,
- *   `"7,5"` o `"Apto"`). Útil para tareas evaluadas con escala
- *   cualitativa (Apto/No apto).
- * @property submissionGraded `true` si la tarea ya está calificada.
- * @property canSubmit `true` si el alumno puede entregar ahora mismo
- *   (dentro del plazo, sin entrega previa bloqueante, etc.).
- * @property lastAttemptDate Fecha del último intento, en
- *   **segundos**, o `null` si nunca se ha intentado.
- * @property files Archivos adjuntos del enunciado de la tarea
- *   (plantillas, PDFs, etc.).
- * @property statusUnknown `true` si **no se pudo consultar** el
- *   estado de la entrega. En ese caso, los campos de entrega y nota
- *   no son fiables.
+ * @property id El número de identificación de la tarea dentro de Moodle.
+ * @property courseId El número del curso al que pertenece la tarea.
+ * @property cmId El número de identificación del módulo (el "hueco" que ocupa la tarea en el curso).
+ * @property name El título de la tarea (ej: "Práctica 1").
+ * @property description Las instrucciones de la tarea. Viene con formato HTML (etiquetas de texto).
+ * @property dueDate La fecha límite de entrega. Está en "segundos epoch" (una forma de contar el tiempo
+ *   que usan los ordenadores, contando los segundos desde 1970). Si es `null`, no hay fecha límite.
+ * @property allowSubmissionsFromDate La fecha a partir de la cual se puede entregar. Si es `null`, se puede entregar desde siempre.
+ * @property cutoffDate La fecha de "corte duro". Después de esta fecha, Moodle cierra la tarea por completo.
+ * @property maxGrade La nota máxima que se puede sacar.
+ * @property submissionStatus El estado de tu entrega. Puede ser `"submitted"` (entregado), `"draft"` (guardado pero no enviado) o `"new"` (sin empezar).
+ * @property submissionGrade La nota numérica que te han puesto (si te la han puesto).
+ * @property gradeDisplay La nota escrita tal cual la muestra Moodle (ej: "7,5" o "Apto").
+ * @property submissionGraded Un booleano (verdadero/falso) que dice si ya te han corregido la tarea.
+ * @property canSubmit Un booleano que dice si TIENES PERMISO para entregar. Se calcula mirando las fechas y lo que dice Moodle.
+ * @property canEdit Un booleano que dice si TIENES PERMISO para modificar o borrar la entrega que ya hiciste.
+ * @property lastAttemptDate La fecha de tu último intento de entrega.
+ * @property submissionId El número interno de tu entrega. Es vital para poder leer o escribir comentarios en ella. Si no has entregado nada, es `null`.
+ * @property files Lista de archivos que el profesor ha adjuntado a las instrucciones (PDFs, plantillas...).
+ * @property submissionFiles Lista de archivos que TÚ has entregado.
+ * @property enabledSubmissionPlugins Una lista de las cosas que el profesor permite entregar (ej: solo archivos, o archivos y texto).
+ * @property statusUnknown Si hubo un error de red y no se pudo comprobar el estado real de la tarea, esto se pone en `true`. Así la pantalla no miente al usuario.
  */
 data class AssignmentDetail(
     val id: Int,
+    val courseId: Int,
+    val cmId: Int,
     val name: String,
     val description: String,
     val dueDate: Long?,
@@ -84,7 +51,11 @@ data class AssignmentDetail(
     val gradeDisplay: String?,
     val submissionGraded: Boolean,
     val canSubmit: Boolean,
+    val canEdit: Boolean,
     val lastAttemptDate: Long?,
+    val submissionId: Int? = null,
     val files: List<CourseFile> = emptyList(),
+    val submissionFiles: List<CourseFile> = emptyList(),
+    val enabledSubmissionPlugins: Set<String> = emptySet(),
     val statusUnknown: Boolean = false,
 )

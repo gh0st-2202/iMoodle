@@ -35,6 +35,21 @@ import javax.inject.Singleton
  *   petición).
  * - La misma caché (si la hubiera).
  *
+ * ## Por qué NO hay `HttpLoggingInterceptor`
+ *
+ * Porque imprimiría en logcat cada petición y cada respuesta HTTP
+ * completa, incluyendo:
+ *
+ * - La URL con el `wstoken` de Moodle (un token de sesión).
+ * - Los cuerpos de las peticiones con archivos codificados en
+ *   base64 (información sensible).
+ * - Los JSON de respuesta completos (datos personales, notas, etc.).
+ *
+ * Eso es útil para depurar un bug puntual, pero en una app en uso
+ * real es un problema de privacidad y de rendimiento. Si alguna vez
+ * hace falta depurar, se añade temporalmente aquí y se quita al
+ * terminar.
+ *
  * ## Por qué es un `object` y no una `abstract class`
  *
  * Porque los métodos `@Provides` tienen cuerpo (construyen cosas), a
@@ -62,9 +77,8 @@ object NetworkModule {
      *
      * Porque las opciones por defecto de OkHttp son sensatas para la
      * mayoría de casos. Si en el futuro hace falta añadir
-     * interceptores (para logging, para reintentos, para
-     * autenticación, etc.), se añaden aquí y todos los clientes de la
-     * app se benefician.
+     * interceptores (para reintentos, para autenticación, etc.), se
+     * añaden aquí y todos los clientes de la app se benefician.
      *
      * @return Cliente HTTP singleton reutilizado por todos los
      *   repositorios.
@@ -92,14 +106,6 @@ object NetworkModule {
      * envía en la cabecera `Authorization: Bearer <token>`. Las
      * cookies no intervienen, así que no hace falta un
      * `CookieManager` específico.
-     *
-     * ## Por qué se construye aquí y no dentro del repositorio
-     *
-     * Porque `PasenApiClient` no tiene estado (solo hace peticiones
-     * HTTP), así que puede ser un `@Singleton` compartido por todos
-     * los repositorios que lo necesiten. Si se construyera dentro de
-     * cada repositorio, tendríamos varias instancias, cada una con su
-     * propio estado interno (aunque mínimo).
      *
      * @param okHttpClient Cliente HTTP base.
      * @return El cliente de Pasen.

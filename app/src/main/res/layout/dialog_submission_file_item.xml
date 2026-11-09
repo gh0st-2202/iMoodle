@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Fila de un archivo seleccionado en el diálogo de entrega.
+
+    Muestra: icono de clip (adjuntar), nombre del archivo (con tamaño
+    entre paréntesis si se conoce) y un botón para quitar el archivo
+    de la selección.
+
+    IMPORTANTE: el icono es `ic_attach_file` (clip), NO
+    `ic_arrow_download`. Ese otro icono se usa para archivos
+    descargables (adjuntos del enunciado, archivos de curso, etc.).
+    Aquí el archivo se va a SUBIR, no a descargar.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingVertical="6dp">
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_attach_file" />
+
+    <TextView
+        android:id="@+id/txt_selected_file_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:maxLines="2"
+        android:textColor="@color/texto_principal"
+        android:textSize="14sp" />
+
+    <ImageButton
+        android:id="@+id/btn_remove_selected_file"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/action_remove_file"
+        android:src="@android:drawable/ic_menu_close_clear_cancel" />
+</LinearLayout>

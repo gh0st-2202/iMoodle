@@ -16,15 +16,15 @@
     <color name="color_acento_presionado">#00C853</color>
     <color name="texto_boton">#000000</color> <!-- Texto negro sobre botón verde brillante -->
 
+    <!-- Color para botones deshabilitados en modo oscuro (blanco translúcido) -->
+    <color name="boton_deshabilitado">#1FFFFFFF</color> <!-- 12% de blanco -->
+
     <!-- Mantén también los colores base si los usas en algún sitio -->
     <color name="verde_junta">#087021</color>
     <color name="verde_junta_oscuro">#065A1A</color>
     <color name="verde_junta_suave">#1A3321</color>
 
-    <!-- ========================================== -->
-    <!-- PALETA AMPLIADA PARA EL HORARIO (24 COLORES) -->
-    <!-- ========================================== -->
-    <!-- Los mismos colores que en claro. Al ser tonos medios/bajos, contrastan bien con el fondo #1A1C1B -->
+    <!-- PALETA AMPLIADA PARA EL HORARIO -->
     <color name="schedule_color_0">#4DB6AC</color>
     <color name="schedule_color_1">#F06292</color>
     <color name="schedule_color_2">#7986CB</color>

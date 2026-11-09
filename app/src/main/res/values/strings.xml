@@ -37,7 +37,7 @@
     <string name="toast_downloading">Descargando %1$s…</string>
     <string name="toast_download_error">Error al descargar. Inténtalo de nuevo.</string>
 
-    <!-- Errores (mensajes genéricos; detalle técnico en logcat, ver bug P2 #15) -->
+    <!-- Errores -->
     <string name="error_bad_credentials">Usuario o contraseña incorrectos</string>
     <string name="error_network">Error de red. Comprueba tu conexión.</string>
     <string name="error_unexpected">Error inesperado. Inténtalo de nuevo.</string>
@@ -124,4 +124,49 @@
     <string name="update_dialog_title">Nueva versión disponible (v%1$s)</string>
     <string name="update_action_download">Descargar</string>
     <string name="update_action_later">Más tarde</string>
+
+    <!-- ================================================ -->
+    <!-- ENTREGA DE TAREAS                                -->
+    <!-- ================================================ -->
+    <string name="action_add_file">Añadir archivo</string>
+    <string name="action_remove_file">Quitar archivo</string>
+    <string name="action_submit">Entregar</string>
+    <string name="action_continue">Continuar</string>
+    <string name="submitting_assignment">Entregando…</string>
+    <string name="hint_submission_comment">Comentario (opcional)</string>
+    <string name="label_submission_files">Archivos adjuntos</string>
+    <string name="label_existing_files">Archivos ya subidos</string>
+    <string name="label_no_files_selected">No has añadido archivos nuevos</string>
+    <string name="dialog_submission_title">Entregar tarea</string>
+    <string name="dialog_submission_existing_files_hint">Los archivos que ya tenías en la entrega se conservarán</string>
+    <string name="dialog_resubmit_title">Ya has entregado esta tarea</string>
+    <string name="dialog_resubmit_message">Si vuelves a entregar, se reemplazará la entrega anterior. ¿Quieres continuar?</string>
+    <string name="toast_submission_success">Tarea entregada correctamente</string>
+    <string name="toast_submission_empty">Añade un archivo o escribe un comentario para entregar</string>
+
+    <!-- ================================================ -->
+    <!-- BORRADO DE ENTREGA                               -->
+    <!-- ================================================ -->
+    <string name="action_delete_submission">Borrar entrega</string>
+    <string name="action_delete">Borrar</string>
+    <string name="dialog_delete_submission_title">Borrar entrega</string>
+    <string name="dialog_delete_submission_message">¿Estás seguro de que quieres borrar la entrega? Esta acción eliminará todos los archivos y el texto enviados, y no se puede deshacer.</string>
+    <string name="toast_deletion_success">Entrega borrada correctamente</string>
+
+    <!-- ================================================ -->
+    <!-- ARCHIVOS DE LA ENTREGA (ALUMNO)                  -->
+    <!-- ================================================ -->
+    <string name="label_submission_attachments">Archivos entregados</string>
+
+    <!-- ================================================ -->
+    <!-- COMENTARIOS DE LA ENTREGA                        -->
+    <!-- ================================================ -->
+    <string name="label_submission_comments">Comentarios de la entrega</string>
+    <string name="label_no_comments">No hay comentarios todavía</string>
+    <string name="hint_new_comment">Escribe un comentario…</string>
+    <string name="action_post_comment">Enviar</string>
+    <string name="posting_comment">Enviando…</string>
+    <string name="action_delete_comment">Borrar comentario</string>
+    <string name="dialog_delete_comment_title">Borrar comentario</string>
+    <string name="dialog_delete_comment_message">¿Estás seguro de que quieres borrar este comentario? Esta acción no se puede deshacer.</string>
 </resources>

@@ -34,7 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingBottom="24dp">
+            android:paddingBottom="48dp">
 
             <TextView
                 android:id="@+id/txt_assign_name"
@@ -117,7 +117,6 @@
                 android:textSize="15sp"
                 tools:text="Descripción detallada de la tarea..." />
 
-            <!-- 🛠️ NUEVO: bloque de archivos adjuntos -->
             <LinearLayout
                 android:id="@+id/layout_attachments"
                 android:layout_width="match_parent"
@@ -142,18 +141,129 @@
                     android:orientation="vertical" />
             </LinearLayout>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <!-- Botón Entregar (usa ColorStateList para gris si !canSubmit) -->
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_submit_assignment"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="32dp"
-                android:background="@drawable/bg_button"
-                android:text="Entregar Tarea"
-                android:textColor="@color/texto_boton"
+                android:text="@string/action_submit"
+                android:textColor="@color/submit_button_foreground"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="visible"
+                app:backgroundTint="@color/submit_button_background"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_attach_file"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/submit_button_foreground" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_delete_submission"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="32dp"
+                android:text="@string/action_delete_submission"
+                android:textColor="@color/delete_button_foreground"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:visibility="gone"
-                android:stateListAnimator="@null" />
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_delete"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/delete_button_foreground"
+                app:strokeColor="@color/delete_button_foreground" />
+
+            <LinearLayout
+                android:id="@+id/layout_submission_attachments"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_submission_attachments"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/container_submission_attachments"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_submission_comments"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_submission_comments"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/container_submission_comments"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/txt_no_comments"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/label_no_comments"
+                    android:textColor="@color/texto_secundario"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_new_comment">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/inp_new_comment"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:minLines="2"
+                            android:maxLines="5"
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine|textCapSentences" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_post_comment"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/action_post_comment" />
+                </LinearLayout>
+            </LinearLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

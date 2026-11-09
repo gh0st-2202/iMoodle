@@ -44,6 +44,7 @@ androidx-swiperefreshlayout-v110 = { module = "androidx.swiperefreshlayout:swipe
 coil-v250 = { module = "io.coil-kt:coil", version.ref = "coil" }
 core = { module = "io.noties.markwon:core", version.ref = "core" }
 kotlinx-coroutines-android-v181 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinxCoroutinesAndroidVersion" }
+logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "okhttpUrlconnection" }
 okhttp-urlconnection-v4120 = { module = "com.squareup.okhttp3:okhttp-urlconnection", version.ref = "okhttpUrlconnection" }
 okhttp-v4120 = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttpVersion" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

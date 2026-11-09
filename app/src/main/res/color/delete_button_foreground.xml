@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Deshabilitado: gris atenuado (el mismo tono que usa Material para disabled) -->
+    <item android:alpha="0.38" android:color="@color/texto_principal" android:state_enabled="false" />
+    <!-- Habilitado: verde corporativo -->
+    <item android:color="@color/color_acento" />
+</selector>

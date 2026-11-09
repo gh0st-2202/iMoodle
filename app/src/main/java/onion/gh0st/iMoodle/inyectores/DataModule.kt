@@ -8,9 +8,11 @@ import onion.gh0st.iMoodle.api.moodle.auth.MoodleAuthRepository
 import onion.gh0st.iMoodle.api.moodle.auth.MoodleSessionProvider
 import onion.gh0st.iMoodle.api.moodle.auth.SessionApiProvider
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleAssignmentRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleAssignmentSubmissionRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCalendarRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCourseRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleForumRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleSubmissionCommentsRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenScheduleRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenUserProfileRepository
 import onion.gh0st.iMoodle.data.auth.EncryptedCredentialsStore
@@ -19,6 +21,8 @@ import onion.gh0st.iMoodle.data.favourites.LocalFavouritesRepository
 import onion.gh0st.iMoodle.data.session.DefaultSessionRepository
 import onion.gh0st.iMoodle.data.update.GitHubUpdateRepository
 import onion.gh0st.iMoodle.domain.repository.assignment.AssignmentRepository
+import onion.gh0st.iMoodle.domain.repository.assignment.AssignmentSubmissionRepository
+import onion.gh0st.iMoodle.domain.repository.assignment.SubmissionCommentsRepository
 import onion.gh0st.iMoodle.domain.repository.calendar.CalendarRepository
 import onion.gh0st.iMoodle.domain.repository.course.CourseRepository
 import onion.gh0st.iMoodle.domain.repository.course.FavouritesRepository
@@ -57,6 +61,11 @@ abstract class DataModule {
     abstract fun bindAssignmentRepository(impl: MoodleAssignmentRepository): AssignmentRepository
 
     @Binds @Singleton
+    abstract fun bindAssignmentSubmissionRepository(
+        impl: MoodleAssignmentSubmissionRepository,
+    ): AssignmentSubmissionRepository
+
+    @Binds @Singleton
     abstract fun bindForumRepository(impl: MoodleForumRepository): ForumRepository
 
     @Binds @Singleton
@@ -80,7 +89,11 @@ abstract class DataModule {
     @Binds @Singleton
     abstract fun bindUpdateRepository(impl: GitHubUpdateRepository): UpdateRepository
 
-    // --- Favoritos (Implementación Local) ---
     @Binds @Singleton
     abstract fun bindFavouritesRepository(impl: LocalFavouritesRepository): FavouritesRepository
+
+    @Binds @Singleton
+    abstract fun bindSubmissionCommentsRepository(
+        impl: MoodleSubmissionCommentsRepository,
+    ): SubmissionCommentsRepository
 }
