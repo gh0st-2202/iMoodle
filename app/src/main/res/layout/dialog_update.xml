@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Diseño del diálogo de actualización.
+    El TextView tiene un maxHeight para que el texto no se expanda
+    sin control y el diálogo no ocupe toda la pantalla.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/txt_changelog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="400dp"
+        android:lineSpacingMultiplier="1.2"
+        android:textColor="@color/texto_principal"
+        android:textSize="15sp"
+        android:linksClickable="true"
+        android:scrollbars="vertical" />
+
+</ScrollView>

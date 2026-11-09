@@ -18,8 +18,8 @@ android {
         applicationId = "onion.gh0st.iMoodle"
         minSdk = 28
         targetSdk = 37
-        versionCode = 22
-        versionName = "2.2"
+        versionCode = 23
+        versionName = "2.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,17 +52,16 @@ android {
 }
 
 dependencies {
-    // ... (Tus dependencias de producción y tests se mantienen exactamente igual) ...
-    implementation("io.coil-kt:coil-svg:2.5.0")
-    implementation("androidx.fragment:fragment-ktx:1.6.2")
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
-    implementation("com.android.databinding:viewbinding:8.2.0")
-    implementation("io.coil-kt:coil:2.5.0")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation(libs.coil.svg)
+    implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.viewbinding)
+    implementation(libs.coil)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.urlconnection)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.core)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

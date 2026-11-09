@@ -8,7 +8,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+
+    <!-- Permiso necesario para instalar actualizaciones desde la propia app -->
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
         tools:ignore="RequestInstallPackagesPolicy" />
 
     <application
@@ -22,6 +25,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MiMoodleAndalucia">
 
+        <!-- Actividades -->
         <activity
             android:name=".ui.login.LoginActivity"
             android:exported="true"
@@ -32,9 +36,18 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.main.MainActivity" android:exported="false" android:launchMode="singleTop" />
-        <activity android:name=".ui.web.WebActivity" android:exported="false" />
-        <activity android:name=".ui.web.MoodleWebViewActivity" android:exported="false" />
+        <activity
+            android:name=".ui.main.MainActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
+        <activity
+            android:name=".ui.web.WebActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.web.MoodleWebViewActivity"
+            android:exported="false" />
 
         <!-- Receptores -->
         <receiver
@@ -49,6 +62,21 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!--
+            Proveedor de archivos (FileProvider).
+            Permite compartir el APK descargado con el instalador del
+            sistema sin exponer la ruta completa del archivo.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 </manifest>

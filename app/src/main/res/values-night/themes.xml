@@ -25,4 +25,7 @@
         <item name="chipStrokeWidth">1dp</item>
         <item name="chipIconTint">@color/color_acento</item>
     </style>
+
+    <dimen name="update_dialog_corner_radius">20dp</dimen>
+
 </resources>

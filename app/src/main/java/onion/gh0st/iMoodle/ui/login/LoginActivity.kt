@@ -32,79 +32,82 @@ import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.ui.main.MainActivity
 
 /**
- * Pantalla de login con selección de provincia.
+ * Pantalla de inicio de sesión.
  *
- * ## Qué muestra
+ * ## ¿Qué ves en pantalla?
+ * - Un **desplegable** para elegir la provincia.
+ * - Un **campo de texto** para el usuario (NIF/NIE/IdEA).
+ * - Un **campo de texto** para la contraseña, con un ojo 👁️ que
+ *   permite verla u ocultarla.
+ * - Un **botón** "Iniciar sesión".
  *
- * - Un spinner para elegir la provincia.
- * - Un campo de texto para el usuario (NIF/NIE/IdEA).
- * - Un campo de texto para la contraseña (con botón de "ver/ocultar").
- * - Un botón de "Iniciar sesión".
- *
- * ## Cómo obtiene los datos
- *
- * Delega en `LoginViewModel`, que a su vez usa
- * `SessionRepository`. La Activity solo:
- *
- * 1. Configura los campos.
- * 2. Recoge los inputs del usuario.
- * 3. Observa el estado y los eventos del ViewModel.
- * 4. Navega a `MainActivity` al terminar.
+ * ## ¿Quién hace el trabajo de verdad?
+ * Esta pantalla es solo "la cara". La lógica real (comprobar
+ * credenciales, hablar con los servidores de la Junta, guardar la
+ * sesión) está en `LoginViewModel`. La Activity se limita a:
+ * 1. Recoger lo que el usuario escribe.
+ * 2. Avisar al ViewModel: "el usuario ha pulsado el botón".
+ * 3. Escuchar al ViewModel: "el login ha ido bien" o "ha fallado
+ *    por esto".
+ * 4. Cambiar de pantalla cuando toca.
  *
  * ## Auto-login
+ * Cuando la app arranca, esta pantalla le pregunta al ViewModel:
+ * "¿hay una sesión guardada de antes?". Si la hay, salta
+ * directamente a la pantalla principal sin que el usuario tenga
+ * que escribir nada.
  *
- * Al construirse, el ViewModel intenta recuperar una sesión
- * guardada. Si la hay, navega directamente a `MainActivity` sin que
- * el usuario tenga que hacer nada.
- *
- * ## Sobre el deep-link
- *
- * Si `MainActivity` redirigió aquí porque el proceso murió al pulsar
- * una notificación, el `Intent` lleva los extras de deep-link
- * (`COURSE_ID` e `INSTANCE_ID`). Al navegar a `MainActivity` tras
- * el login, esos extras se reenvían con `DeepLinkExtras.copy` para
- * no perder el destino original.
+ * ## ¿Y si venías de una notificación?
+ * Si el móvil cerró la app mientras pulsabas una notificación de
+ * tarea, `MainActivity` te manda aquí para que vuelvas a
+ * identificarte. Pero se lleva consigo la "nota" (ver
+ * `DeepLinkExtras`) para no olvidar a qué tarea querías ir. Tras
+ * el login, esta pantalla reenvía esa nota a la pantalla principal
+ * para que se abra la tarea correcta.
  */
 @AndroidEntryPoint
 class LoginActivity : AppCompatActivity() {
 
-    /** Campo de texto del usuario. */
+    /** Campo de texto donde se escribe el usuario. */
     private lateinit var inpUser: EditText
 
-    /** Campo de texto de la contraseña. */
+    /** Campo de texto donde se escribe la contraseña. */
     private lateinit var inpPass: EditText
 
-    /** Spinner de provincias. */
+    /** Desplegable para elegir la provincia. */
     private lateinit var spinnerCentro: Spinner
 
-    /** Botón de login. */
+    /** Botón de "Iniciar sesión". */
     private lateinit var btnLogin: Button
 
-    /** Botón de "ver/ocultar" contraseña. */
+    /** Botón con forma de ojo 👁️ para ver u ocultar la contraseña. */
     private lateinit var btnTogglePass: ImageView
 
-    /** ViewModel de la pantalla. */
+    /** ViewModel que contiene la lógica real del login. */
     private val viewModel: LoginViewModel by viewModels()
 
-    /** Recuerda si la contraseña está visible o no. */
+    /**
+     * Recuerda si la contraseña está visible o no.
+     * Empieza en `false` (oculta), porque es lo más seguro por
+     * defecto.
+     */
     private var isPasswordVisible = false
 
     /**
-     * Ciclo de vida de la Activity.
+     * Punto de entrada de la pantalla.
      *
      * ## Qué hace paso a paso
-     *
-     * 1. Activa el modo "edge-to-edge" (dibujar detrás de las barras
-     *    del sistema).
-     * 2. Infla el layout.
-     * 3. Aplica los insets de barras del sistema.
-     * 4. Enlaza las vistas.
-     * 5. Configura el spinner de provincias.
-     * 6. Configura el toggle de contraseña.
-     * 7. Configura los listeners de los campos.
-     * 8. Observa el ViewModel.
-     *
-     * @param savedInstanceState Estado previo.
+     * 1. Prepara la ventana para que se dibuje también debajo de las
+     *    barras del sistema (modo "edge-to-edge").
+     * 2. Carga el diseño de la pantalla (el XML).
+     * 3. Ajusta los márgenes para que el contenido no quede tapado
+     *    por las barras del móvil.
+     * 4. Enlaza los elementos del diseño con variables del código.
+     * 5. Rellena el desplegable de provincias.
+     * 6. Configura el ojo 👁️ de la contraseña.
+     * 7. Configura los campos de texto para detectar lo que escribe
+     *    el usuario.
+     * 8. Empieza a escuchar al ViewModel.
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -120,14 +123,23 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Aplica padding de barras del sistema al layout raíz.
+     * Ajusta los márgenes para que el contenido respete las barras
+     * del sistema (la de estado arriba y la de navegación abajo).
      *
-     * ## Qué hace
+     * ## ¿Por qué hace falta?
+     * En el modo "edge-to-edge" la app dibuja **por debajo** de las
+     * barras del móvil. Eso queda bonito, pero el texto se metería
+     * debajo de la barra de estado. Esta función suma al margen
+     * original el alto de las barras para que el contenido siempre
+     * quede visible.
      *
-     * Guarda los paddings originales del layout (los que vienen del
-     * XML) y les suma los insets del sistema. Así el contenido no se
-     * dibuja debajo de las barras, pero tampoco pierde el padding que
-     * ya tenía.
+     * ## Cómo funciona
+     * 1. Guarda los márgenes originales del diseño (los que vienen
+     *    del XML).
+     * 2. Se pone a "escuchar" los cambios en las barras del sistema
+     *    (aparecer, desaparecer, cambiar de tamaño).
+     * 3. Cada vez que cambian, vuelve a calcular los márgenes
+     *    sumando los originales + el tamaño de las barras.
      */
     private fun setupWindowInsets() {
         val mainLayout = findViewById<View>(R.id.lyt_main)
@@ -149,21 +161,25 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Enlaza las vistas y configura el listener del botón de login.
+     * Enlaza los elementos del diseño con variables del código y
+     * prepara el botón de login.
      *
      * ## Comportamiento del botón
+     * Cuando el usuario pulsa "Iniciar sesión":
+     * 1. Se mira qué provincia está seleccionada en el desplegable.
+     * 2. Si es la opción 0 ("Selecciona provincia"), se muestra un
+     *    aviso por pantalla y **no se hace nada más**. No se puede
+     *    iniciar sesión sin provincia.
+     * 3. Si hay una provincia válida, se oculta el teclado (para
+     *    que no estorbe mientras se conecta) y se le pasa la
+     *    petición al ViewModel con la provincia, el usuario y la
+     *    contraseña.
      *
-     * 1. Lee la posición seleccionada del spinner.
-     * 2. Si es 0 ("Selecciona provincia"), muestra un toast y no
-     *    hace nada.
-     * 3. Si es una provincia válida, oculta el teclado y delega el
-     *    login en el ViewModel.
-     *
-     * ## Por qué se resta 1 al índice del spinner
-     *
-     * Porque el ítem 0 del spinner es el placeholder ("Selecciona
-     * provincia"), y las provincias empiezan en el índice 1. La
-     * conversión a `Provincia` se hace restando 1.
+     * ## ¿Por qué se resta 1 a la posición del desplegable?
+     * Porque la opción 0 es el texto "Selecciona provincia", y las
+     * provincias de verdad empiezan en la posición 1. El código
+     * `Provincia.entries[selectedPosition - 1]` coge la provincia
+     * correcta.
      */
     private fun bindViews() {
         inpUser = findViewById(R.id.inp_user)
@@ -193,18 +209,19 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Configura el spinner de provincias.
+     * Rellena el desplegable de provincias.
      *
-     * ## Qué hace
-     *
-     * 1. Construye la lista de opciones: el placeholder + las ocho
-     *    provincias.
-     * 2. Configura el adapter del spinner.
-     * 3. Configura un listener que notifica al ViewModel cuando
-     *    cambia la selección.
-     * 4. Colorea los ítems del spinner manualmente (algunos temas de
-     *    Android ignoran el color de texto del adapter en el ítem
-     *    seleccionado).
+     * ## Qué hace paso a paso
+     * 1. Crea una lista de opciones: primero el texto "Selecciona
+     *    provincia", y detrás las ocho provincias andaluzas.
+     * 2. Le dice al desplegable que use esa lista como opciones.
+     * 3. Configura un "aviso" para que cada vez que el usuario
+     *    elija una provincia, se lo comunique al ViewModel.
+     * 4. Pinta los textos del desplegable con el color correcto.
+     *    (Algunos temas de Android ignoran el color configurado
+     *    por el adapter y hay que forzarlo a mano; por eso el
+     *    `post { ... }` que recorre los hijos del desplegable y
+     *    les cambia el color).
      */
     private fun setupSpinner() {
         val provinceOptions = mutableListOf<String>()
@@ -240,15 +257,15 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Alterna la visibilidad de la contraseña.
+     * Configura el ojo 👁️ para mostrar u ocultar la contraseña.
      *
      * ## Qué hace
-     *
-     * 1. Cambia el `transformationMethod` del `EditText` entre
-     *    "texto normal" y "texto oculto" (`PasswordTransformationMethod`).
-     * 2. Cambia el icono del botón.
-     * 3. Mantiene el cursor al final del texto (para no perder la
-     *    posición tras el cambio).
+     * Cada vez que pulsas el ojo:
+     * 1. Cambia entre "texto normal" y "texto oculto" (puntos
+     *    negros, como en cualquier campo de contraseña).
+     * 2. Cambia el dibujo del botón: un ojo abierto o un ojo tachado.
+     * 3. Coloca el cursor al final del texto para que el usuario no
+     *    pierda la posición donde estaba escribiendo.
      */
     private fun setupPasswordToggle() {
         btnTogglePass.setOnClickListener {
@@ -265,18 +282,19 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Añade el `TextWatcher` compartido a ambos inputs.
+     * Avisa al ViewModel cada vez que el usuario escribe en los
+     * campos de usuario o contraseña.
      *
-     * ## Qué hace
+     * ## ¿Para qué?
+     * Para que el botón "Iniciar sesión" solo se pueda pulsar
+     * cuando ambos campos tienen texto. Si cualquiera está vacío,
+     * el botón se queda gris y deshabilitado. Esto evita que el
+     * usuario pulse "Iniciar sesión" sin haber escrito nada.
      *
-     * En cada pulsación, notifica al ViewModel con el estado actual
-     * de ambos campos. El ViewModel decide si el botón debe
-     * habilitarse (ambos con texto).
-     *
-     * ## Por qué se reutiliza el mismo watcher para los dos
-     *
-     * Porque la lógica es idéntica. Crear dos instancias sería
-     * duplicar código sin aportar nada.
+     * ## Cómo
+     * Se crea un "espía" (`TextWatcher`) que se coloca en los dos
+     * campos. Cada vez que cambia el texto de cualquiera de ellos,
+     * avisa al ViewModel con el contenido actual de los dos.
      */
     private fun setupListeners() {
         val textWatcher = object : TextWatcher {
@@ -303,11 +321,17 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Observa el estado y los eventos del ViewModel en paralelo.
+     * Empieza a escuchar lo que dice el ViewModel.
      *
-     * Lanza dos corrutinas dentro de `repeatOnLifecycle(STARTED)`:
-     * una para el estado, otra para los eventos. Se pausan cuando la
-     * Activity no está visible.
+     * ## Qué hace
+     * Lanza dos "tareas en paralelo":
+     * - Una **escucha el estado** (¿el botón está habilitado? ¿qué
+     *   texto muestra?).
+     * - Otra **escucha los eventos** (avisos: "muestra este toast",
+     *   "navega a la pantalla principal").
+     *
+     * Estas tareas se pausan cuando la pantalla deja de estar
+     * visible, para no malgastar batería.
      */
     private fun observeViewModel() {
         lifecycleScope.launch {
@@ -319,15 +343,16 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Refleja el `LoginUiState` en las vistas.
+     * Refleja el estado del ViewModel en los elementos visuales.
      *
      * ## Qué actualiza
-     *
-     * - **Estado del botón**: habilitado o no.
-     * - **Alpha del botón**: 0.5 o 1.0.
+     * - **¿El botón está habilitado?** (verdadero o falso).
+     * - **Transparencia del botón**: 0.5 si está deshabilitado, 1.0
+     *   si está habilitado.
      * - **Texto del botón**: "Iniciar sesión" o "Conectando…".
-     * - **Posición del spinner**: solo si difiere, para no disparar
-     *   el `onItemSelectedListener` en bucle.
+     * - **Provincia seleccionada**: solo cambia si de verdad ha
+     *   cambiado (para no disparar el aviso de "cambio de provincia"
+     *   en bucle).
      */
     private suspend fun observeUiState() {
         viewModel.uiState.collect { state ->
@@ -341,10 +366,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Consume los eventos de un solo uso del ViewModel.
+     * Reacciona a los avisos del ViewModel.
      *
-     * - `ShowToast` → muestra el toast con el mensaje.
-     * - `NavigateToMain` → navega a `MainActivity`.
+     * - **"Muestra este mensaje"**: lanza un toast con el texto.
+     * - **"El login ha ido bien"**: navega a la pantalla principal.
      */
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
@@ -356,26 +381,34 @@ class LoginActivity : AppCompatActivity() {
     }
 
     /**
-     * Muestra un toast de larga duración.
+     * Muestra un mensaje breve en pantalla durante unos segundos.
      *
-     * @param text Texto a mostrar.
+     * @param text El texto a mostrar.
      */
     private fun showToast(text: String) {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
     /**
-     * Navega a `MainActivity` cerrando la pila de login.
+     * Salta a la pantalla principal (`MainActivity`) y cierra esta.
      *
-     * ## Sobre el deep-link
+     * ## Sobre la "nota" de la notificación
+     * Si esta pantalla se abrió porque el móvil cerró la app mientras
+     * pulsabas una notificación, llevamos encima la "nota" (ver
+     * `DeepLinkExtras`). Antes de saltar, se copia esa nota al nuevo
+     * sobre para que la pantalla principal sepa a qué tarea debe ir.
      *
-     * Si `MainActivity` nos mandó aquí (proceso muerto al pulsar una
-     * notificación), reenvía el deep-link con `DeepLinkExtras.copy`
-     * para no perder el destino.
+     * ## Sobre `destination`
+     * El parámetro se llama `destination` (no `to`) para no chocar
+     * con una palabra especial de Kotlin (ver explicación en
+     * `DeepLinkExtras.copy`).
      */
     private fun navigateToMain() {
         val mainIntent = Intent(this, MainActivity::class.java)
-        DeepLinkExtras.copy(from = intent, to = mainIntent)
+        DeepLinkExtras.copy(
+            from = intent,
+            destination = mainIntent,
+        )
         startActivity(mainIntent)
         finish()
     }
@@ -383,8 +416,9 @@ class LoginActivity : AppCompatActivity() {
     /**
      * Oculta el teclado virtual.
      *
-     * Se llama antes de lanzar el login para que el usuario no vea
-     * el teclado mientras espera la respuesta de la red.
+     * Se llama justo antes de iniciar sesión, para que el usuario no
+     * vea el teclado ocupando media pantalla mientras la app habla
+     * con el servidor.
      */
     private fun hideKeyboard() {
         val inputMethodManager =

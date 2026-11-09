@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Define las rutas seguras desde las que la app puede compartir archivos.
+    Usamos la carpeta "cache" porque es temporal y el sistema la puede
+    borrar si necesita espacio.
+-->
+<paths>
+    <cache-path name="apk_updates" path="." />
+</paths>
