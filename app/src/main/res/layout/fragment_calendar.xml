@@ -13,10 +13,11 @@
         android:background="@color/fondo_app"
         app:liftOnScroll="true">
 
+        <!-- Toolbar compacta de 48dp -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar_calendar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="48dp"
             app:title="Próximos eventos"
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -32,7 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="24dp" />
+            android:paddingBottom="4dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <LinearLayout
@@ -41,20 +42,24 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="32dp"
+        android:paddingStart="32dp"
+        android:paddingTop="32dp"
+        android:paddingEnd="32dp"
+        android:paddingBottom="16dp"
         android:visibility="gone"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+        <!-- Icono un poco más pequeño para que quepa bien en pantallas apaisadas -->
         <ImageView
-            android:layout_width="96dp"
-            android:layout_height="96dp"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
             android:src="@drawable/ic_calendar"
             app:tint="@color/texto_hint" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:text="No hay eventos próximos"
             android:textColor="@color/texto_principal"
             android:textSize="18sp"

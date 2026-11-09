@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blueviolet?logo=kotlin)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-API%2028%2B-green?logo=android)](https://developer.android.com)
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.1-blue)](./app/build.gradle.kts)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.2-blue)](./app/build.gradle.kts)
 [![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)]()
 
 ---
@@ -27,6 +27,7 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 ### Moodle
 - 🔐 Login con credenciales de la Junta (CAS + Moodle).
 - 📚 Listado de cursos con progreso y portada (o patrón generado si no hay).
+- ⭐ **Cursos Favoritos**: Marca tus asignaturas con una estrella para que aparezcan siempre las primeras en la lista.
 - 📂 Detalle de curso con secciones, módulos y archivos descargables.
 - 📝 Detalle de tarea con fechas, estado de entrega, nota y adjuntos.
 - 💬 Foros con discusiones y mensajes en HTML (enlaces clicables).
@@ -37,6 +38,8 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 👤 **Perfil del alumno** enriquecido con datos personales (centro, fecha de nacimiento, edad, sexo).
 
 ### General
+- 👆 **Navegación por gestos**: Desliza el dedo entre las pestañas de Cursos, Agenda, Horario y Perfil (en orientación vertical).
+- 🔄 **Comprobador de actualizaciones**: La app te avisa y permite descargar nuevas versiones directamente desde GitHub.
 - 🔔 **Notificaciones locales** de tareas próximas a entregar.
 - 🔄 **Refresco silencioso de tokens**: la sesión se renueva sin pedir la contraseña.
 - 💾 **Offline-first**: cursos, tareas y calendario se cachean en local.
@@ -82,7 +85,7 @@ flowchart TD
 | Categoría | Tecnología |
 |---|---|
 | Lenguaje | Kotlin 2.x |
-| UI | Material 3 · ViewBinding · Navigation |
+| UI | Material 3 · ViewBinding · ViewPager2 |
 | Arquitectura | MVVM + Clean Architecture |
 | Inyección de dependencias | Hilt |
 | Persistencia local | Room + DataStore/SharedPreferences cifradas |
@@ -108,7 +111,7 @@ flowchart TD
 
 ```bash
 # 1. Clona el repositorio
-git clone https://github.com/<tu-usuario>/iMoodle.git
+git clone https://github.com/gh0st-2202/iMoodle.git
 cd iMoodle
 
 # 2. Compila
@@ -131,6 +134,7 @@ La app maneja datos sensibles, así que conviene explicar cómo se tratan:
 - **Credenciales de la Junta**: se guardan **cifradas** en el dispositivo con `EncryptedSharedPreferences` + **Android Keystore**. Se borran al hacer logout o si la Junta las rechaza.
 - **Tokens de Moodle**: se guardan cifrados. Son revocables y de corta duración.
 - **Cachés de horario y perfil**: se indexan por `username` de la Junta, en `SharedPreferences`. No contienen credenciales.
+- **Cursos favoritos**: se guardan **solo en el dispositivo** (`SharedPreferences`), sin enviar datos a ningún servidor externo.
 - **Datos de cursos, tareas y calendario**: se guardan en Room y se borran al hacer logout.
 - **Sin telemetría**: la app no envía datos a ningún servidor propio. Todas las peticiones van directamente a los servidores de la Junta.
 - **Sin publicidad**: no hay SDKs de terceros que rastreen al usuario.
@@ -150,9 +154,11 @@ app/src/main/java/onion/gh0st/iMoodle/
 ├── core/             Utilidades transversales (logging, await, defaults…)
 ├── data/             Persistencia y gestión de sesión
 │   ├── auth/         Almacenes cifrados (tokens, credenciales)
+│   ├── favourites/   Almacenamiento local de cursos favoritos
 │   ├── local/        Room (DAOs, entidades, migraciones)
 │   ├── schedule/     Caché de horario
-│   └── session/      Sesión, caches de usuario y perfil
+│   ├── session/      Sesión, caches de usuario y perfil
+│   └── update/       Comprobador de actualizaciones en GitHub
 ├── domain/           Contratos de negocio
 │   ├── model/
 │   ├── repository/

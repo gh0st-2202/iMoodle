@@ -21,51 +21,25 @@ import onion.gh0st.iMoodle.databinding.FragmentCoursesBinding
 import onion.gh0st.iMoodle.ui.courses.detail.CourseDetailFragment
 
 /**
- * Pantalla de listado de cursos del usuario logueado.
+ * Pantalla del listado de cursos.
  *
- * ## Qué muestra
- *
- * La lista de cursos en los que el usuario está matriculado, en
- * formato de tarjetas. Cada tarjeta muestra:
- *
- * - Una imagen de portada (o un patrón SVG generado si no hay).
- * - El nombre del curso.
- * - Un icono de favorito (placeholder, pendiente de implementar).
- * - Un botón "Entrar".
- *
- * ## Orientación
- *
- * La lista se muestra en formato vertical (portrait) u horizontal
- * (landscape), según la orientación del dispositivo. El
- * `LayoutManager` se ajusta automáticamente.
- *
- * ## Cómo obtiene los datos
- *
- * Delega en `CoursesViewModel`, que a su vez observa Room
- * (offline-first). El Fragment solo:
- *
- * 1. Configura el `RecyclerView` y el `SwipeRefreshLayout`.
- * 2. Observa el estado.
- * 3. Reacciona a eventos (errores).
- * 4. Navega al detalle del curso al pulsar una tarjeta.
- *
- * ## Errores
- *
- * Los errores se consumen como eventos de un solo uso
- * (`CoursesUiEvent.ShowError`), no desde el estado. Así el toast no
- * se repite al volver al Fragment ni al re-suscribirse.
+ * ## Corrección de la interfaz
+ * Cuando se marca un curso como favorito, cambia de posición en la
+ * lista. Para evitar que la pantalla haga un salto automático
+ * siguiendo al curso movido, se guarda la posición exacta del primer
+ * elemento visible y se restaura después de actualizar la lista.
  */
 @AndroidEntryPoint
 class CoursesFragment : Fragment(R.layout.fragment_courses) {
 
-    /** ViewModel de la pantalla. */
     private val viewModel: CoursesViewModel by viewModels()
 
     /**
-     * Ciclo de vida de la vista.
+     * Prepara la pantalla cuando se va a mostrar.
      *
-     * @param view Vista raíz inflada.
-     * @param savedInstanceState Estado previo.
+     * Su propósito es enlazar las vistas, configurar los márgenes de
+     * la pantalla, crear la lista y empezar a escuchar los cambios
+     * de datos.
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentCoursesBinding.bind(view)
@@ -76,57 +50,31 @@ class CoursesFragment : Fragment(R.layout.fragment_courses) {
     }
 
     /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     *
-     * ## Fail-fast
-     *
-     * Se lanza una excepción si el layout no tiene el `AppBarLayout`
-     * esperado. Es un error de XML, no de runtime: si falta, es un
-     * bug que debe detectarse en desarrollo.
-     *
-     * @param binding Binding de la vista.
-     * @throws IllegalStateException si no hay `AppBarLayout` en el
-     *   layout.
+     * Ajusta los márgenes para que el contenido no quede tapado por
+     * las barras del sistema (hora, batería, etc.).
      */
     private fun setupWindowInsets(binding: FragmentCoursesBinding) {
-        val appBarLayout = requireNotNull(binding.appBar) {
-            "El layout de fragment_courses debe tener un AppBarLayout con id=app_bar"
-        }
+        val appBarLayout = requireNotNull(binding.appBar) { "El layout debe tener un AppBarLayout" }
         ViewCompat.setOnApplyWindowInsetsListener(appBarLayout) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
+            view.setPadding(view.paddingLeft, systemBars.top, view.paddingRight, systemBars.bottom)
             insets
         }
     }
 
     /**
-     * Construye el adapter de cursos con sus callbacks.
-     *
-     * ## Qué callbacks recibe
-     *
-     * - `onClick`: pulsar la tarjeta entera → abrir curso.
-     * - `onEnterClick`: pulsar el botón "Entrar" → abrir curso.
-     * - `onLongClick`: mantener pulsado → reservado para
-     *   "favorito" (pendiente de implementar).
-     *
-     * @return Adapter listo para el `RecyclerView`.
+     * Crea el adaptador que dibuja los cursos y le dice qué hacer
+     * cuando el usuario pulsa una tarjeta o una estrella.
      */
     private fun buildAdapter() = CourseAdapter(
         onClick = { course -> openCourse(course) },
         onEnterClick = { course -> openCourse(course) },
-        onLongClick = { },
+        onFavouriteClick = { course -> viewModel.toggleFavourite(course) },
     )
 
     /**
-     * Configura el `RecyclerView` y el pull-to-refresh.
-     *
-     * @param binding Binding de la vista.
-     * @param adapter Adapter ya construido.
+     * Conecta la lista visual (RecyclerView) con el adaptador y
+     * activa la acción de recargar al deslizar hacia abajo.
      */
     private fun setupRecyclerView(binding: FragmentCoursesBinding, adapter: CourseAdapter) {
         binding.rvCourses.layoutManager = layoutManagerForCurrentOrientation()
@@ -135,44 +83,18 @@ class CoursesFragment : Fragment(R.layout.fragment_courses) {
     }
 
     /**
-     * Devuelve el `LayoutManager` adecuado según la orientación.
-     *
-     * ## Comportamiento
-     *
-     * - **Landscape**: lista horizontal (las tarjetas se desplazan
-     *   de izquierda a derecha).
-     * - **Portrait**: lista vertical (las tarjetas se desplazan de
-     *   arriba a abajo).
-     *
-     * @return `LinearLayoutManager` configurado.
+     * Decide si la lista debe mostrarse en vertical o en horizontal
+     * dependiendo de cómo esté sujetando el usuario el teléfono.
      */
     private fun layoutManagerForCurrentOrientation(): LinearLayoutManager {
-        val isLandscape = resources.configuration.orientation ==
-                Configuration.ORIENTATION_LANDSCAPE
-        return if (isLandscape) {
-            LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-        } else {
-            LinearLayoutManager(requireContext())
-        }
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        return if (isLandscape) LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        else LinearLayoutManager(requireContext())
     }
 
     /**
-     * Observa el estado y los eventos del ViewModel en paralelo.
-     *
-     * ## Por qué dos corrutinas
-     *
-     * Porque `state` y `events` son `Flow`s independientes. Si se
-     * recolectaran en la misma corrutina, habría que elegir cuál
-     * primero, y el otro se quedaría sin procesar.
-     *
-     * ## Por qué `repeatOnLifecycle(STARTED)`
-     *
-     * Porque pausa la recolección cuando el Fragment no está visible
-     * (por ejemplo, al ir a otra pantalla). Así no se procesan
-     * eventos en background.
-     *
-     * @param binding Binding de la vista.
-     * @param adapter Adapter al que enviar la lista.
+     * Empieza a escuchar los cambios del "cerebro" (ViewModel)
+     * para actualizar la pantalla y los mensajes de error.
      */
     private fun observeUi(binding: FragmentCoursesBinding, adapter: CourseAdapter) {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -184,72 +106,58 @@ class CoursesFragment : Fragment(R.layout.fragment_courses) {
     }
 
     /**
-     * Refleja el estado del ViewModel en la UI.
+     * Actualiza la lista visual cuando los datos cambian.
      *
-     * ## Comportamiento
-     *
-     * - Actualiza la lista del adapter.
-     * - Muestra la rueda de refresh solo si hay cursos y está
-     *   cargando (evita que la rueda se quede girando sobre una lista
-     *   vacía).
-     * - Muestra el estado vacío si no está cargando y no hay cursos.
-     * - Muestra la lista solo si hay cursos.
-     *
-     * @param binding Binding de la vista.
-     * @param adapter Adapter al que enviar la lista.
+     * Implementa el truco para que la pantalla no salte cuando un
+     * curso cambia de posición al marcarlo como favorito.
      */
     private suspend fun observeState(binding: FragmentCoursesBinding, adapter: CourseAdapter) {
         viewModel.uiState.collect { state ->
-            adapter.submitList(state.courses)
-            binding.swipeRefresh.isRefreshing =
-                state.isLoading && state.courses.isNotEmpty()
-            binding.emptyState.isVisible =
-                !state.isLoading && state.courses.isEmpty()
+            val layoutManager = binding.rvCourses.layoutManager as? LinearLayoutManager
+            val firstVisiblePosition = layoutManager?.findFirstVisibleItemPosition() ?: -1
+            val firstVisibleOffset = if (firstVisiblePosition >= 0) {
+                val firstView = layoutManager?.findViewByPosition(firstVisiblePosition)
+                if (firstView != null) {
+                    layoutManager.getDecoratedTop(firstView) - layoutManager.getTopDecorationHeight(firstView)
+                } else 0
+            } else 0
+
+            adapter.submitList(state.courses) {
+                if (firstVisiblePosition >= 0) {
+                    layoutManager?.scrollToPositionWithOffset(firstVisiblePosition, firstVisibleOffset)
+                }
+            }
+
+            binding.swipeRefresh.isRefreshing = state.isLoading && state.courses.isNotEmpty()
+            binding.emptyState.isVisible = !state.isLoading && state.courses.isEmpty()
             binding.rvCourses.isVisible = state.courses.isNotEmpty()
         }
     }
 
     /**
-     * Consume los eventos de un solo uso del ViewModel.
-     *
-     * Actualmente solo hay `ShowError`: se resuelve con
-     * `getString(messageResId, arg)` (o `getString(messageResId)` si
-     * no hay argumento) y se muestra como toast.
+     * Muestra un mensaje flotante (Toast) cuando hay un error.
      */
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
                 is CoursesUiEvent.ShowError -> {
-                    val message = event.arg?.let { formatArg ->
-                        getString(event.messageResId, formatArg)
-                    } ?: getString(event.messageResId)
-                    showToast(message)
+                    val message = event.arg?.let { getString(event.messageResId, it) } ?: getString(event.messageResId)
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
     /**
-     * Navega al detalle del curso.
+     * Navega a la pantalla de detalle de un curso.
      *
-     * @param course Curso pulsado.
+     * Su propósito es abrir una nueva capa visual por encima de
+     * la lista con la información del curso seleccionado.
      */
     private fun openCourse(course: CourseUi) {
         parentFragmentManager.commit {
-            replace(
-                R.id.fragment_container,
-                CourseDetailFragment.newInstance(course.id, course.name),
-            )
+            replace(R.id.detail_container, CourseDetailFragment.newInstance(course.id, course.name))
             addToBackStack(null)
         }
-    }
-
-    /**
-     * Muestra un toast largo.
-     *
-     * @param message Texto ya resuelto a mostrar.
-     */
-    private fun showToast(message: String) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
     }
 }

@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Layout de perfil para ORIENTACIÓN HORIZONTAL (Landscape).
+
+    Mantiene exactamente los mismos IDs que el layout vertical
+    (snake_case) y los mismos colores personalizados.
+
+    Ajustes de espacio vertical (v2.2):
+    - Padding vertical del contenedor reducido a 16dp.
+    - Botón de logout reducido a 48dp de alto.
+    - Margen superior del botón reducido a 16dp.
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo_app">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar_profile"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/fondo_app"
+        app:liftOnScroll="true">
+
+        <!-- Toolbar compacta de 48dp -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar_profile"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            app:title="Mi Perfil"
+            app:titleTextColor="@color/texto_principal" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <!-- Contenedor principal: Horizontal con menos padding vertical -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:paddingHorizontal="24dp"
+            android:paddingVertical="16dp">
+
+            <!-- ========================================== -->
+            <!-- COLUMNA IZQUIERDA: Identidad y Logout      -->
+            <!-- ========================================== -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingEnd="24dp">
+
+                <!-- Avatar -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    app:cardBackgroundColor="@color/verde_junta_suave"
+                    app:cardCornerRadius="48dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/color_acento"
+                    app:strokeWidth="2dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <TextView
+                            android:id="@+id/txt_avatar_initials"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:textColor="@color/color_acento"
+                            android:textSize="32sp"
+                            android:textStyle="bold"
+                            tools:text="JP" />
+
+                        <ImageView
+                            android:id="@+id/img_avatar_photo"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            tools:src="@tools:sample/avatars" />
+                    </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Nombre y Correo -->
+                <TextView
+                    android:id="@+id/txt_profile_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textAlignment="center"
+                    android:textColor="@color/texto_principal"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    tools:text="Juan Pérez" />
+
+                <TextView
+                    android:id="@+id/txt_profile_email"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/texto_hint"
+                    android:textSize="15sp"
+                    tools:text="juan.perez@ejemplo.com" />
+
+                <!-- Espacio flexible para empujar el botón hacia abajo -->
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Botón de Cerrar Sesión (más compacto) -->
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btn_logout"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_button"
+                    android:stateListAnimator="@null"
+                    android:text="Cerrar Sesión"
+                    android:textColor="@color/texto_boton"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Divisor vertical sutil -->
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="@color/borde_input" />
+
+            <!-- ========================================== -->
+            <!-- COLUMNA DERECHA: Información de PASEN      -->
+            <!-- ========================================== -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingStart="24dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/fondo_input"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/borde_input"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_info_title"
+                            android:textColor="@color/color_acento"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <!-- Centro -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/profile_center"
+                                android:textColor="@color/texto_secundario"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/txt_pasen_center"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="@color/texto_principal"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                tools:text="I.E.S. Ejemplo" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="8dp"
+                            android:background="@color/borde_input" />
+
+                        <!-- Fecha de nacimiento -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/profile_birthdate"
+                                android:textColor="@color/texto_secundario"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/txt_pasen_birthdate"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="@color/texto_principal"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                tools:text="01/01/2005" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="8dp"
+                            android:background="@color/borde_input" />
+
+                        <!-- Edad -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/profile_age"
+                                android:textColor="@color/texto_secundario"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/txt_pasen_age"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="@color/texto_principal"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                tools:text="21 años" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:layout_marginVertical="8dp"
+                            android:background="@color/borde_input" />
+
+                        <!-- Sexo -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/profile_gender"
+                                android:textColor="@color/texto_secundario"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/txt_pasen_gender"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="end"
+                                android:textColor="@color/texto_principal"
+                                android:textSize="15sp"
+                                android:textStyle="bold"
+                                tools:text="Hombre" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

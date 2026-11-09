@@ -22,10 +22,23 @@
         android:layout_height="match_parent"
         android:background="@color/borde_input" />
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/fragment_container"
+    <!-- Contenedor principal en horizontal -->
+    <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/detail_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/fondo_app"
+            android:visibility="gone" />
+    </FrameLayout>
 
 </LinearLayout>

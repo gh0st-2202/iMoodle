@@ -14,102 +14,74 @@ import onion.gh0st.iMoodle.databinding.ItemCourseBinding
 import onion.gh0st.iMoodle.ui.common.MoodleGeoPattern
 
 /**
- * Adapter de la lista de cursos.
+ * Adaptador de la lista de cursos.
  *
  * ## Qué hace
+ * Se encarga de dibujar cada curso como una tarjeta. Cada tarjeta
+ * incluye el nombre, la imagen (o un patrón generado si no hay
+ * imagen), el botón de "Entrar" y la estrella de favorito.
  *
- * Renderiza una tarjeta por curso. Cada tarjeta tiene:
- *
- * - Una imagen de portada (o un patrón SVG generado si no hay).
- * - El nombre del curso.
- * - Un icono de favorito (placeholder).
- * - Un botón "Entrar".
- *
- * ## Sobre la imagen de portada
- *
- * Hay dos casos:
- *
- * 1. **El curso tiene imagen real** (`imageUrl != null`): se carga
- *    con Coil, usando `CENTER_CROP`.
- * 2. **El curso no tiene imagen**: se genera un patrón SVG con
- *    `MoodleGeoPattern` (determinista a partir del nombre y el ID
- *    del curso) y se carga con Coil usando `SvgDecoder`.
- *
- * ## Sobre el `scaleType` del banner
- *
- * Cambia según la orientación:
- *
- * - **Portrait**: `FIT_XY` para el patrón SVG, porque el patrón está
- *   pensado para rellenar exactamente el espacio disponible.
- * - **Landscape**: `CENTER_CROP` para el patrón SVG, porque la celda
- *   es más ancha que alta y `FIT_XY` deformaría el patrón.
- *
- * Para la imagen real, siempre `CENTER_CROP` (es la forma estándar
- * de mostrar imágenes de portada sin deformarlas).
- *
- * @param onClick Callback al pulsar la tarjeta entera.
- * @param onEnterClick Callback al pulsar el botón "Entrar" (navega
- *   al detalle del curso).
- * @param onLongClick Callback al mantener pulsado (reservado para
- *   "favorito", pendiente de implementar).
+ * @param onClick Acción al pulsar la tarjeta entera.
+ * @param onEnterClick Acción al pulsar el botón de "Entrar".
+ * @param onFavouriteClick Acción al pulsar la estrella de favorito.
  */
 class CourseAdapter(
     private val onClick: (CourseUi) -> Unit,
     private val onEnterClick: (CourseUi) -> Unit,
-    private val onLongClick: (CourseUi) -> Unit,
+    private val onFavouriteClick: (CourseUi) -> Unit,
 ) : ListAdapter<CourseUi, CourseAdapter.VH>(DIFF) {
 
     /**
-     * `ViewHolder` de una tarjeta de curso.
+     * Guarda los elementos visuales de una tarjeta.
+     *
+     * Su propósito es mantener las referencias a los textos,
+     * imágenes y botones para poder actualizarlos rápidamente.
      */
     inner class VH(
         val binding: ItemCourseBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
 
         /**
-         * Binde una tarjeta completa.
+         * Rellena una tarjeta con los datos del curso.
          *
-         * @param course Curso a mostrar.
+         * Su propósito es tomar los datos del curso y ponerlos en
+         * las etiquetas y botones correspondientes.
+         *
+         * @param course El curso a dibujar.
          */
         fun bind(course: CourseUi) = with(binding) {
             txtCourseName?.text = course.name
             bindBanner(course)
+
             imgStar?.setImageResource(
                 if (course.isFavorite) R.drawable.ic_star_filled
                 else R.drawable.ic_star_outline,
             )
+            imgStar?.setOnClickListener { onFavouriteClick(course) }
             btnEnterCourse?.setOnClickListener { onEnterClick(course) }
             root.setOnClickListener { onClick(course) }
-            root.setOnLongClickListener { onLongClick(course); true }
         }
 
         /**
-         * Decide si pinta la imagen real o el patrón generado.
+         * Decide qué tipo de imagen mostrar en la portada.
          *
-         * @param course Curso a mostrar.
+         * Su propósito es comprobar si el curso tiene una imagen real
+         * o si por el contrario hay que generar un patrón de colores.
+         *
+         * @param course El curso a dibujar.
          */
         private fun bindBanner(course: CourseUi) {
-            if (!course.imageUrl.isNullOrEmpty()) {
-                bindRealImage(course)
-            } else {
-                bindGeneratedPattern(course)
-            }
+            if (!course.imageUrl.isNullOrEmpty()) bindRealImage(course)
+            else bindGeneratedPattern(course)
         }
 
         /**
-         * Carga la portada real del curso con Coil.
+         * Carga la imagen real del curso desde internet.
          *
-         * ## Caché
+         * Su propósito es descargar la foto de portada y mostrarla
+         * de forma que ocupe todo el espacio disponible.
          *
-         * Se usan claves de caché basadas en el ID del curso
-         * (`course_img_<id>`), para que se reutilicen entre visitas.
-         *
-         * ## Tamaño
-         *
-         * Se pre-decodifica al tamaño de la celda (`1200x800`) para
-         * evitar bitmaps grandes en memoria.
-         *
-         * @param course Curso con `imageUrl` no vacía.
+         * @param course El curso con imagen real.
          */
         private fun bindRealImage(course: CourseUi) = with(binding) {
             imgCourseBanner?.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -124,30 +96,16 @@ class CourseAdapter(
         }
 
         /**
-         * Genera y carga el patrón SVG en memoria.
+         * Genera y muestra un patrón de colores si no hay imagen.
          *
-         * ## Qué hace
+         * Su propósito es crear un fondo visual único basado en el
+         * nombre del curso para que la lista no se vea vacía.
          *
-         * 1. Obtiene el SVG del curso con `MoodleGeoPattern.svgBytes`.
-         * 2. Lo carga con Coil usando `SvgDecoder.Factory()` para que
-         *    se decodifique como SVG.
-         *
-         * ## Caché
-         *
-         * Se usan claves de caché basadas en el ID del curso
-         * (`geo_<id>`), para que se reutilicen entre visitas. El
-         * patrón es determinista, así que no cambia.
-         *
-         * @param course Curso sin `imageUrl`.
+         * @param course El curso sin imagen real.
          */
         private fun bindGeneratedPattern(course: CourseUi) = with(binding) {
-            val isLandscape = root.resources.configuration.orientation ==
-                    Configuration.ORIENTATION_LANDSCAPE
-            imgCourseBanner?.scaleType = if (isLandscape) {
-                ImageView.ScaleType.CENTER_CROP
-            } else {
-                ImageView.ScaleType.FIT_XY
-            }
+            val isLandscape = root.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+            imgCourseBanner?.scaleType = if (isLandscape) ImageView.ScaleType.CENTER_CROP else ImageView.ScaleType.FIT_XY
             val svgBytes = MoodleGeoPattern.svgBytes(course.name, course.id)
             imgCourseBanner?.load(svgBytes) {
                 decoderFactory(SvgDecoder.Factory())
@@ -161,45 +119,26 @@ class CourseAdapter(
     }
 
     /**
-     * Crea el `ViewHolder` de una tarjeta.
+     * Crea la estructura visual de una tarjeta.
      *
-     * @param parent Contenedor padre.
-     * @param viewType Tipo de vista (solo hay uno).
-     * @return El `ViewHolder` listo.
+     * Su propósito es inflar (construir) el diseño XML de la tarjeta
+     * para que luego se puedan rellenar sus datos.
      */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH =
         VH(ItemCourseBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
     /**
-     * Binde el curso de la posición dada.
+     * Pide a una tarjeta que se dibuje con los datos concretos.
      *
-     * @param holder `ViewHolder` a bindear.
-     * @param position Posición del item.
+     * Su propósito es conectar la lista de datos con la lista visual,
+     * diciendo "oye, dibuja el curso que está en esta posición".
      */
     override fun onBindViewHolder(holder: VH, position: Int) = holder.bind(getItem(position))
 
     companion object {
-        /**
-         * `DiffUtil` que decide cuándo dos cursos son iguales.
-         *
-         * ## Comportamiento
-         *
-         * - **Items iguales**: mismo `id`.
-         * - **Contenido igual**: todos los campos son iguales (`==`).
-         *
-         * Así, si un curso cambia (por ejemplo, el progreso), se
-         * redibuja. Si no, no.
-         */
         private val DIFF = object : DiffUtil.ItemCallback<CourseUi>() {
-            override fun areItemsTheSame(
-                oldItem: CourseUi,
-                newItem: CourseUi,
-            ) = oldItem.id == newItem.id
-
-            override fun areContentsTheSame(
-                oldItem: CourseUi,
-                newItem: CourseUi,
-            ) = oldItem == newItem
+            override fun areItemsTheSame(oldItem: CourseUi, newItem: CourseUi) = oldItem.id == newItem.id
+            override fun areContentsTheSame(oldItem: CourseUi, newItem: CourseUi) = oldItem == newItem
         }
     }
 }

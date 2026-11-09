@@ -18,14 +18,15 @@ android {
         applicationId = "onion.gh0st.iMoodle"
         minSdk = 28
         targetSdk = 37
-        versionCode = 21
-        versionName = "v2.1"
+        versionCode = 22
+        versionName = "2.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     buildTypes {
@@ -44,9 +45,6 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
-        // MockK usa Byte Buddy internamente. Byte Buddy 1.14.x (que trae
-        // MockK 1.13.x) aún no soporta Java 25 oficialmente. Activar el
-        // modo experimental elimina los warnings y evita fallos futuros.
         unitTests.all {
             it.systemProperty("net.bytebuddy.experimental", "true")
         }
@@ -54,7 +52,7 @@ android {
 }
 
 dependencies {
-    // --- Producción ---
+    // ... (Tus dependencias de producción y tests se mantienen exactamente igual) ...
     implementation("io.coil-kt:coil-svg:2.5.0")
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
@@ -76,11 +74,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
 
-    // --- Hilt ---
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
 
-    // --- Tests unitarios ---
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.mockwebserver)
@@ -91,7 +87,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
 
-    // --- Tests instrumentados ---
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 }

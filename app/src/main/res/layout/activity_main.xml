@@ -6,11 +6,26 @@
     android:background="@color/fondo_app"
     android:orientation="vertical">
 
-    <androidx.fragment.app.FragmentContainerView
-        android:id="@+id/fragment_container"
+    <!-- Contenedor principal que alberga el ViewPager y los detalles -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1">
+
+        <!-- El ViewPager2 para las pestañas principales -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!-- Contenedor para pantallas de detalle (se superpone al ViewPager) -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/detail_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/fondo_app"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <View
         android:layout_width="match_parent"

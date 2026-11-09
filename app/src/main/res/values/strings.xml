@@ -119,4 +119,9 @@
     <string name="profile_gender">Sexo</string>
     <string name="profile_loading_info">Cargando datos de PASEN…</string>
     <string name="profile_no_info">No se pudieron cargar los datos de PASEN.</string>
+
+    <!-- Actualizaciones -->
+    <string name="update_dialog_title">Nueva versión disponible (v%1$s)</string>
+    <string name="update_action_download">Descargar</string>
+    <string name="update_action_later">Más tarde</string>
 </resources>
