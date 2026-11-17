@@ -8,7 +8,9 @@ import kotlinx.coroutines.test.runTest
 import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.domain.model.calendar.CalendarEvent
-import onion.gh0st.iMoodle.domain.repository.notification.ScheduleResult
+import onion.gh0st.iMoodle.domain.usecase.calendar.ObserveCalendarEvents
+import onion.gh0st.iMoodle.domain.usecase.calendar.RefreshCalendarEvents
+import onion.gh0st.iMoodle.domain.usecase.notification.ScheduleNotifications
 import onion.gh0st.iMoodle.fakes.FakeCalendarRepository
 import onion.gh0st.iMoodle.fakes.FakeNotificationScheduler
 import org.junit.Assert.assertEquals
@@ -31,7 +33,11 @@ class CalendarViewModelTest {
     private val scheduler = FakeNotificationScheduler()
 
     private fun createViewModel(): CalendarViewModel =
-        CalendarViewModel(fakeRepo, scheduler)
+        CalendarViewModel(
+            observeCalendarEvents = ObserveCalendarEvents(fakeRepo),
+            refreshCalendarEvents = RefreshCalendarEvents(fakeRepo),
+            scheduleNotifications = ScheduleNotifications(scheduler),
+        )
 
     @Test
     fun `empty flow leaves items empty and schedules empty list`() = runTest {
@@ -72,35 +78,6 @@ class CalendarViewModelTest {
         vm.uiEvents.test {
             val event = awaitItem() as CalendarUiEvent.ShowError
             assertEquals(R.string.error_unexpected, event.messageResId)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `exact alarm denied emits ui event`() = runTest {
-        fakeRepo.eventsFlow = flowOf(twoEvents())
-        scheduler.result = ScheduleResult.ExactAlarmDenied
-
-        val vm = createViewModel()
-
-        vm.uiEvents.test {
-            assertEquals(CalendarUiEvent.NeedExactAlarmPermission, awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `exact alarm prompt is emitted only once across several emissions`() = runTest {
-        fakeRepo.eventsFlow = flowOf(twoEvents(), twoEventsOnDifferentDays())
-        scheduler.result = ScheduleResult.ExactAlarmDenied
-
-        val vm = createViewModel()
-        advanceUntilIdle()
-
-        assertEquals("Debe reprogramar en cada emisión", 2, scheduler.scheduleCalls)
-        vm.uiEvents.test {
-            assertEquals(CalendarUiEvent.NeedExactAlarmPermission, awaitItem())
-            expectNoEvents()
             cancelAndIgnoreRemainingEvents()
         }
     }

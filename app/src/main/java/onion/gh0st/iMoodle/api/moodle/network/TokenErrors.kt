@@ -56,10 +56,14 @@ package onion.gh0st.iMoodle.api.moodle.network
  *
  * ## Cómo lo detecta
  *
- * Busca la cadena `"errorcode":"invalidtoken"` en el cuerpo. Antes
- * elimina todos los espacios en blanco para que el JSON esté
- * "compactado" y la búsqueda sea más fiable (Moodle a veces devuelve
- * el JSON con saltos de línea e indentación).
+ * 1. Descarte rápido: si el cuerpo ni siquiera contiene la palabra
+ *    `invalidtoken` (el caso de casi todas las respuestas, que pueden
+ *    pesar varios MB) se devuelve `false` sin más trabajo.
+ * 2. Si la contiene, se comprueba con una expresión regular
+ *    **precompilada** que el campo `errorcode` valga `invalidtoken`,
+ *    tolerando espacios y saltos de línea alrededor de `:` (Moodle a
+ *    veces devuelve el JSON indentado). No hace falta crear una copia
+ *    "compactada" del cuerpo entero.
  *
  * ## Qué NO se considera token inválido
  *
@@ -71,10 +75,11 @@ package onion.gh0st.iMoodle.api.moodle.network
  * @receiver Cuerpo de la respuesta de Moodle.
  * @return `true` si el cuerpo contiene un error de token inválido.
  */
-internal fun String.hasInvalidTokenError(): Boolean {
-    val compactBody = replace(Regex("\\s+"), "")
-    return compactBody.contains("\"errorcode\":\"invalidtoken\"")
-}
+internal fun String.hasInvalidTokenError(): Boolean =
+    contains("invalidtoken") && INVALID_TOKEN_REGEX.containsMatchIn(this)
+
+/** Regex que reconoce `"errorcode": "invalidtoken"` con espacios opcionales. */
+private val INVALID_TOKEN_REGEX = Regex("\"errorcode\"\\s*:\\s*\"invalidtoken\"")
 
 /** Regex para detectar el prefijo de un JSON de error de Moodle. */
 private val EXCEPTION_PREFIX_REGEX = Regex("""^\s*\{\s*"exception"\s*:""")

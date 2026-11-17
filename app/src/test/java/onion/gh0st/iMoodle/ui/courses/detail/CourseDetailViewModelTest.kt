@@ -9,7 +9,12 @@ import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseContents
 import onion.gh0st.iMoodle.domain.usecase.course.GetUrlExternalUrl
+import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
+import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
 import onion.gh0st.iMoodle.fakes.FakeCourseRepository
+import onion.gh0st.iMoodle.fakes.FakeFileDownloader
+import onion.gh0st.iMoodle.fakes.FakeSessionRepository
+import onion.gh0st.iMoodle.fakes.TestSessions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -26,6 +31,8 @@ class CourseDetailViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val fakeRepo = FakeCourseRepository()
+    private val observeSession = ObserveSession(FakeSessionRepository(TestSessions.active()))
+    private val fileDownloader = FakeFileDownloader()
 
     private fun createViewModel(courseId: Int = 42): CourseDetailViewModel {
         val savedState = SavedStateHandle(mapOf("COURSE_ID" to courseId))
@@ -33,6 +40,7 @@ class CourseDetailViewModelTest {
             savedStateHandle = savedState,
             getCourseContents = GetCourseContents(fakeRepo),
             getUrlExternalUrl = GetUrlExternalUrl(fakeRepo),
+            downloadCourseFile = DownloadCourseFile(observeSession, fileDownloader),
         )
     }
 

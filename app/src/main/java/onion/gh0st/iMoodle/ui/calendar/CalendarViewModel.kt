@@ -16,9 +16,9 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.domain.model.calendar.CalendarEvent
-import onion.gh0st.iMoodle.domain.repository.calendar.CalendarRepository
-import onion.gh0st.iMoodle.domain.repository.notification.NotificationScheduler
-import onion.gh0st.iMoodle.domain.repository.notification.ScheduleResult
+import onion.gh0st.iMoodle.domain.usecase.calendar.ObserveCalendarEvents
+import onion.gh0st.iMoodle.domain.usecase.calendar.RefreshCalendarEvents
+import onion.gh0st.iMoodle.domain.usecase.notification.ScheduleNotifications
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -41,14 +41,9 @@ data class CalendarUiState(
 /**
  * Eventos de un solo uso consumidos por `CalendarFragment`.
  *
- * @property NeedExactAlarmPermission El usuario debe conceder el
- *   permiso de alarmas exactas en los ajustes del sistema.
  * @property ShowError Muestra un toast de error genérico.
  */
 sealed interface CalendarUiEvent {
-
-    /** El usuario debe conceder el permiso de alarmas exactas. */
-    data object NeedExactAlarmPermission : CalendarUiEvent
 
     /** Muestra un toast de error genérico. */
     data class ShowError(@param:StringRes val messageResId: Int) : CalendarUiEvent
@@ -60,15 +55,14 @@ sealed interface CalendarUiEvent {
  * ## Qué hace
  *
  * 1. Al construirse, se suscribe a la base de datos local
- *    (`CalendarRepository.getEventsFlow`) para recibir los eventos
- *    que haya cacheados.
- * 2. Lanza un refresco contra Moodle
- *    (`CalendarRepository.refreshEvents`) para actualizar la base de
- *    datos.
+ *    ([ObserveCalendarEvents]) para recibir los eventos que haya
+ *    cacheados.
+ * 2. Lanza un refresco contra Moodle ([RefreshCalendarEvents]) para
+ *    actualizar la base de datos.
  * 3. Cuando llegan eventos nuevos (desde Room), los agrupa por día
  *    e inserta cabeceras ("Hoy", "Mañana", "Lunes, 15 de enero"...).
  * 4. Programa las alarmas para las tareas próximas a entregar
- *    (`NotificationScheduler.schedule`).
+ *    ([ScheduleNotifications]).
  *
  * ## Qué NO hace
  *
@@ -100,13 +94,15 @@ sealed interface CalendarUiEvent {
  * ejemplo, hacia atrás en el tiempo), habrá que añadir métodos para
  * cambiar el rango.
  *
- * @param calendarRepository Fuente de eventos del calendario.
- * @param notificationScheduler Programador de alarmas.
+ * @param observeCalendarEvents Observa los eventos de Room.
+ * @param refreshCalendarEvents Descarga los eventos desde Moodle.
+ * @param scheduleNotifications Programa las alarmas de las entregas.
  */
 @HiltViewModel
 class CalendarViewModel @Inject constructor(
-    private val calendarRepository: CalendarRepository,
-    private val notificationScheduler: NotificationScheduler,
+    private val observeCalendarEvents: ObserveCalendarEvents,
+    private val refreshCalendarEvents: RefreshCalendarEvents,
+    private val scheduleNotifications: ScheduleNotifications,
 ) : ViewModel() {
 
     /**
@@ -171,7 +167,7 @@ class CalendarViewModel @Inject constructor(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
-                calendarRepository.refreshEvents(startTime, endTime)
+                refreshCalendarEvents(startTime, endTime)
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -203,7 +199,7 @@ class CalendarViewModel @Inject constructor(
      */
     private fun observeEvents() {
         viewModelScope.launch {
-            calendarRepository.getEventsFlow(startTime, endTime).collect { events ->
+            observeCalendarEvents(startTime, endTime).collect { events ->
                 _state.update {
                     it.copy(
                         isLoading = false,
@@ -216,46 +212,25 @@ class CalendarViewModel @Inject constructor(
     }
 
     /**
-     * Evita spamear el diálogo de permiso de alarmas exactas.
-     *
-     * ## Qué es este flag
-     *
-     * Es un booleano que se pone a `true` la primera vez que se
-     * pide el permiso, para no volver a pedirlo en cada emisión de
-     * Room. Si el usuario lo concede, se resetea a `false` (ver
-     * `programAlarms`).
-     *
-     * ## Por qué es necesario
-     *
-     * Porque `programAlarms` se ejecuta en cada emisión de Room. Si
-     * no hubiera un flag, el diálogo de permiso se abriría una y
-     * otra vez, lo cual sería una experiencia de usuario horrible.
-     */
-    private var exactAlarmPromptSent = false
-
-    /**
      * Programa las alarmas para las tareas próximas a entregar.
      *
-     * ## Comportamiento
+     * ## Quién pide el permiso
      *
-     * - Si el permiso está concedido, programa las alarmas y
-     *   resetea el flag.
-     * - Si no está concedido y el flag está a `false`, emite
-     *   `NeedExactAlarmPermission` (la UI abrirá los ajustes).
-     * - Si no está concedido y el flag está a `true`, no hace nada
-     *   (ya se pidió antes).
+     * El aviso del permiso de alarmas exactas **no** vive aquí: lo
+     * centraliza `MainViewModel`, que es el único dueño de abrir los
+     * ajustes del sistema. Así no se abre dos veces la misma pantalla
+     * (una al arrancar y otra al visitar la Agenda) ni queda un aviso
+     * encolado si la Agenda no está visible.
+     *
+     * Si falta el permiso, `DefaultNotificationScheduler` devuelve
+     * `ExactAlarmDenied` sin programar nada. La próxima vez que
+     * `MainActivity` sincronice (por ejemplo, al volver de concederlo)
+     * se reprogramarán los recordatorios.
      *
      * @param events Lista de eventos del rango.
      */
     private suspend fun programAlarms(events: List<CalendarEvent>) {
-        when (notificationScheduler.schedule(events)) {
-            ScheduleResult.Success -> exactAlarmPromptSent = false
-            ScheduleResult.ExactAlarmDenied ->
-                if (!exactAlarmPromptSent) {
-                    exactAlarmPromptSent = true
-                    _uiEvents.send(CalendarUiEvent.NeedExactAlarmPermission)
-                }
-        }
+        scheduleNotifications(events)
     }
 
     /**

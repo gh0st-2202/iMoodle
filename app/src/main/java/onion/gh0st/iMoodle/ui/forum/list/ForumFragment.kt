@@ -2,10 +2,6 @@ package onion.gh0st.iMoodle.ui.forum.list
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.StringRes
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
@@ -17,15 +13,17 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentForumBinding
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 import onion.gh0st.iMoodle.ui.forum.discussion.DiscussionFragment
 
 /**
  * Pantalla de listado de discusiones de un foro.
  *
- * ## Corrección (v2.2)
- * La navegación al detalle de la discusión ahora usa
- * `R.id.detail_container` (el contenedor superpuesto al ViewPager),
- * en lugar de `R.id.fragment_container`.
+ * Al tocar una discusión se abre su detalle en `R.id.detail_container`,
+ * el contenedor que `MainActivity` superpone al `ViewPager2`.
+ * Se crea con [newInstance]; la lógica vive en [ForumViewModel].
  */
 @AndroidEntryPoint
 class ForumFragment : Fragment(R.layout.fragment_forum) {
@@ -35,29 +33,42 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
     private val viewModel: ForumViewModel by viewModels()
 
     companion object {
+        /**
+         * Crea el fragmento para un foro concreto.
+         *
+         * @param forumId Identificador del foro.
+         * @param forumName Nombre del foro, que se muestra como título.
+         * @return El fragmento con sus argumentos ya configurados.
+         */
         fun newInstance(forumId: Int, forumName: String): ForumFragment =
             ForumFragment().apply {
                 arguments = Bundle().apply {
-                    putInt("FORUM_ID", forumId)
-                    putString("FORUM_NAME", forumName)
+                    putInt(FragmentArgs.FORUM_ID, forumId)
+                    putString(FragmentArgs.FORUM_NAME, forumName)
                 }
             }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        forumName = arguments?.getString("FORUM_NAME") ?: ""
+        forumName = arguments?.getString(FragmentArgs.FORUM_NAME) ?: ""
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentForumBinding.bind(view)
         setupToolbar(binding)
-        setupWindowInsets(binding)
+        binding.appBarForum.applySystemBarsInsets()
         val adapter = buildAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
     }
 
+    /**
+     * Pone el nombre del foro como título y hace que la flecha de volver
+     * cierre esta pantalla.
+     *
+     * @param binding Vistas de la pantalla.
+     */
     private fun setupToolbar(binding: FragmentForumBinding) {
         binding.toolbarForum.title = forumName
         binding.toolbarForum.setNavigationOnClickListener {
@@ -65,23 +76,22 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         }
     }
 
-    private fun setupWindowInsets(binding: FragmentForumBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarForum) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
-        }
-    }
-
+    /**
+     * Crea el adaptador de la lista de discusiones. Al tocar una se abre su
+     * detalle con [openDiscussion].
+     *
+     * @return El adaptador de la lista.
+     */
     private fun buildAdapter() = ForumAdapter { discussion ->
         openDiscussion(discussion.id, discussion.name)
     }
 
+    /**
+     * Configura la lista de discusiones y el gesto de arrastrar para refrescar.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la lista.
+     */
     private fun setupRecyclerView(
         binding: FragmentForumBinding,
         adapter: ForumAdapter,
@@ -91,6 +101,13 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         binding.swipeRefreshForum.setOnRefreshListener { viewModel.refresh() }
     }
 
+    /**
+     * Empieza a observar el estado y los eventos del ViewModel mientras la
+     * pantalla esté visible.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la lista.
+     */
     private fun observeUi(binding: FragmentForumBinding, adapter: ForumAdapter) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -100,6 +117,12 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         }
     }
 
+    /**
+     * Pinta cada nuevo estado: lista de discusiones e indicador de carga.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la lista.
+     */
     private suspend fun observeState(binding: FragmentForumBinding, adapter: ForumAdapter) {
         viewModel.state.collect { state ->
             adapter.submitList(state.discussions)
@@ -107,6 +130,9 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         }
     }
 
+    /**
+     * Muestra los mensajes de error que emite el ViewModel.
+     */
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
@@ -128,9 +154,4 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         }
     }
 
-    private fun showToast(@StringRes messageResId: Int, arg: String? = null) {
-        val message = arg?.let { formatArg -> getString(messageResId, formatArg) }
-            ?: getString(messageResId)
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-    }
 }

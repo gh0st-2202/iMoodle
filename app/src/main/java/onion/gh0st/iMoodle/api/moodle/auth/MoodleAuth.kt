@@ -1,9 +1,10 @@
 package onion.gh0st.iMoodle.api.moodle.auth
 
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import okhttp3.OkHttpClient
 import onion.gh0st.iMoodle.api.cas.CasAuthenticator
 import onion.gh0st.iMoodle.api.cas.CasConfig
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.api.moodle.network.MoodleSession

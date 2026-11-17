@@ -7,7 +7,7 @@ import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
  * Implementación en memoria de [CredentialsStore] para tests.
  *
  * No cifra nada. Registra si se ha llamado a [clear] para verificar
- * el flujo de logout. Se usa en `AuthRepositoryImplTest` y
+ * el flujo de logout. Se usa en `MoodleAuthRepositoryTest` y
  * `DefaultSessionRepositoryTest` para no depender de Android Keystore.
  */
 class FakeCredentialsStore : CredentialsStore {

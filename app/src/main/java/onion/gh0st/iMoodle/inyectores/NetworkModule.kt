@@ -41,14 +41,14 @@ import javax.inject.Singleton
  * completa, incluyendo:
  *
  * - La URL con el `wstoken` de Moodle (un token de sesión).
- * - Los cuerpos de las peticiones con archivos codificados en
- *   base64 (información sensible).
+ * - Las credenciales del CAS / IdEA en el cuerpo del login.
+ * - Los cuerpos de las peticiones con archivos (información sensible).
  * - Los JSON de respuesta completos (datos personales, notas, etc.).
  *
- * Eso es útil para depurar un bug puntual, pero en una app en uso
- * real es un problema de privacidad y de rendimiento. Si alguna vez
- * hace falta depurar, se añade temporalmente aquí y se quita al
- * terminar.
+ * Eso es útil para depurar un bug puntual, pero en una app en uso real
+ * es un problema de privacidad y de rendimiento. Se usó un interceptor
+ * temporal para localizar el bug de los comentarios y **se retiró** al
+ * confirmarlo: no volver a añadir uno que escriba cuerpos de petición.
  *
  * ## Por qué es un `object` y no una `abstract class`
  *

@@ -18,8 +18,8 @@ android {
         applicationId = "onion.gh0st.iMoodle"
         minSdk = 28
         targetSdk = 37
-        versionCode = 24
-        versionName = "2.4"
+        versionCode = 25
+        versionName = "2.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -57,7 +57,6 @@ dependencies {
     implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.viewbinding)
     implementation(libs.coil)
-    implementation(libs.androidx.security.crypto)
     implementation(libs.okhttp)
     implementation(libs.okhttp.urlconnection)
     implementation(libs.kotlinx.coroutines.android)

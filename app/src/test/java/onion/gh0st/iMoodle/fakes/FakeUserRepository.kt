@@ -1,5 +1,6 @@
 package onion.gh0st.iMoodle.fakes
 
+import kotlinx.coroutines.CompletableDeferred
 import onion.gh0st.iMoodle.domain.model.session.User
 import onion.gh0st.iMoodle.domain.repository.session.UserRepository
 
@@ -13,6 +14,7 @@ import onion.gh0st.iMoodle.domain.repository.session.UserRepository
  */
 class FakeUserRepository(
     private val result: Result<User>,
+    private val gate: CompletableDeferred<Unit>? = null,
 ) : UserRepository {
 
     /** Último valor de `forceRefresh` recibido, o `null` si aún no se llamó. */
@@ -28,6 +30,7 @@ class FakeUserRepository(
      */
     override suspend fun getUser(forceRefresh: Boolean): User {
         lastForceRefresh = forceRefresh
+        gate?.await()
         return result.getOrThrow()
     }
 }

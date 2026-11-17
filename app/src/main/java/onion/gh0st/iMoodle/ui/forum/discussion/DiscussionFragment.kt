@@ -2,10 +2,6 @@ package onion.gh0st.iMoodle.ui.forum.discussion
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.StringRes
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -16,6 +12,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentDiscussionBinding
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 
 /**
  * Pantalla con los posts de una discusión de foro.
@@ -58,8 +57,8 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         fun newInstance(discussionId: Int, discussionName: String): DiscussionFragment =
             DiscussionFragment().apply {
                 arguments = Bundle().apply {
-                    putInt("DISCUSSION_ID", discussionId)
-                    putString("DISCUSSION_NAME", discussionName)
+                    putInt(FragmentArgs.DISCUSSION_ID, discussionId)
+                    putString(FragmentArgs.DISCUSSION_NAME, discussionName)
                 }
             }
     }
@@ -71,7 +70,7 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        discussionName = arguments?.getString("DISCUSSION_NAME") ?: ""
+        discussionName = arguments?.getString(FragmentArgs.DISCUSSION_NAME) ?: ""
     }
 
     /**
@@ -80,7 +79,7 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentDiscussionBinding.bind(view)
         setupToolbar(binding)
-        setupWindowInsets(binding)
+        binding.appBarDiscussion.applySystemBarsInsets()
         val adapter = DiscussionAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
@@ -93,22 +92,6 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         binding.toolbarDiscussion.title = discussionName
         binding.toolbarDiscussion.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
-        }
-    }
-
-    /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     */
-    private fun setupWindowInsets(binding: FragmentDiscussionBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarDiscussion) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
         }
     }
 
@@ -160,12 +143,4 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         }
     }
 
-    /**
-     * Muestra un toast corto.
-     */
-    private fun showToast(@StringRes messageResId: Int, arg: String? = null) {
-        val message = arg?.let { formatArg -> getString(messageResId, formatArg) }
-            ?: getString(messageResId)
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-    }
 }

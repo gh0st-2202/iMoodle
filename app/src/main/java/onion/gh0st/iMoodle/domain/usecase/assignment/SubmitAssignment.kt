@@ -15,6 +15,17 @@ import javax.inject.Inject
 class SubmitAssignment @Inject constructor(
     private val repository: AssignmentSubmissionRepository,
 ) {
+    /**
+     * Entrega la tarea.
+     *
+     * @param assignmentId Identificador de la tarea.
+     * @param courseId Identificador del curso.
+     * @param cmId Identificador del módulo del curso.
+     * @param onlineText Texto en línea (puede estar vacío).
+     * @param fileUris URIs de los archivos nuevos elegidos en el teléfono.
+     * @param existingFileUrls URLs de los archivos ya entregados que se conservan.
+     * @return Éxito, o el fallo ocurrido (incluido un rechazo de Moodle).
+     */
     suspend operator fun invoke(
         assignmentId: Int,
         courseId: Int,

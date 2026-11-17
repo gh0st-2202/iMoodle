@@ -1,8 +1,9 @@
 package onion.gh0st.iMoodle.api.moodle.auth
 
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import kotlinx.coroutines.CancellationException
 import okhttp3.OkHttpClient
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.api.moodle.network.TokenRefresher
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
@@ -37,14 +38,16 @@ import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
  * 3. Si las hay, ejecuta un login completo CAS + Moodle con ellas,
  *    como si el usuario acabara de escribir su contraseña.
  * 4. Si el login va bien, devuelve el token nuevo.
- * 5. Si el login falla por credenciales incorrectas (por ejemplo,
- *    porque el usuario ha cambiado la contraseña en otro sitio),
+ * 5. Si el login falla porque el CAS rechaza explícitamente las
+ *    credenciales (`401`/`403`, `AuthException.LoginFailed`),
  *    **borra las credenciales guardadas** para no intentar el login
  *    en bucle y devuelve `null`.
- * 6. Si el login falla por un problema de red (timeout, sin
- *    conexión), **no borra** las credenciales (no tienen la culpa) y
- *    devuelve `null`. El llamador reintentará cuando el usuario
- *    vuelva a abrir la app o cuando recupere la conexión.
+ * 6. Si el login falla por un problema transitorio (timeout, sin
+ *    conexión, error 5xx de la Junta, un `NoMoodleSession` que puede
+ *    deberse a un fallo de Moodle), **no borra** las credenciales
+ *    (no tienen la culpa) y **propaga la excepción**. La petición
+ *    actual falla, pero la sesión se conserva y el usuario puede
+ *    reintentar cuando recupere la conexión.
  *
  * ## Por qué guardamos la contraseña
  *
@@ -82,24 +85,29 @@ class CasCredentialsTokenRefresher(
      * 3. Según el resultado:
      *    - **Login OK**: devuelve el `wstoken` de la sesión
      *      resultante.
-     *    - **Credenciales incorrectas** (el usuario ha cambiado la
-     *      contraseña o la cuenta está bloqueada): borra las
-     *      credenciales guardadas y devuelve `null`. Así no se
-     *      reintenta un login que sabemos que va a fallar
-     *      indefinidamente.
-     *    - **Error de red** (timeout, sin conexión): devuelve `null`
-     *      **sin** borrar las credenciales. El problema es temporal.
+     *    - **Credenciales rechazadas** (`LoginFailed`, un `401`/`403`
+     *      del CAS): borra las credenciales guardadas y devuelve
+     *      `null`. Así no se reintenta un login que sabemos que va a
+     *      fallar indefinidamente.
+     *    - **Fallo transitorio** (timeout, sin conexión, error 5xx
+     *      de la Junta, `429`, página del CAS inesperada o
+     *      `NoMoodleSession`): lanza [AuthException] **sin** borrar
+     *      las credenciales. El problema es temporal y no debe
+     *      costar la sesión.
      *    - **Cancelación** de la corrutina: se propaga la excepción
      *      de cancelación.
      *
      * ## Qué ve el llamador
      *
-     * `MoodleApiClient` interpreta el `null` como "no se pudo
-     * refrescar" y cierra la sesión, forzando el re-login manual. La
-     * UI no ve excepciones: solo recibe un `SessionEvent.Expired`.
+     * `MoodleApiClient` interpreta el `null` como "no se puede
+     * refrescar" y cierra la sesión, forzando el re-login manual (la
+     * UI recibe un `SessionEvent.Expired`). Una excepción, en cambio,
+     * solo hace fallar la petición en curso.
      *
-     * @return El token nuevo, o `null` si no se ha podido refrescar
-     *   por cualquier motivo.
+     * @return El token nuevo, o `null` si las credenciales faltan o
+     *   han sido rechazadas.
+     * @throws AuthException ante fallos transitorios de red o de
+     *   servidor.
      */
     override suspend fun refresh(): String? {
         val credentials = credentialsStore.load() ?: return null
@@ -115,11 +123,10 @@ class CasCredentialsTokenRefresher(
         } catch (exception: AuthException.LoginFailed) {
             credentialsStore.clear()
             null
-        } catch (exception: AuthException.NoMoodleSession) {
-            credentialsStore.clear()
-            null
+        } catch (exception: AuthException) {
+            throw exception
         } catch (exception: Exception) {
-            null
+            throw AuthException.Network(exception)
         }
     }
 }

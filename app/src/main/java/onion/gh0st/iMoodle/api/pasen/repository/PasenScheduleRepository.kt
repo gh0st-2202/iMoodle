@@ -1,10 +1,12 @@
 package onion.gh0st.iMoodle.api.pasen.repository
 
 import onion.gh0st.iMoodle.api.pasen.network.PasenApiClient
+import onion.gh0st.iMoodle.api.pasen.network.PasenApiException
 import onion.gh0st.iMoodle.api.pasen.network.PasenScheduleParser
 import onion.gh0st.iMoodle.data.schedule.ScheduleCache
 import onion.gh0st.iMoodle.domain.model.schedule.ScheduleSlot
 import onion.gh0st.iMoodle.domain.repository.schedule.ScheduleRepository
+import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -63,10 +65,11 @@ import javax.inject.Singleton
  *
  * ## Manejo de errores
  *
- * Cualquier fallo (red, parseo, login) se propaga como
- * `IllegalStateException` con un mensaje descriptivo. El
- * `ScheduleViewModel` lo captura y muestra un toast genérico. El
- * detalle se registra en logcat.
+ * Los fallos contra iPasen (red, login, respuesta inesperada) llegan
+ * como `PasenApiException`; la ausencia de credenciales guardadas, como
+ * `IllegalStateException`; y los errores de parseo, como
+ * `IllegalStateException` también. El `ScheduleViewModel` los captura y
+ * muestra un mensaje genérico. El detalle se registra en logcat.
  *
  * @param apiClient Cliente HTTP de Pasen.
  * @param credentialsStore Almacén cifrado de credenciales de la
@@ -100,8 +103,9 @@ class PasenScheduleRepository @Inject constructor(
      *
      * @param forceRefresh Si `true`, ignora la caché y va a la red.
      * @return Lista de slots del horario.
-     * @throws IllegalStateException si no hay credenciales o falla
-     *   alguna petición.
+     * @throws IllegalStateException si no hay credenciales guardadas o
+     *   el JSON del horario no se puede interpretar.
+     * @throws PasenApiException si falla alguna petición a iPasen.
      */
     override suspend fun getSchedule(forceRefresh: Boolean): List<ScheduleSlot> {
         val credentials = credentialsStore.load()
@@ -113,39 +117,26 @@ class PasenScheduleRepository @Inject constructor(
             }
         }
 
-        val freshSchedule = fetchFromPasen(credentials.username, credentials.password)
+        val freshSchedule = fetchFromPasen(credentials)
         scheduleCache.put(credentials.username, freshSchedule)
         return freshSchedule
     }
 
     /**
-     * Hace login a Pasen, pide el horario y lo parsea.
+     * Descarga el horario desde iPasen con un login nuevo.
      *
-     * ## Qué hace paso a paso
+     * El token de iPasen dura unos 30 minutos y no se puede refrescar,
+     * así que cada descarga empieza con un login completo: login →
+     * matrícula → horario → parseo.
      *
-     * 1. Construye un `JuntaCredentials` con el usuario y la
-     *    contraseña recibidos.
-     * 2. Hace login y obtiene el token.
-     * 3. Pide la matrícula del alumno.
-     * 4. Pide el horario usando la matrícula.
-     * 5. Parsea el JSON y devuelve la lista de slots.
-     *
-     * @param username Usuario de la Junta.
-     * @param password Contraseña del usuario.
-     * @return Lista de slots del horario.
+     * @param credentials Credenciales de la Junta guardadas.
+     * @return El horario ya interpretado.
+     * @throws PasenApiException si falla cualquier paso contra iPasen.
      */
-    private suspend fun fetchFromPasen(
-        username: String,
-        password: String,
-    ): List<ScheduleSlot> {
-        val credentials = onion.gh0st.iMoodle.domain.model.session.JuntaCredentials(
-            username = username,
-            password = password,
-        )
+    private suspend fun fetchFromPasen(credentials: JuntaCredentials): List<ScheduleSlot> {
         val token = apiClient.login(credentials)
         val sessionInfo = apiClient.getSessionInfo(token)
         val rawScheduleJson = apiClient.getHorario(token, sessionInfo.id)
-
         return PasenScheduleParser.parse(rawScheduleJson)
     }
 }

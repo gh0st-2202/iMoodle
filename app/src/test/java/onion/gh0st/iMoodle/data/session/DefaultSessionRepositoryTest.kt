@@ -8,12 +8,18 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
 import onion.gh0st.iMoodle.MainDispatcherRule
-import onion.gh0st.iMoodle.api.cas.CasCredentials
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.api.moodle.auth.MoodleSessionFactory
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
@@ -102,7 +108,7 @@ class DefaultSessionRepositoryTest {
 
     @Test
     fun `tryAutoLogin reconstructs session from persisted data`() = runTest {
-        coEvery { authRepo.tryAutoLogin(any()) } returns
+        coEvery { authRepo.tryAutoLogin() } returns
                 TestSessions.context(provincia = Provincia.SEVILLA)
 
         val result = repo.tryAutoLogin()
@@ -116,7 +122,7 @@ class DefaultSessionRepositoryTest {
 
     @Test
     fun `tryAutoLogin returns null without session`() = runTest {
-        coEvery { authRepo.tryAutoLogin(any()) } returns null
+        coEvery { authRepo.tryAutoLogin() } returns null
 
         val result = repo.tryAutoLogin()
 
@@ -245,6 +251,55 @@ class DefaultSessionRepositoryTest {
     }
 
     @Test
+    fun `token callback from a previous session cannot touch the new one`() = runTest {
+        val firstTokenCallback = slot<suspend (String) -> Unit>()
+        val firstInvalidCallback = slot<suspend () -> Unit>()
+        coEvery {
+            authRepo.login(any(), any(), capture(firstTokenCallback), capture(firstInvalidCallback))
+        } returns TestSessions.context(token = "first_token")
+        /*
+         * El primer login se hace con el stub que captura los
+         * callbacks. No se usa `seedSession()` porque instala otro
+         * stub de `login` que sustituiría a este y los slots se
+         * quedarían vacíos.
+         */
+        repo.login(Provincia.CORDOBA, credentials())
+
+        coEvery { authRepo.logout(any()) } just Runs
+        repo.logout()
+
+        coEvery {
+            authRepo.login(any(), any(), any(), any())
+        } returns TestSessions.context(token = "second_token")
+        repo.login(Provincia.CORDOBA, credentials())
+
+        // Callbacks de la sesión antigua, llegando tarde.
+        firstTokenCallback.captured("stale_token")
+        firstInvalidCallback.captured()
+
+        assertNotNull("La sesión nueva no debe invalidarse", repo.session.value)
+        assertTrue(
+            "El token antiguo no debe pisar el de la sesión nueva",
+            tokenStore.load("cordoba")?.wstoken != "stale_token",
+        )
+    }
+
+    @Test
+    fun `invalidate emits expired even when cleanup fails`() = runTest {
+        seedSession()
+        coEvery { authRepo.logout(any()) } just Runs
+        localData.error = IllegalStateException("disco lleno")
+
+        repo.events.test {
+            repo.invalidate()
+            assertEquals(SessionEvent.Expired, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertNull("La sesión en memoria debe quedar cerrada", repo.session.value)
+    }
+
+    @Test
     fun `invalidate without session wipes token but emits no event`() = runTest {
         tokenStore.save(storedSession(token = "tok"))
 
@@ -306,12 +361,36 @@ class DefaultSessionRepositoryTest {
         assertTrue(outcome.exceptionOrNull() is CancellationException)
     }
 
+    @Test
+    fun `logout waits for an in-flight login and leaves no session`() = runTest {
+        coEvery { authRepo.logout(any()) } just Runs
+        val loginGate = CompletableDeferred<Unit>()
+        coEvery { authRepo.login(any(), any(), any(), any()) } coAnswers {
+            loginGate.await()
+            TestSessions.context()
+        }
+
+        val loginJob = launch(start = CoroutineStart.UNDISPATCHED) {
+            repo.login(Provincia.CORDOBA, credentials())
+        }
+        val logoutJob = launch(start = CoroutineStart.UNDISPATCHED) { repo.logout() }
+
+        loginGate.complete(Unit)
+        loginJob.join()
+        logoutJob.join()
+
+        assertNull(
+            "El logout debe ejecutarse después del login y limpiar su sesión",
+            repo.session.value,
+        )
+    }
+
     // --- Auto-login sin red ---
 
     @Test
     fun `tryAutoLogin offline builds the user from the persisted id`() = runTest {
         userRepoFactory.result = Result.failure(AuthException.Network(RuntimeException("offline")))
-        coEvery { authRepo.tryAutoLogin(any()) } returns
+        coEvery { authRepo.tryAutoLogin() } returns
                 TestSessions.context(provincia = Provincia.CORDOBA, userId = 42)
 
         val activeSession = repo.tryAutoLogin().getOrThrow()
@@ -325,7 +404,7 @@ class DefaultSessionRepositoryTest {
     @Test
     fun `tryAutoLogin offline without persisted id leaves user null`() = runTest {
         userRepoFactory.result = Result.failure(AuthException.Network(RuntimeException("offline")))
-        coEvery { authRepo.tryAutoLogin(any()) } returns
+        coEvery { authRepo.tryAutoLogin() } returns
                 TestSessions.context(provincia = Provincia.CORDOBA, userId = 0)
 
         val activeSession = repo.tryAutoLogin().getOrThrow()
@@ -337,7 +416,7 @@ class DefaultSessionRepositoryTest {
     @Test
     fun `tryAutoLogin returns no session when the token turns out invalid`() = runTest {
         userRepoFactory.result = Result.failure(AuthException.InvalidToken())
-        coEvery { authRepo.tryAutoLogin(any()) } returns
+        coEvery { authRepo.tryAutoLogin() } returns
                 TestSessions.context(provincia = Provincia.CORDOBA, userId = 42)
 
         val result = repo.tryAutoLogin()
@@ -350,7 +429,7 @@ class DefaultSessionRepositoryTest {
     @Test
     fun `tryAutoLogin refreshes the persisted user id`() = runTest {
         tokenStore.save(storedSession(token = "tok"))
-        coEvery { authRepo.tryAutoLogin(any()) } returns
+        coEvery { authRepo.tryAutoLogin() } returns
                 TestSessions.context(provincia = Provincia.CORDOBA, userId = 0)
 
         repo.tryAutoLogin()
@@ -373,4 +452,121 @@ class DefaultSessionRepositoryTest {
         wstoken = token,
         lastUsedAt = 0L,
     )
+
+    // --- Cierre de sesión robusto ---
+
+    @Test
+    fun `logout still wipes credentials and alarms when local data cleanup fails`() = runTest {
+        credentialsStore.save(JuntaCredentials("user", "pass"))
+        seedSession()
+        coEvery { authRepo.logout(any()) } just Runs
+        localData.error = IllegalStateException("disco lleno")
+
+        val error = runCatching { repo.logout() }.exceptionOrNull()
+
+        assertTrue("El primer fallo debe relanzarse", error is IllegalStateException)
+        assertNull(repo.session.value)
+        assertNull("Las credenciales deben borrarse aunque falle la base de datos", credentialsStore.load())
+        assertEquals(1, notificationScheduler.cancelAllCalls)
+        assertEquals(1, localData.clearCalls)
+    }
+
+    @Test
+    fun `invalidate from a child coroutine during cleanup does not deadlock`() = runTest {
+        seedSession()
+        coEvery { authRepo.logout(any()) } just Runs
+        var invalidated = false
+        localData.onClear = {
+            if (!invalidated) {
+                invalidated = true
+                /*
+                 * `withContext` crea un Job hijo distinto del que
+                 * tomó el cerrojo. Antes, la comprobación de
+                 * reentrada comparaba Jobs y esta llamada se quedaba
+                 * esperando el cerrojo para siempre.
+                 */
+                withContext(Dispatchers.IO) { repo.invalidate() }
+            }
+        }
+
+        /*
+         * El timeout se ejecuta en un dispatcher real. Si se dejara
+         * en el dispatcher virtual de `runTest`, el reloj avanzaría
+         * hasta el timeout mientras la corrutina espera al hilo de
+         * E/S y la prueba fallaría sin que hubiera ningún bloqueo.
+         */
+        withContext(Dispatchers.Default) {
+            withTimeout(5_000) { repo.logout() }
+        }
+
+        assertTrue("El callback debe haberse ejecutado", invalidated)
+        assertNull(repo.session.value)
+    }
+
+    // --- refreshUser ---
+
+    @Test
+    fun `refreshUser publishes the refreshed user`() = runTest {
+        seedSession()
+        userRepoFactory.result = Result.success(testUser.copy(firstname = "Jane", fullname = "Jane Doe"))
+
+        repo.refreshUser()
+
+        assertEquals("Jane", repo.session.value?.user?.firstname)
+    }
+
+    @Test
+    fun `refreshUser keeps the previous user when loading fails`() = runTest {
+        seedSession()
+        val userBefore = repo.session.value?.user
+        userRepoFactory.result = Result.failure(java.io.IOException("sin red"))
+
+        repo.refreshUser()
+
+        assertNotNull(repo.session.value)
+        assertEquals(userBefore, repo.session.value?.user)
+    }
+
+    @Test
+    fun `refreshUser does not overwrite a newer session`() = runTest {
+        seedSession()
+        userRepoFactory.result = Result.success(testUser.copy(firstname = "Viejo"))
+        val gate = CompletableDeferred<Unit>()
+        userRepoFactory.gate = gate
+
+        val refreshJob = launch(start = CoroutineStart.UNDISPATCHED) { repo.refreshUser() }
+
+        // Mientras el refresco está en vuelo, el usuario cierra sesión
+        // y vuelve a entrar; el login carga un perfil distinto.
+        userRepoFactory.gate = null
+        userRepoFactory.result = Result.success(testUser.copy(firstname = "Nuevo"))
+        coEvery { authRepo.logout(any()) } just Runs
+        repo.logout()
+        repo.login(Provincia.CORDOBA, credentials())
+
+        gate.complete(Unit)
+        refreshJob.join()
+
+        assertEquals(
+            "La respuesta tardía de la sesión anterior no debe pisar a la nueva",
+            "Nuevo",
+            repo.session.value?.user?.firstname,
+        )
+    }
+
+    @Test
+    fun `refreshUser does not bring back a session that was closed while loading`() = runTest {
+        seedSession()
+        coEvery { authRepo.logout(any()) } just Runs
+        val gate = CompletableDeferred<Unit>()
+        userRepoFactory.gate = gate
+        userRepoFactory.result = Result.success(testUser.copy(firstname = "Jane"))
+
+        val refreshJob = launch(start = CoroutineStart.UNDISPATCHED) { repo.refreshUser() }
+        repo.logout()
+        gate.complete(Unit)
+        refreshJob.join()
+
+        assertNull("Una respuesta tardía no debe resucitar la sesión cerrada", repo.session.value)
+    }
 }

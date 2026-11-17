@@ -69,6 +69,8 @@ class GetAssignmentDetailTest {
 
     private fun detail(id: Int) = AssignmentDetail(
         id = id,
+        courseId = 1,
+        cmId = 100 + id,
         name = "Tarea $id",
         description = "",
         dueDate = null,
@@ -80,6 +82,7 @@ class GetAssignmentDetailTest {
         gradeDisplay = null,
         submissionGraded = false,
         canSubmit = true,
+        canEdit = true,
         lastAttemptDate = null,
         files = emptyList(),
     )

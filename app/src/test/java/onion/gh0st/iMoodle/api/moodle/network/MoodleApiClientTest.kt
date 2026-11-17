@@ -7,12 +7,14 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
 import okhttp3.Request
 import okhttp3.Response
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
 import onion.gh0st.iMoodle.fakes.FakeHttp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -192,5 +194,84 @@ class MoodleApiClientTest {
 
         assertNotNull(error)
         assertTrue(error is AuthException.Network)
+    }
+
+    // --- Fallos transitorios del refresco ---
+
+    @Test
+    fun `transient refresh failure propagates and does not invalidate the session`() = runTest {
+        val invalidations = AtomicInteger()
+        val api = client(
+            refresher = TokenRefresher { throw AuthException.Network(IOException("sin red")) },
+            onInvalid = { invalidations.incrementAndGet() },
+            handler = { FakeHttp.response(it, FakeHttp.INVALID_TOKEN_JSON) },
+        )
+
+        val error = runCatching { api.callREST("core_x") }.exceptionOrNull()
+
+        assertTrue(error is AuthException.Network)
+        assertEquals("Un corte de red no debe cerrar la sesión", 0, invalidations.get())
+    }
+
+    @Test
+    fun `session keeps working after a transient refresh failure`() = runTest {
+        var refresherFails = true
+        val api = client(
+            refresher = TokenRefresher {
+                if (refresherFails) throw AuthException.Network(IOException("sin red"))
+                "new"
+            },
+            handler = { expiredUnlessNew(it) },
+        )
+
+        runCatching { api.callREST("core_x") }
+        refresherFails = false
+
+        assertEquals(okBody, api.callREST("core_x"))
+        assertEquals("new", api.token.value)
+    }
+
+    // --- Modo POST (cuerpo de formulario) ---
+
+    /**
+     * Lee el valor del campo `wstoken` del cuerpo de una petición `POST`.
+     *
+     * @param request Petición con cuerpo `application/x-www-form-urlencoded`.
+     * @return El token enviado, o `null` si no hay cuerpo de formulario.
+     */
+    private fun formToken(request: Request): String? {
+        val form = request.body as? FormBody ?: return null
+        val index = (0 until form.size).firstOrNull { form.name(it) == "wstoken" } ?: return null
+        return form.value(index)
+    }
+
+    @Test
+    fun `form body call refreshes an expired token and retries`() = runTest {
+        val api = client(
+            refresher = TokenRefresher { "new" },
+            handler = { request ->
+                if (formToken(request) == "new") {
+                    FakeHttp.response(request, okBody)
+                } else {
+                    FakeHttp.response(request, FakeHttp.INVALID_TOKEN_JSON)
+                }
+            },
+        )
+
+        assertEquals(okBody, api.callRESTWithFormBody("core_x", mapOf("a" to "b")))
+        assertEquals("new", api.token.value)
+    }
+
+    @Test
+    fun `form body call sends the token in the body and not in the url`() = runTest {
+        var requestUrl = ""
+        val api = client(handler = { request ->
+            requestUrl = request.url.toString()
+            FakeHttp.response(request, okBody)
+        })
+
+        api.callRESTWithFormBody("core_x", mapOf("a" to "b"))
+
+        assertFalse("El token no debe ir en la URL", requestUrl.contains("wstoken"))
     }
 }

@@ -9,6 +9,13 @@ import javax.inject.Inject
 class DeleteAssignmentSubmission @Inject constructor(
     private val repository: AssignmentSubmissionRepository,
 ) {
+    /**
+     * Borra la entrega de un alumno.
+     *
+     * @param assignmentId Identificador de la tarea.
+     * @param userId Identificador del alumno.
+     * @return Éxito, o el fallo ocurrido.
+     */
     suspend operator fun invoke(assignmentId: Int, userId: Int): Result<Unit> =
         repository.deleteSubmission(assignmentId, userId)
 }

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.map
 import onion.gh0st.iMoodle.api.moodle.auth.SessionApiProvider
 import onion.gh0st.iMoodle.api.moodle.network.MoodleParams
 import onion.gh0st.iMoodle.api.moodle.network.appendMoodleToken
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.data.local.InlineTransactionRunner
 import onion.gh0st.iMoodle.data.local.TransactionRunner
 import onion.gh0st.iMoodle.data.local.dao.AssignmentDao
@@ -98,11 +99,32 @@ class MoodleCourseRepository @Inject constructor(
      *
      * ## Clave
      *
-     * El `courseId` de Moodle. Los IDs son globales, así que dos
-     * usuarios que vean el mismo curso comparten caché sin problema
-     * (el contenido del curso es el mismo para todos).
+     * El `courseId` de Moodle.
+     *
+     * ## Por qué cada entrada recuerda su token
+     *
+     * Los archivos de un curso se devuelven con el `wstoken` ya
+     * incrustado en la URL (`...?token=abc`). Si el token se refresca
+     * (caduca a los ~30 minutos) o entra otro usuario, las URLs
+     * cacheadas dejarían de funcionar aunque la entrada siga "fresca".
+     * Por eso cada entrada guarda el token con el que se construyó
+     * ([CachedContents]) y solo se reutiliza si sigue siendo el token
+     * vigente; si no, se vuelve a pedir a Moodle.
      */
-    private val courseContentsCache = LruCache<Int, List<CourseContent>>(MAX_CACHED_COURSES)
+    private val courseContentsCache = LruCache<Int, CachedContents>(MAX_CACHED_COURSES)
+
+    /**
+     * Contenidos de un curso junto con el token con el que se
+     * construyeron sus URLs.
+     *
+     * @property token Token vigente al construir las URLs (`null` si no
+     *   había sesión).
+     * @property contents Secciones del curso ya interpretadas.
+     */
+    private class CachedContents(
+        val token: String?,
+        val contents: List<CourseContent>,
+    )
 
     // --- Observación de datos (lectura de Room) ---
 
@@ -210,12 +232,13 @@ class MoodleCourseRepository @Inject constructor(
         forceRefresh: Boolean,
     ): List<CourseContent> {
         if (!forceRefresh) {
-            courseContentsCache.get(courseId)?.let { cachedContents ->
-                return cachedContents
-            }
+            val currentToken = currentAuth()?.first
+            courseContentsCache.get(courseId)
+                ?.takeIf { cachedEntry -> cachedEntry.token == currentToken }
+                ?.let { cachedEntry -> return cachedEntry.contents }
         }
         val fetchedContents = fetchCourseContents(courseId)
-        courseContentsCache.put(courseId, fetchedContents)
+        courseContentsCache.put(courseId, CachedContents(currentAuth()?.first, fetchedContents))
         return fetchedContents
     }
 
@@ -232,7 +255,7 @@ class MoodleCourseRepository @Inject constructor(
      *
      * ## Manejo de errores
      *
-     * Envuelto en `runCatching`, así que cualquier fallo (red,
+     * Envuelto en `runCatchingCancellable`, así que cualquier fallo (red,
      * parseo) devuelve `null`. La pantalla de detalle de curso trata
      * el `null` mostrando un toast genérico, pero no rompe.
      *
@@ -245,7 +268,7 @@ class MoodleCourseRepository @Inject constructor(
         courseId: Int,
         instanceId: Int,
         forceRefresh: Boolean,
-    ): String? = runCatching {
+    ): String? = runCatchingCancellable {
         val requestParams = MoodleParams().apply {
             putArray("courseids", listOf(courseId))
         }
@@ -317,7 +340,7 @@ class MoodleCourseRepository @Inject constructor(
      */
     private suspend fun fetchAssignmentEntities(courseIds: List<Int>): List<AssignmentEntity>? {
         if (courseIds.isEmpty()) return emptyList()
-        return runCatching {
+        return runCatchingCancellable {
             val requestParams = MoodleParams().apply {
                 putArray("courseids", courseIds)
             }
@@ -325,7 +348,7 @@ class MoodleCourseRepository @Inject constructor(
                 callRest("mod_assign_get_assignments", requestParams),
             )
             val coursesArray = assignmentsResponseJson.optJSONArray("courses")
-                ?: return@runCatching emptyList()
+                ?: return@runCatchingCancellable emptyList()
             val assignmentEntities = mutableListOf<AssignmentEntity>()
             for (courseIndex in 0 until coursesArray.length()) {
                 val courseJson = coursesArray.getJSONObject(courseIndex)

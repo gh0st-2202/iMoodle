@@ -29,8 +29,13 @@ class FakeUserProfileRepository : UserProfileRepository {
      * @return El usuario transformado.
      * @throws Throwable si [error] no es `null`.
      */
-    override suspend fun enrich(user: User): User {
+    /** Valor de `forceRefresh` de la última llamada a [enrich] (`null` si no hubo ninguna). */
+    var lastForceRefresh: Boolean? = null
+        private set
+
+    override suspend fun enrich(user: User, forceRefresh: Boolean): User {
         enrichCalls++
+        lastForceRefresh = forceRefresh
         error?.let { throw it }
         return result(user)
     }

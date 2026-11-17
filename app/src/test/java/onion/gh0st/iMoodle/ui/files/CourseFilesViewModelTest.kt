@@ -11,7 +11,12 @@ import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseContents
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseFiles
+import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
+import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
 import onion.gh0st.iMoodle.fakes.FakeCourseRepository
+import onion.gh0st.iMoodle.fakes.FakeFileDownloader
+import onion.gh0st.iMoodle.fakes.FakeSessionRepository
+import onion.gh0st.iMoodle.fakes.TestSessions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -28,10 +33,15 @@ class CourseFilesViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val fakeRepo = FakeCourseRepository()
+    private val sessionRepo = FakeSessionRepository(TestSessions.active())
+    private val observeSession = ObserveSession(sessionRepo)
+    private val fileDownloader = FakeFileDownloader()
 
     private fun createViewModel(
         courseId: Int = 1,
         moduleId: Int = 100,
+        session: ObserveSession = observeSession,
+        downloader: FakeFileDownloader = fileDownloader,
     ): CourseFilesViewModel {
         val savedState = SavedStateHandle(
             mapOf(
@@ -42,6 +52,7 @@ class CourseFilesViewModelTest {
         return CourseFilesViewModel(
             savedStateHandle = savedState,
             getCourseFiles = GetCourseFiles(GetCourseContents(fakeRepo)),
+            downloadCourseFile = DownloadCourseFile(session, downloader),
         )
     }
 
@@ -92,6 +103,41 @@ class CourseFilesViewModelTest {
             assertFalse(isLoading)
             assertTrue(files.isEmpty())
         }
+    }
+
+    @Test
+    fun `download emits started event and delegates to the downloader`() = runTest {
+        fakeRepo.courseContents = listOf(
+            section(id = 1, name = "Tema 1", module(id = 100, files = listOf(file("a.pdf")))),
+        )
+        val vm = createViewModel()
+        val file = vm.state.value.files.first()
+
+        vm.events.test {
+            vm.downloadFile(file)
+            assertEquals(CourseFilesUiEvent.DownloadStarted("a.pdf"), awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(1, fileDownloader.downloadCalls)
+        assertEquals(file, fileDownloader.lastFile)
+    }
+
+    @Test
+    fun `download without session fails without touching the downloader`() = runTest {
+        fakeRepo.courseContents = listOf(
+            section(id = 1, name = "Tema 1", module(id = 100, files = listOf(file("a.pdf")))),
+        )
+        val vm = createViewModel(session = ObserveSession(FakeSessionRepository()))
+        val file = vm.state.value.files.first()
+
+        vm.events.test {
+            vm.downloadFile(file)
+            assertEquals(CourseFilesUiEvent.DownloadFailed, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(0, fileDownloader.downloadCalls)
     }
 
     private fun section(id: Int, name: String, vararg modules: CourseModule) =

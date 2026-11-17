@@ -35,7 +35,7 @@ import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
  *
  * ## Quién la consume
  *
- * - `AuthRepositoryImpl` (al hacer login, para guardar).
+ * - `MoodleAuthRepository` (al hacer login, para guardar).
  * - `DefaultSessionRepository` (al hacer logout, para borrar).
  * - `CasCredentialsTokenRefresher` (al refrescar el token de Moodle).
  * - `PasenScheduleRepository` y `PasenUserProfileRepository` (al

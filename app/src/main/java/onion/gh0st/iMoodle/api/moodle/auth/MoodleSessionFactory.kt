@@ -32,9 +32,9 @@ import javax.inject.Singleton
  *
  * Se invoca en dos flujos:
  *
- * 1. **Login**: tras `AuthRepositoryImpl.login`, cuando ya se tiene un
+ * 1. **Login**: tras `MoodleAuthRepository.login`, cuando ya se tiene un
  *    `SessionContext` recién creado.
- * 2. **Auto-login**: tras `AuthRepositoryImpl.tryAutoLogin`, cuando
+ * 2. **Auto-login**: tras `MoodleAuthRepository.tryAutoLogin`, cuando
  *    se recupera una sesión guardada del disco.
  *
  * En ambos casos, el `DefaultSessionRepository` recibe el

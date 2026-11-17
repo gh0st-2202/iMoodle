@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.ui.web
 
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
@@ -10,6 +11,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ActivityWebBinding
+import onion.gh0st.iMoodle.ui.common.WebUrls
 
 /**
  * WebView genérico para abrir enlaces externos dentro de la app.
@@ -30,15 +32,22 @@ import onion.gh0st.iMoodle.databinding.ActivityWebBinding
  *
  * ## Nota de seguridad
  *
- * Esta Activity **no valida** la URL recibida y **no sobrescribe**
- * `shouldOverrideUrlLoading`. Para URLs no confiables (por ejemplo,
- * enlaces de profesores), usar `CourseDetailFragment.openUrl`, que
- * sí aplica `WebUrls.isSafeWebUrl` antes de invocar `ACTION_VIEW`.
+ * Solo carga URLs `http://` o `https://` ([WebUrls.isSafeWebUrl]); con
+ * cualquier otro esquema (`file://`, `javascript:`…) se cierra sin
+ * cargar nada. No está exportada, así que solo la propia app puede
+ * lanzarla. Sin embargo **no sobrescribe** `shouldOverrideUrlLoading`:
+ * una vez cargada la primera página, la navegación continúa por
+ * cualquier enlace. Para enlaces no confiables (por ejemplo, de
+ * profesores) se prefiere `CourseDetailFragment.openUrl`, que los abre
+ * en el navegador del sistema.
  */
 class WebActivity : AppCompatActivity() {
 
     /** Binding de la vista. */
     private lateinit var binding: ActivityWebBinding
+
+    /** Callback de "atrás", habilitado solo si el `WebView` puede retroceder. */
+    private var backCallback: OnBackPressedCallback? = null
 
     /**
      * Ciclo de vida de la Activity.
@@ -61,19 +70,32 @@ class WebActivity : AppCompatActivity() {
             insets
         }
 
-        val url = intent.getStringExtra("URL")
-        val title = intent.getStringExtra("TITLE") ?: getString(R.string.title_web_link)
+        val url = intent.getStringExtra(WebExtras.URL)
+        val title = intent.getStringExtra(WebExtras.TITLE) ?: getString(R.string.title_web_link)
 
         binding.toolbarWeb.title = title
         binding.toolbarWeb.setNavigationOnClickListener { finish() }
 
-        if (url.isNullOrBlank()) {
+        if (!WebUrls.isSafeWebUrl(url)) {
             finish()
             return
         }
 
-        setupWebView(url)
         setupBackHandler()
+        setupWebView(requireNotNull(url))
+    }
+
+    /**
+     * Libera el `WebView` al cerrar la pantalla, para que no mantenga
+     * viva la Activity en memoria.
+     */
+    override fun onDestroy() {
+        binding.webview.apply {
+            stopLoading()
+            (parent as? ViewGroup)?.removeView(this)
+            destroy()
+        }
+        super.onDestroy()
     }
 
     /**
@@ -106,36 +128,37 @@ class WebActivity : AppCompatActivity() {
                 super.onPageStarted(view, url, favicon)
                 binding.toolbarWeb.subtitle = url
             }
+
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                super.doUpdateVisitedHistory(view, url, isReload)
+                backCallback?.isEnabled = view?.canGoBack() == true
+            }
         }
         loadUrl(url)
     }
 
     /**
-     * Gestiona el botón atrás.
+     * Gestiona el botón "atrás".
      *
      * ## Comportamiento
      *
-     * - Si el WebView puede retroceder, va atrás.
-     * - Si no, deshabilita el callback y llama al dispatcher del
-     *   sistema (que cierra la Activity).
+     * - Mientras el `WebView` tenga historial al que volver, "atrás"
+     *   retrocede una página.
+     * - Cuando no lo tiene, el callback se deshabilita y el sistema
+     *   aplica su comportamiento normal (cerrar la Activity).
      *
-     * ## Por qué se deshabilita el callback
-     *
-     * Para no interceptar el siguiente "atrás". Si no se
-     * deshabilitara, el usuario tendría que pulsar "atrás" dos
-     * veces: una para que el callback se deshabilite, y otra para
-     * que el sistema cierre la Activity.
+     * El estado del callback se actualiza cada vez que cambia el
+     * historial ([WebViewClient.doUpdateVisitedHistory]) en lugar de
+     * deshabilitarlo de forma permanente la primera vez que no hay
+     * historial.
      */
     private fun setupBackHandler() {
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+        val webViewBackCallback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
-                if (binding.webview.canGoBack()) {
-                    binding.webview.goBack()
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                }
+                binding.webview.goBack()
             }
-        })
+        }
+        onBackPressedDispatcher.addCallback(this, webViewBackCallback)
+        backCallback = webViewBackCallback
     }
 }

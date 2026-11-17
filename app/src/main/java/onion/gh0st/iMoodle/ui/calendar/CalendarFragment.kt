@@ -1,20 +1,7 @@
 package onion.gh0st.iMoodle.ui.calendar
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.View
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
-import androidx.annotation.StringRes
-import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
@@ -29,6 +16,8 @@ import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentCalendarBinding
 import onion.gh0st.iMoodle.domain.model.calendar.CalendarEvent
 import onion.gh0st.iMoodle.ui.assignments.AssignmentDetailFragment
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 
 /**
  * Pantalla de la agenda del alumno.
@@ -38,53 +27,28 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
 
     private val viewModel: CalendarViewModel by viewModels()
 
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted -> onPermissionResult(granted) }
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentCalendarBinding.bind(view)
-        setupWindowInsets(binding)
-        ensureNotificationPermission(savedInstanceState)
+        binding.appBarCalendar.applySystemBarsInsets()
         val adapter = buildAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
     }
 
-    private fun setupWindowInsets(binding: FragmentCalendarBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarCalendar) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
-        }
-    }
-
-    private fun ensureNotificationPermission(savedInstanceState: Bundle?) {
-        if (savedInstanceState != null) return
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        if (hasNotificationPermission()) return
-        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-    }
-
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    private fun hasNotificationPermission(): Boolean =
-        ContextCompat.checkSelfPermission(
-            requireContext(),
-            Manifest.permission.POST_NOTIFICATIONS,
-        ) == PackageManager.PERMISSION_GRANTED
-
-    private fun onPermissionResult(granted: Boolean) {
-        if (granted) showToast(R.string.toast_notifications_enabled)
-        else showToast(R.string.toast_no_notifications_permission_short)
-    }
-
+    /**
+     * Crea el adaptador de la agenda. Al tocar un evento se llama a
+     * [onEventClicked].
+     *
+     * @return El adaptador de la lista.
+     */
     private fun buildAdapter() = CalendarAdapter { event -> onEventClicked(event) }
 
+    /**
+     * Configura la lista de eventos y el gesto de arrastrar para refrescar.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la agenda.
+     */
     private fun setupRecyclerView(
         binding: FragmentCalendarBinding,
         adapter: CalendarAdapter,
@@ -94,6 +58,13 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
         binding.swipeRefreshCalendar.setOnRefreshListener { viewModel.refresh() }
     }
 
+    /**
+     * Empieza a observar el estado y los eventos del ViewModel mientras la
+     * pantalla esté visible.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la agenda.
+     */
     private fun observeUi(binding: FragmentCalendarBinding, adapter: CalendarAdapter) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -103,6 +74,13 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
         }
     }
 
+    /**
+     * Pinta cada nuevo estado: lista de eventos, indicador de carga y
+     * mensaje de "sin eventos".
+     *
+     * @param binding Vistas de la pantalla.
+     * @param adapter Adaptador de la agenda.
+     */
     private suspend fun observeState(binding: FragmentCalendarBinding, adapter: CalendarAdapter) {
         viewModel.state.collect { state ->
             adapter.submitList(state.items)
@@ -112,25 +90,28 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
         }
     }
 
+    /**
+     * Reacciona a los eventos de un solo uso: mostrar un error.
+     *
+     * El permiso de alarmas exactas y el de notificaciones los pide
+     * `MainActivity`; esta pantalla no abre ajustes del sistema para no
+     * duplicar avisos.
+     */
     private suspend fun observeEvents() {
         viewModel.uiEvents.collect { event ->
             when (event) {
-                CalendarUiEvent.NeedExactAlarmPermission -> openExactAlarmSettings()
                 is CalendarUiEvent.ShowError -> showToast(event.messageResId)
             }
         }
     }
 
-    private fun openExactAlarmSettings() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val settingsIntent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-            data = Uri.parse("package:${requireContext().packageName}")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        runCatching { startActivity(settingsIntent) }
-            .onFailure { showToast(R.string.toast_exact_alarm_settings) }
-    }
-
+    /**
+     * Gestiona el toque en un evento: si es una tarea con curso e
+     * identificador conocidos abre su detalle; en otro caso avisa de que no hay
+     * detalles.
+     *
+     * @param event Evento tocado.
+     */
     private fun onEventClicked(event: CalendarEvent) {
         val courseId = event.courseId
         val instanceId = event.instanceId
@@ -142,12 +123,11 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
     }
 
     /**
-     * Navega al detalle de una tarea.
+     * Navega al detalle de una tarea en `R.id.detail_container`, el
+     * contenedor que `MainActivity` superpone al `ViewPager2`.
      *
-     * ## Corrección (v2.2)
-     * Se usa `R.id.detail_container` en lugar de `R.id.fragment_container`
-     * porque el layout principal ahora usa un `ViewPager2` para las
-     * pestañas y un contenedor de detalles superpuesto.
+     * @param courseId Identificador del curso.
+     * @param instanceId Identificador de la tarea.
      */
     private fun openAssignment(courseId: Int, instanceId: Int) {
         parentFragmentManager.commit {
@@ -159,7 +139,4 @@ class CalendarFragment : Fragment(R.layout.fragment_calendar) {
         }
     }
 
-    private fun showToast(@StringRes messageResId: Int) {
-        Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show()
-    }
 }

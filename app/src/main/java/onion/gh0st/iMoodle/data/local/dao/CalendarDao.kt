@@ -49,6 +49,14 @@ interface CalendarDao {
                 "WHERE timestart >= :startTime AND timestart <= :endTime " +
                 "ORDER BY timestart ASC",
     )
+    /**
+     * Observa los eventos cuyo inicio cae dentro de un intervalo, ordenados
+     * por fecha. La lista se vuelve a emitir cada vez que cambia la tabla.
+     *
+     * @param startTime Inicio del intervalo (segundos Unix, incluido).
+     * @param endTime Fin del intervalo (segundos Unix, incluido).
+     * @return Flujo con los eventos del intervalo.
+     */
     fun getEvents(startTime: Long, endTime: Long): Flow<List<CalendarEventEntity>>
 
     /**

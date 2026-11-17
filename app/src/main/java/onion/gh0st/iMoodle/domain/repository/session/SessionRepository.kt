@@ -2,7 +2,7 @@ package onion.gh0st.iMoodle.domain.repository.session
 
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.domain.model.session.ActiveSession
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.model.session.SessionEvent

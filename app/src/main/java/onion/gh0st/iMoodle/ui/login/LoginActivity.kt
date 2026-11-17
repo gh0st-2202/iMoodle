@@ -374,7 +374,7 @@ class LoginActivity : AppCompatActivity() {
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
-                is LoginEvent.ShowToast -> showToast(event.message)
+                is LoginEvent.ShowToast -> showToast(event)
                 LoginEvent.NavigateToMain -> navigateToMain()
             }
         }
@@ -383,9 +383,21 @@ class LoginActivity : AppCompatActivity() {
     /**
      * Muestra un mensaje breve en pantalla durante unos segundos.
      *
-     * @param text El texto a mostrar.
+     * ## Por qué el ViewModel manda un recurso
+     *
+     * El ViewModel no tiene `Context`, así que emite el ID del string
+     * (y, si hace falta, su argumento). Aquí se resuelve con
+     * `getString`, que es lo que sí puede hacer la capa de
+     * presentación.
+     *
+     * @param event Evento con el recurso y su argumento opcional.
      */
-    private fun showToast(text: String) {
+    private fun showToast(event: LoginEvent.ShowToast) {
+        val text = if (event.formatArg == null) {
+            getString(event.messageRes)
+        } else {
+            getString(event.messageRes, event.formatArg)
+        }
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 

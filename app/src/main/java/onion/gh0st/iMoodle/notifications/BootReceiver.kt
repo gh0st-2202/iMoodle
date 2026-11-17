@@ -11,7 +11,8 @@ import onion.gh0st.iMoodle.domain.repository.notification.NotificationScheduler
 import javax.inject.Inject
 
 /**
- * Receiver que reprograma las alarmas tras reiniciar el dispositivo.
+ * Receiver que reprograma las alarmas cuando el sistema invalida su
+ * programación.
  *
  * ## Por qué existe
  *
@@ -27,15 +28,24 @@ import javax.inject.Inject
  * escucha y reprograma todas las alarmas que había guardadas en
  * `AlarmStorage`.
  *
+ * ## Cambios de hora y de zona horaria
+ *
+ * Las alarmas se programan como instantes absolutos (`RTC_WAKEUP`)
+ * calculados a partir de la hora local. Si el usuario cambia de zona
+ * horaria o ajusta la hora a mano, ese instante ya no corresponde a
+ * las 08:00 locales. Por eso también se atienden
+ * `ACTION_TIMEZONE_CHANGED` y `ACTION_TIME_CHANGED`: en ambos casos se
+ * recalculan las alarmas desde los eventos guardados.
+ *
  * ## Cómo funciona
  *
- * 1. Comprueba que el `Intent` recibido es realmente el de "boot
- *    completed". Por seguridad: un receiver puede recibir otros
- *    `Intent`, y no queremos reaccionar a ellos.
- * 2. Llama a `goAsync()` para indicar a Android que el receiver va
- *    a hacer trabajo asíncrono (cargar alarmas de disco,
- *    reprogramarlas). Sin esto, Android podría matar el proceso
- *    antes de que terminara.
+ * 1. Comprueba que el `Intent` recibido es uno de los que interesan
+ *    (arranque, cambio de hora o de zona). Por seguridad: un receiver
+ *    puede recibir otros `Intent`, y no queremos reaccionar a ellos.
+ * 2. Llama a `goAsync()` para indicar a Android que el receiver va a
+ *    hacer trabajo asíncrono (cargar alarmas de disco,
+ *    reprogramarlas). Sin esto, Android podría matar el proceso antes
+ *    de que terminara.
  * 3. En una corrutina de `Dispatchers.IO`:
  *    - Carga las alarmas guardadas.
  *    - Si hay alguna, pide al scheduler que las reprograme.
@@ -45,11 +55,11 @@ import javax.inject.Inject
  *
  * El método `onReceive` de un `BroadcastReceiver` se ejecuta en el
  * hilo principal y **debe terminar en menos de 10 segundos**. Si
- * tarda más, el sistema mata el proceso y muestra un ANR ("Application
- * Not Responding"). La reprogramación de alarmas implica acceso a
- * disco, lo que podría tardar. Con `goAsync()`, se le dice a Android
- * que el trabajo continúa en background y que no mate el proceso
- * hasta que se llame a `finish()`.
+ * tarda más, el sistema mata el proceso y muestra un ANR
+ * ("Application Not Responding"). La reprogramación de alarmas implica
+ * acceso a disco, lo que podría tardar. Con `goAsync()`, se le dice a
+ * Android que el trabajo continúa en background y que no mate el
+ * proceso hasta que se llame a `finish()`.
  *
  * ## Anotación `@AndroidEntryPoint`
  *
@@ -72,8 +82,8 @@ class BootReceiver : BroadcastReceiver() {
      *
      * ## Qué hace
      *
-     * 1. Comprueba que la acción es `ACTION_BOOT_COMPLETED`. Si no,
-     *    no hace nada.
+     * 1. Comprueba que la acción es una de [RESCHEDULE_ACTIONS]. Si
+     *    no, no hace nada.
      * 2. Pide a Android permiso para hacer trabajo asíncrono.
      * 3. Lanza una corrutina que:
      *    - Carga las alarmas guardadas.
@@ -84,7 +94,7 @@ class BootReceiver : BroadcastReceiver() {
      * @param intent `Intent` recibido.
      */
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        if (intent.action !in RESCHEDULE_ACTIONS) return
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -96,5 +106,19 @@ class BootReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    private companion object {
+        /**
+         * Acciones que invalidan las alarmas programadas.
+         *
+         * `TIME_SET` es el valor real de `ACTION_TIME_CHANGED` (así se
+         * llama la constante en el SDK).
+         */
+        val RESCHEDULE_ACTIONS = setOf(
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+        )
     }
 }

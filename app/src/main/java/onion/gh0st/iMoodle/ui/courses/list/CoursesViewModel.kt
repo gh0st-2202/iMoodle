@@ -20,10 +20,11 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.domain.model.course.Course
-import onion.gh0st.iMoodle.domain.repository.course.CourseRepository
-import onion.gh0st.iMoodle.domain.repository.session.SessionRepository
+import onion.gh0st.iMoodle.domain.usecase.course.GetCourses
 import onion.gh0st.iMoodle.domain.usecase.course.GetFavouriteCourseIds
+import onion.gh0st.iMoodle.domain.usecase.course.RefreshCourses
 import onion.gh0st.iMoodle.domain.usecase.course.ToggleFavouriteCourse
+import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
 import javax.inject.Inject
 
 /**
@@ -38,6 +39,12 @@ data class CoursesUiState(
  * Eventos de un solo uso consumidos por `CoursesFragment`.
  */
 sealed interface CoursesUiEvent {
+    /**
+     * Mostrar un mensaje de error en pantalla.
+     *
+     * @property messageResId Recurso del texto del mensaje.
+     * @property arg Valor que sustituye a `%1$s` en el texto, si lo usa.
+     */
     data class ShowError(
         @param:StringRes val messageResId: Int,
         val arg: String? = null,
@@ -53,11 +60,25 @@ sealed interface CoursesUiEvent {
  * 3. Ordena la lista para que los favoritos aparezcan primero.
  * 4. Gestiona el evento de pulsar la estrella para añadir o quitar
  *    un curso de favoritos.
+ *
+ * ## Capas
+ *
+ * No conoce el repositorio de cursos ni el de sesión: usa casos de
+ * uso ([GetCourses], [RefreshCourses], [ObserveSession]). Así la
+ * pantalla depende del contrato de dominio y no de la implementación
+ * de Moodle ni de Room.
+ *
+ * @param getCourses Observa los cursos cacheados del usuario.
+ * @param refreshCourses Descarga los cursos desde Moodle.
+ * @param observeSession Lectura de la sesión activa.
+ * @param getFavouriteCourseIds Lee los favoritos del dispositivo.
+ * @param toggleFavouriteCourse Marca o desmarca un curso.
  */
 @HiltViewModel
 class CoursesViewModel @Inject constructor(
-    private val courseRepository: CourseRepository,
-    private val sessionRepo: SessionRepository,
+    private val getCourses: GetCourses,
+    private val refreshCourses: RefreshCourses,
+    private val observeSession: ObserveSession,
     private val getFavouriteCourseIds: GetFavouriteCourseIds,
     private val toggleFavouriteCourse: ToggleFavouriteCourse,
 ) : ViewModel() {
@@ -71,6 +92,23 @@ class CoursesViewModel @Inject constructor(
     private var rawCourses: List<Course> = emptyList()
     private var favouriteIds: Set<Int> = emptySet()
 
+    /**
+     * Cursos cuyo cambio de favorito está en vuelo.
+     *
+     * ## Por qué existe
+     *
+     * Si el usuario pulsa dos veces seguidas la estrella, la UI puede
+     * no haber repintado todavía y ambas pulsaciones leen el mismo
+     * `isFavorite` antiguo. Las dos corrutinas escribirían el **mismo**
+     * valor (por ejemplo, `true`), así que dos toques rápidos para
+     * desmarcar acabarían dejando el curso marcado. Este conjunto
+     * ignora la segunda pulsación mientras la primera no termine.
+     *
+     * Se modifica solo desde el hilo principal (`viewModelScope`), así
+     * que no necesita sincronización adicional.
+     */
+    private val favouriteUpdatesInFlight = mutableSetOf<Int>()
+
     init {
         observeSessionAndCourses()
     }
@@ -82,7 +120,7 @@ class CoursesViewModel @Inject constructor(
      * (pull-to-refresh) para pedir los datos más recientes.
      */
     fun refresh() {
-        val userId = sessionRepo.session.value?.user?.id ?: 0
+        val userId = observeSession.currentUserId ?: 0
         if (userId == 0) {
             viewModelScope.launch {
                 _events.send(CoursesUiEvent.ShowError(messageResId = R.string.error_identify_user))
@@ -102,25 +140,40 @@ class CoursesViewModel @Inject constructor(
      * leer la lista de favoritos para actualizar la pantalla y
      * reordenar los cursos.
      *
+     * ## Protección contra dobles pulsaciones
+     *
+     * Mientras hay un cambio en vuelo para un curso, las pulsaciones
+     * adicionales sobre ese mismo curso se ignoran. Sin esta guarda,
+     * dos toques rápidos calculaban el mismo valor desde el estado
+     * antiguo y el segundo podía deshacer la intención del usuario.
+     *
      * @param course El curso que se va a marcar o desmarcar.
      */
     fun toggleFavourite(course: CourseUi) {
+        if (!favouriteUpdatesInFlight.add(course.id)) return
+
         viewModelScope.launch {
-            toggleFavouriteCourse(course.id, !course.isFavorite)
-                .onSuccess {
-                    getFavouriteCourseIds()
-                        .onSuccess { ids ->
-                            favouriteIds = ids
-                            updateCoursesWithFavourites()
-                        }
-                        .onFailure { exception ->
-                            Logging.logError(TAG, "getFavouriteCourseIds after toggle", exception)
-                        }
-                }
-                .onFailure { exception ->
-                    Logging.logError(TAG, "toggleFavourite(courseId=${course.id})", exception)
-                    _events.send(CoursesUiEvent.ShowError(messageResId = R.string.error_unexpected))
-                }
+            try {
+                toggleFavouriteCourse(course.id, !course.isFavorite)
+                    .onSuccess {
+                        getFavouriteCourseIds()
+                            .onSuccess { ids ->
+                                favouriteIds = ids
+                                updateCoursesWithFavourites()
+                            }
+                            .onFailure { exception ->
+                                Logging.logError(TAG, "getFavouriteCourseIds after toggle", exception)
+                            }
+                    }
+                    .onFailure { exception ->
+                        Logging.logError(TAG, "toggleFavourite(courseId=${course.id})", exception)
+                        _events.send(
+                            CoursesUiEvent.ShowError(messageResId = R.string.error_unexpected),
+                        )
+                    }
+            } finally {
+                favouriteUpdatesInFlight.remove(course.id)
+            }
         }
     }
 
@@ -132,7 +185,7 @@ class CoursesViewModel @Inject constructor(
      */
     private fun observeSessionAndCourses() {
         viewModelScope.launch {
-            sessionRepo.session
+            observeSession.session
                 .map { activeSession -> activeSession?.user?.id ?: 0 }
                 .distinctUntilChanged()
                 .collectLatest { userId ->
@@ -159,16 +212,22 @@ class CoursesViewModel @Inject constructor(
     /**
      * Observa los cursos de un usuario específico.
      *
-     * Su propósito es lanzar dos tareas al mismo tiempo: una para
-     * descargar los cursos de internet y otra para mostrarlos en
-     * la pantalla en cuanto estén listos.
+     * Primero carga los cursos favoritos (que viven en el dispositivo y
+     * por tanto están disponibles sin red) y después lanza dos tareas al
+     * mismo tiempo: una para descargar los cursos de internet y otra para
+     * mostrarlos en la pantalla en cuanto estén listos.
+     *
+     * Los favoritos se cargan **antes** de tocar la red a propósito: antes
+     * se cargaban solo si la descarga tenía éxito, así que sin conexión
+     * la lista aparecía sin estrellas ni orden de favoritos.
      *
      * @param userId El identificador del usuario.
      */
     private suspend fun observeCoursesForUser(userId: Int) = coroutineScope {
+        loadFavouriteIds()
         launch { refreshForUser(userId) }
         launch {
-            courseRepository.getCoursesFlow(userId).collect { courses ->
+            getCourses(userId).collect { courses ->
                 rawCourses = courses
                 updateCoursesWithFavourites()
             }
@@ -195,6 +254,21 @@ class CoursesViewModel @Inject constructor(
     }
 
     /**
+     * Carga desde el dispositivo los identificadores de los cursos
+     * favoritos y los guarda para ordenar y marcar la lista.
+     *
+     * Si la lectura falla se registra el error y se sigue con la lista
+     * sin favoritos, en lugar de impedir ver los cursos.
+     */
+    private suspend fun loadFavouriteIds() {
+        getFavouriteCourseIds()
+            .onSuccess { ids -> favouriteIds = ids }
+            .onFailure { exception ->
+                Logging.logError(TAG, "getFavouriteCourseIds", exception)
+            }
+    }
+
+    /**
      * Sincroniza los cursos de un usuario con los datos más recientes.
      *
      * Su propósito es pedir a internet que actualice la información
@@ -205,15 +279,7 @@ class CoursesViewModel @Inject constructor(
     private suspend fun refreshForUser(userId: Int) {
         _uiState.update { it.copy(isLoading = true) }
         try {
-            courseRepository.refreshCourses(userId)
-            getFavouriteCourseIds()
-                .onSuccess { ids ->
-                    favouriteIds = ids
-                    updateCoursesWithFavourites()
-                }
-                .onFailure { exception ->
-                    Logging.logError(TAG, "getFavouriteCourseIds", exception)
-                }
+            refreshCourses(userId)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {

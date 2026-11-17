@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import onion.gh0st.iMoodle.api.pasen.config.PasenConfig
@@ -43,9 +44,11 @@ import org.json.JSONObject
  * ## Sobre los errores
  *
  * Cualquier fallo (red caída, timeout, respuesta inesperada, código
- * HTTP no exitoso) se convierte en `IllegalStateException` con un
- * mensaje descriptivo. La excepción de cancelación de corrutinas se
- * propaga tal cual.
+ * HTTP no exitoso) se convierte en [PasenApiException] con un
+ * mensaje descriptivo que indica la operación que falló. La
+ * excepción de cancelación de corrutinas se propaga siempre tal cual
+ * (antes se envolvía en una `IllegalStateException`, lo que impedía
+ * cancelar correctamente las cargas al salir de la pantalla).
  *
  * ## Sobre la seguridad
  *
@@ -61,53 +64,21 @@ class PasenApiClient(
 ) {
 
     /**
-     * Autentica al usuario contra Pasen y devuelve el token de
-     * acceso.
+     * Autentica al usuario contra Pasen y devuelve el token de acceso.
      *
      * ## Cómo funciona OAuth2 con contraseña
      *
-     * Pasen usa el "flujo de contraseña" de OAuth2. Es el más simple
-     * de todos: el cliente (nuestra app) envía el usuario y la
-     * contraseña directamente al servidor de autorización, y este
-     * devuelve un token de acceso. No hay redirecciones ni pantallas
-     * intermedias.
+     * Pasen usa el "flujo de contraseña" de OAuth2: la app envía el
+     * usuario y la contraseña de la Junta junto con el identificador
+     * de cliente de la app oficial, y el servidor responde con un
+     * `access_token` que se usará en el resto de peticiones.
      *
-     * Para que el servidor acepte la petición, hay que incluir:
-     *
-     * - El usuario y la contraseña del alumno.
-     * - El `grant_type` (siempre `"password"` en este flujo).
-     * - El `scope` (el permiso solicitado).
-     * - El `client_id` (el identificador de la app).
-     *
-     * Todo ello se envía en el cuerpo de la petición como
-     * `application/x-www-form-urlencoded`, no como JSON.
-     *
-     * ## Qué devuelve
-     *
-     * Un `access_token`, que es una cadena larga que hay que incluir
-     * en cada petición posterior en la cabecera
-     * `Authorization: Bearer <token>`.
-     *
-     * ## Cuánto dura
-     *
-     * El token de Pasen dura aproximadamente 30 minutos. No hay
-     * `refresh_token`. Pasado ese tiempo, hay que volver a hacer
-     * login con las credenciales.
-     *
-     * ## Manejo de errores
-     *
-     * - **HTTP no exitoso** (4xx, 5xx): `IllegalStateException` con
-     *   el código.
-     * - **Respuesta sin `access_token`**: `IllegalStateException`.
-     * - **Cualquier otro fallo de red**: `IllegalStateException` con
-     *   la causa original.
-     * - **Cancelación**: se propaga.
-     *
-     * @param credentials Credenciales del usuario de la Junta.
-     * @return El `access_token` listo para usar como `Bearer`.
-     * @throws IllegalStateException si el login falla.
+     * @param credentials Credenciales de la Junta.
+     * @return El `access_token` (válido unos 30 minutos).
+     * @throws PasenApiException si falla la red, el servidor responde
+     *   con error o la respuesta no contiene token.
      */
-    suspend fun login(credentials: JuntaCredentials): String = withContext(Dispatchers.IO) {
+    suspend fun login(credentials: JuntaCredentials): String = guarded("login") {
         val requestBody = FormBody.Builder()
             .add("username", credentials.username)
             .add("password", credentials.password)
@@ -123,175 +94,150 @@ class PasenApiClient(
             .post(requestBody)
             .build()
 
-        try {
-            client.newCall(request).await().use { httpResponse ->
-                val responseBody = httpResponse.body?.string().orEmpty()
-                if (!httpResponse.isSuccessful) {
-                    throw IllegalStateException(
-                        "Error login iPasen: HTTP ${httpResponse.code}",
-                    )
-                }
-                JSONObject(responseBody).optString("access_token")
-                    .takeIf { it.isNotBlank() }
-                    ?: throw IllegalStateException("No access_token")
-            }
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (exception: Exception) {
-            throw IllegalStateException("Error de red en iPasen", exception)
-        }
+        val responseBody = fetchBody(request, operation = "login")
+        JSONObject(responseBody).optString("access_token")
+            .takeIf { accessToken -> accessToken.isNotBlank() }
+            ?: throw PasenApiException("iPasen no devolvió access_token")
     }
 
     /**
-     * Recupera la matrícula del alumno en el centro.
+     * Obtiene la matrícula del alumno (la primera, si hay varias).
      *
-     * ## Qué es `info-session`
+     * Es necesaria para pedir el horario y los datos personales.
      *
-     * Es el primer endpoint al que hay que llamar después del login.
-     * Devuelve información sobre el usuario autenticado: su nombre, su
-     * perfil (alumno, padre, tutor), y sus "matrículas"
-     * (`enrollments`).
-     *
-     * ## Qué es una matrícula
-     *
-     * Es la unidad que identifica al alumno dentro de un centro
-     * concreto. Una misma persona puede tener varias matrículas (una
-     * por centro, una por curso), aunque la app solo usa la primera
-     * que devuelve el servidor.
-     *
-     * El identificador de la matrícula (`enrollment`) es necesario
-     * para todos los endpoints de datos (horario, notas, faltas…).
-     *
-     * ## Qué se devuelve
-     *
-     * Un `Enrollment` de dominio con el ID, el código del centro y el
-     * nombre del centro. Los demás campos del JSON se ignoran.
-     *
-     * @param token `access_token` de Pasen obtenido en [login].
-     * @return La matrícula del alumno.
-     * @throws IllegalStateException si la respuesta no es válida o no
-     *   contiene `enrollments`.
+     * @param token Token devuelto por [login].
+     * @return La matrícula con el identificador y el centro.
+     * @throws PasenApiException si falla la petición o el alumno no
+     *   tiene matrículas.
      */
-    suspend fun getSessionInfo(token: String): Enrollment = withContext(Dispatchers.IO) {
+    suspend fun getSessionInfo(token: String): Enrollment = guarded("info-session") {
         val request = Request.Builder()
             .url("${PasenConfig.BASE_URL}/generales/info-session")
             .header("Authorization", "Bearer $token")
             .header("User-Agent", PasenConfig.USER_AGENT)
             .build()
 
-        try {
-            client.newCall(request).await().use { httpResponse ->
-                val responseBody = httpResponse.body?.string().orEmpty()
-                val responseJson = JSONObject(responseBody)
-                if (!responseJson.optBoolean("success")) {
-                    throw IllegalStateException(responseJson.optString("message"))
-                }
-
-                val enrollmentsArray = responseJson
-                    .optJSONObject("data")
-                    ?.optJSONArray("enrollments")
-                val firstEnrollment = enrollmentsArray?.optJSONObject(0)
-                    ?: throw IllegalStateException("No enrollment")
-
-                Enrollment(
-                    id = firstEnrollment.optString("enrollment"),
-                    centerCode = firstEnrollment.optString("centerCode"),
-                    centerName = firstEnrollment.optString("description"),
-                )
-            }
-        } catch (exception: Exception) {
-            throw IllegalStateException("Error info-session iPasen", exception)
+        val responseBody = fetchBody(request, operation = "info-session", requireSuccessfulStatus = false)
+        val responseJson = JSONObject(responseBody)
+        if (!responseJson.optBoolean("success")) {
+            throw PasenApiException(
+                responseJson.optString("message").ifBlank { "iPasen rechazó la petición info-session" },
+            )
         }
+
+        val firstEnrollment = responseJson
+            .optJSONObject("data")
+            ?.optJSONArray("enrollments")
+            ?.optJSONObject(0)
+            ?: throw PasenApiException("El alumno no tiene matrículas en iPasen")
+
+        Enrollment(
+            id = firstEnrollment.optString("enrollment"),
+            centerCode = firstEnrollment.optString("centerCode"),
+            centerName = firstEnrollment.optString("description"),
+        )
     }
 
     /**
-     * Descarga el JSON crudo del horario semanal del alumno.
+     * Descarga el horario semanal en bruto (JSON como cadena).
      *
-     * ## Qué hace
-     *
-     * Hace una petición `GET` a `horarios/get-horario` con el ID de
-     * matrícula del alumno. El servidor responde con un JSON que
-     * contiene la lista de franjas horarias (día, hora, asignatura,
-     * profesor, etc.).
-     *
-     * ## Por qué se devuelve el JSON sin parsear
-     *
-     * Porque el parseo lo hace `PasenScheduleParser`, que es una
-     * clase aparte. Así se puede testear el parseo sin hacer
-     * peticiones HTTP, y se puede cambiar el formato del JSON sin
-     * tocar el cliente.
-     *
-     * @param token `access_token` de Pasen.
-     * @param enrollment ID de la matrícula del alumno.
-     * @return El cuerpo JSON de la respuesta.
-     * @throws IllegalStateException si la respuesta HTTP no es 2xx.
+     * @param token Token devuelto por [login].
+     * @param enrollment Identificador de la matrícula.
+     * @return El JSON del horario, sin interpretar.
+     * @throws PasenApiException si falla la red o el servidor responde con error.
      */
-    suspend fun getHorario(token: String, enrollment: String): String =
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url("${PasenConfig.BASE_URL}/horarios/get-horario?enrollment=$enrollment")
-                .header("Authorization", "Bearer $token")
-                .header("User-Agent", PasenConfig.USER_AGENT)
-                .header("Accept", PasenConfig.API_CONTENT_TYPE)
-                .build()
-
-            try {
-                client.newCall(request).await().use { httpResponse ->
-                    val responseBody = httpResponse.body?.string().orEmpty()
-                    if (!httpResponse.isSuccessful) {
-                        throw IllegalStateException(
-                            "Error horario iPasen: HTTP ${httpResponse.code}",
-                        )
-                    }
-                    responseBody
-                }
-            } catch (exception: Exception) {
-                throw IllegalStateException("Error de red en get-horario", exception)
-            }
-        }
+    suspend fun getHorario(token: String, enrollment: String): String = guarded("get-horario") {
+        fetchBody(
+            authorizedGet(token, "/horarios/get-horario", enrollment),
+            operation = "get-horario",
+        )
+    }
 
     /**
-     * Descarga el JSON crudo de `datos-alumno`.
+     * Descarga los datos personales del alumno en bruto (JSON como cadena).
      *
-     * ## Qué contiene este endpoint
-     *
-     * Devuelve los datos personales del alumno (nombre, edad, fecha
-     * de nacimiento, sexo) y los datos de sus tutores legales. En el
-     * JSON, los datos vienen agrupados en "secciones" (por ejemplo,
-     * "Datos Personales", "Tutores Legales"), y cada sección es una
-     * lista de pares clave-valor.
-     *
-     * ## Por qué se devuelve el JSON sin parsear
-     *
-     * Mismo motivo que en [getHorario]: el parseo lo hace
-     * `PasenStudentInfoParser`.
-     *
-     * @param token `access_token` de Pasen.
-     * @param enrollment ID de la matrícula del alumno.
-     * @return El cuerpo JSON de la respuesta.
-     * @throws IllegalStateException si la respuesta HTTP no es 2xx.
+     * @param token Token devuelto por [login].
+     * @param enrollment Identificador de la matrícula.
+     * @return El JSON de datos del alumno, sin interpretar.
+     * @throws PasenApiException si falla la red o el servidor responde con error.
      */
-    suspend fun getDatosAlumno(token: String, enrollment: String): String =
-        withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url("${PasenConfig.BASE_URL}/seguimiento/datos-alumno?enrollment=$enrollment")
-                .header("Authorization", "Bearer $token")
-                .header("User-Agent", PasenConfig.USER_AGENT)
-                .header("Accept", PasenConfig.API_CONTENT_TYPE)
-                .build()
+    suspend fun getDatosAlumno(token: String, enrollment: String): String = guarded("datos-alumno") {
+        fetchBody(
+            authorizedGet(token, "/seguimiento/datos-alumno", enrollment),
+            operation = "datos-alumno",
+        )
+    }
 
+    /**
+     * Construye una petición `GET` autenticada que lleva la matrícula
+     * como parámetro.
+     *
+     * La matrícula se añade con el constructor de URLs de OkHttp, que
+     * se encarga de codificarla correctamente, en lugar de concatenarla
+     * a mano.
+     *
+     * @param token Token de acceso.
+     * @param path Ruta relativa a [PasenConfig.BASE_URL].
+     * @param enrollment Identificador de la matrícula.
+     * @return La petición lista para enviar.
+     */
+    private fun authorizedGet(token: String, path: String, enrollment: String): Request {
+        val url = "${PasenConfig.BASE_URL}$path".toHttpUrl().newBuilder()
+            .addQueryParameter("enrollment", enrollment)
+            .build()
+        return Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .header("User-Agent", PasenConfig.USER_AGENT)
+            .header("Accept", PasenConfig.API_CONTENT_TYPE)
+            .build()
+    }
+
+    /**
+     * Envía la petición y devuelve el cuerpo de la respuesta.
+     *
+     * @param request Petición a enviar.
+     * @param operation Nombre de la operación, para el mensaje de error.
+     * @param requireSuccessfulStatus Si es `true`, un HTTP no exitoso
+     *   lanza [PasenApiException]. Se desactiva solo cuando el cuerpo
+     *   del error trae información útil (como en `info-session`).
+     * @return Cuerpo de la respuesta (cadena vacía si no hay cuerpo).
+     */
+    private suspend fun fetchBody(
+        request: Request,
+        operation: String,
+        requireSuccessfulStatus: Boolean = true,
+    ): String = client.newCall(request).await().use { httpResponse ->
+        val responseBody = httpResponse.body?.string().orEmpty()
+        if (requireSuccessfulStatus && !httpResponse.isSuccessful) {
+            throw PasenApiException("iPasen respondió HTTP ${httpResponse.code} en $operation")
+        }
+        responseBody
+    }
+
+    /**
+     * Ejecuta una operación en `Dispatchers.IO` unificando el
+     * tratamiento de errores de todo el cliente.
+     *
+     * - [CancellationException]: se propaga sin tocar.
+     * - [PasenApiException]: se propaga tal cual.
+     * - Cualquier otra excepción (red, JSON mal formado…): se envuelve
+     *   en [PasenApiException] indicando la operación.
+     *
+     * @param operation Nombre de la operación, para el mensaje de error.
+     * @param block Trabajo a realizar.
+     * @return El resultado de [block].
+     */
+    private suspend fun <T> guarded(operation: String, block: suspend () -> T): T =
+        withContext(Dispatchers.IO) {
             try {
-                client.newCall(request).await().use { httpResponse ->
-                    val responseBody = httpResponse.body?.string().orEmpty()
-                    if (!httpResponse.isSuccessful) {
-                        throw IllegalStateException(
-                            "Error datos alumno iPasen: HTTP ${httpResponse.code}",
-                        )
-                    }
-                    responseBody
-                }
+                block()
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: PasenApiException) {
+                throw exception
             } catch (exception: Exception) {
-                throw IllegalStateException("Error de red en datos-alumno", exception)
+                throw PasenApiException("Error en iPasen ($operation)", exception)
             }
         }
 }

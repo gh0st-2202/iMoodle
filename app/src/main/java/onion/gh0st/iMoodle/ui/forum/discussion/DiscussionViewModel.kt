@@ -14,9 +14,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.forum.ForumPost
 import onion.gh0st.iMoodle.domain.usecase.forum.GetDiscussionPosts
 import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
 /**
  * Estado observable de una discusión.
@@ -76,7 +78,7 @@ class DiscussionViewModel @Inject constructor(
 ) : ViewModel() {
 
     /** ID de la discusión, extraído de los argumentos. */
-    private val discussionId: Int = savedStateHandle.get<Int>("DISCUSSION_ID") ?: 0
+    private val discussionId: Int = savedStateHandle.get<Int>(FragmentArgs.DISCUSSION_ID) ?: 0
 
     /** Estado interno de la pantalla. */
     private val _state = MutableStateFlow(DiscussionUiState())
@@ -109,7 +111,7 @@ class DiscussionViewModel @Inject constructor(
      */
     private fun loadPosts() = viewModelScope.launch {
         setLoading()
-        runCatching { getDiscussionPosts(discussionId) }
+        runCatchingCancellable { getDiscussionPosts(discussionId) }
             .onSuccess { loadedPosts -> onLoaded(loadedPosts) }
             .onFailure { exception ->
                 Logging.logError(

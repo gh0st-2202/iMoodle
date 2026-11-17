@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
 import onion.gh0st.iMoodle.api.moodle.network.MoodleApiClient
 import onion.gh0st.iMoodle.api.moodle.network.MoodleParams

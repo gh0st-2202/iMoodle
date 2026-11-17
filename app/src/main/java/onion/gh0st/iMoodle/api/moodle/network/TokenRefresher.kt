@@ -61,19 +61,22 @@ fun interface TokenRefresher {
      * - **El token nuevo** si se ha podido obtener. El cliente
      *   actualizará su token interno, notificará al llamador y
      *   reintentará la petición original.
-     * - **`null`** si no se ha podido obtener. Puede ser porque las
-     *   credenciales ya no valen, porque las cookies del CAS han
-     *   caducado, porque no hay conexión, etc. El cliente
-     *   interpretará el `null` como "no se puede refrescar" y
-     *   cerrará la sesión.
+     * - **`null`** únicamente cuando se sabe **de forma definitiva**
+     *   que no se puede refrescar: no hay credenciales guardadas o
+     *   el servidor las ha rechazado. El cliente interpretará el
+     *   `null` como "hace falta un login manual" y cerrará la sesión.
      *
      * ## Manejo de excepciones
      *
-     * La implementación **no debe lanzar excepciones** salvo la
-     * excepción de cancelación de corrutinas (que se propaga tal
-     * cual). Cualquier otro problema debe devolverse como `null`.
-     * Así el `MoodleApiClient` tiene un único camino para gestionar
-     * el fallo.
+     * Los fallos **transitorios** (sin conexión, timeout, error 5xx
+     * del servidor) **no deben devolverse como `null`**: se propagan
+     * como excepción. Así el cliente se limita a fallar la petición
+     * actual y el usuario conserva su sesión; basta con que reintente
+     * cuando vuelva la conexión. Devolver `null` ante un simple corte
+     * de red expulsaría al usuario y borraría sus datos locales.
+     *
+     * La excepción de cancelación de corrutinas se propaga siempre
+     * tal cual.
      *
      * @return El token nuevo, o `null` si no se ha podido obtener.
      */

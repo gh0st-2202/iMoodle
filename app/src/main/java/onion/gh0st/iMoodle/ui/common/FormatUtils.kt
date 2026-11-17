@@ -1,5 +1,8 @@
 package onion.gh0st.iMoodle.ui.common
 
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -119,4 +122,25 @@ object FormatUtils {
             roundedValue.toString()
         }
     }
+
+    /**
+     * Da formato `dd/MM/yyyy HH:mm` a una fecha expresada en segundos
+     * desde 1970 (la hora Unix que usa Moodle), en la zona horaria y el
+     * idioma del dispositivo.
+     *
+     * ## Ejemplo
+     *
+     * `1700000000` → `14/11/2023 23:13` (en horario de la península).
+     *
+     * Usa `java.time`, cuyos formateadores son inmutables y seguros entre
+     * hilos, en lugar de crear un `SimpleDateFormat` por cada fila que se
+     * dibuja.
+     *
+     * @param epochSeconds Segundos transcurridos desde el 1 de enero de 1970 (UTC).
+     * @return La fecha y la hora formateadas.
+     */
+    fun formatDateTime(epochSeconds: Long): String =
+        Instant.ofEpochSecond(epochSeconds)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault()))
 }

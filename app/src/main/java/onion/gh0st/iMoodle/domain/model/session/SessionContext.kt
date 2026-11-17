@@ -28,9 +28,9 @@ package onion.gh0st.iMoodle.domain.model.session
  *
  * ## Cuándo se crea
  *
- * - Al hacer login: `AuthRepositoryImpl.login` crea uno tras el
+ * - Al hacer login: `MoodleAuthRepository.login` crea uno tras el
  *   login exitoso.
- * - Al hacer auto-login: `AuthRepositoryImpl.tryAutoLogin` crea uno
+ * - Al hacer auto-login: `MoodleAuthRepository.tryAutoLogin` crea uno
  *   tras recuperar la sesión guardada.
  *
  * ## Quién lo usa

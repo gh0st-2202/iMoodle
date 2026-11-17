@@ -1,4 +1,4 @@
-package onion.gh0st.iMoodle.api.moodle.auth
+package onion.gh0st.iMoodle.domain.model.auth
 
 /**
  * Catálogo de errores que pueden ocurrir durante el proceso de
@@ -170,6 +170,27 @@ sealed class AuthException(message: String, cause: Throwable? = null) :
      */
     class InvalidToken : AuthException(
         "Token inválido y no se pudo refrescar (hace falta re-loguear)",
+    )
+
+    // --- Errores del servidor ---
+
+    /**
+     * Un servidor de la Junta (CAS o Moodle) respondió con un error
+     * interno (HTTP 5xx), típicamente por mantenimiento o sobrecarga.
+     *
+     * ## Por qué es un error distinto de [LoginFailed]
+     *
+     * Un 5xx **no dice nada sobre las credenciales**: el servidor ni
+     * siquiera ha llegado a evaluarlas. Tratarlo como "contraseña
+     * incorrecta" provocaba que la app borrase las credenciales
+     * guardadas y cerrase la sesión durante una simple caída de la
+     * Junta. Con este tipo, la UI puede pedir al usuario que
+     * reintente más tarde y la sesión se conserva intacta.
+     *
+     * @property httpCode Código HTTP recibido (500–599).
+     */
+    class ServerError(val httpCode: Int) : AuthException(
+        "El servidor respondió con un error interno (HTTP $httpCode)",
     )
 
     // --- Errores de red ---

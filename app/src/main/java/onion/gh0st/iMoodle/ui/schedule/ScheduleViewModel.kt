@@ -13,7 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
-import onion.gh0st.iMoodle.domain.repository.schedule.ScheduleRepository
+import onion.gh0st.iMoodle.core.runCatchingCancellable
+import onion.gh0st.iMoodle.domain.usecase.schedule.GetSchedule
 import java.util.Calendar
 import javax.inject.Inject
 
@@ -50,7 +51,7 @@ sealed interface ScheduleUiEvent {
  *
  * ## Qué hace
  *
- * 1. Al construirse, carga el horario con `ScheduleRepository`.
+ * 1. Al construirse, carga el horario con [GetSchedule].
  * 2. Asigna un color único a cada asignatura (mapeo secuencial).
  * 3. Extrae los días disponibles para el filtro de chips.
  * 4. Selecciona el día actual (o el primero con clases) por
@@ -69,11 +70,11 @@ sealed interface ScheduleUiEvent {
  * secuencial (por orden alfabético de asignaturas), no por
  * `hashCode`, para evitar colisiones cuando hay pocas asignaturas.
  *
- * @param scheduleRepository Repositorio con caché por usuario.
+ * @param getSchedule Caso de uso con caché por usuario.
  */
 @HiltViewModel
 class ScheduleViewModel @Inject constructor(
-    private val scheduleRepository: ScheduleRepository,
+    private val getSchedule: GetSchedule,
 ) : ViewModel() {
 
     /** Estado interno de la pantalla. */
@@ -126,7 +127,7 @@ class ScheduleViewModel @Inject constructor(
      */
     private fun loadSchedule(forceRefresh: Boolean = false) = viewModelScope.launch {
         _state.update { it.copy(isLoading = true) }
-        runCatching { scheduleRepository.getSchedule(forceRefresh) }
+        runCatchingCancellable { getSchedule(forceRefresh) }
             .onSuccess { slots ->
                 val subjectColors = generateUniqueColorMapping(slots.map { it.subject })
 

@@ -1,4 +1,4 @@
-package onion.gh0st.iMoodle.ui.common
+package onion.gh0st.iMoodle.core
 
 /**
  * Utilidad para sanear nombres de archivo que vienen del servidor.

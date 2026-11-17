@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -101,20 +102,18 @@ class UserProfileCache @Inject constructor(
     /**
      * Caché en memoria, indexada por `username` de la Junta.
      *
-     * ## Por qué es `@Volatile`
+     * ## Por qué es un `ConcurrentHashMap`
      *
-     * Porque puede ser leída y escrita desde distintos hilos.
-     * `@Volatile` garantiza visibilidad entre hilos sin necesidad de
-     * sincronización explícita.
+     * Se lee y se escribe desde distintas corrutinas (y por tanto desde
+     * distintos hilos). Un `ConcurrentHashMap` es seguro en ese uso sin
+     * bloqueos propios y, a diferencia de reemplazar un `Map` inmutable
+     * entero en cada escritura, no puede perder una entrada si dos
+     * escrituras coinciden.
      *
-     * ## Por qué es inmutable
-     *
-     * Se reemplaza entero en cada escritura, igual que en
-     * `ScheduleCache`. Los `Map` inmutables son más seguros y fáciles
-     * de razonar.
+     * La fuente de verdad sigue siendo el disco: la memoria solo
+     * acelera las lecturas.
      */
-    @Volatile
-    private var memoryCache: Map<String, CachedProfile> = emptyMap()
+    private val memoryCache = ConcurrentHashMap<String, CachedProfile>()
 
     /**
      * Devuelve el perfil cacheado de un usuario, o `null` si no hay.
@@ -132,7 +131,7 @@ class UserProfileCache @Inject constructor(
         memoryCache[username]?.let { cachedProfile -> return cachedProfile }
         return withContext(Dispatchers.IO) {
             readFromPreferences(username)?.also { loadedProfile ->
-                memoryCache = memoryCache + (username to loadedProfile)
+                memoryCache[username] = loadedProfile
             }
         }
     }
@@ -144,7 +143,7 @@ class UserProfileCache @Inject constructor(
      * @param profile Datos a persistir.
      */
     suspend fun put(username: String, profile: CachedProfile) {
-        memoryCache = memoryCache + (username to profile)
+        memoryCache[username] = profile
         withContext(Dispatchers.IO) {
             sharedPreferences.edit()
                 .putString(profilePreferenceKey(username), serializeProfile(profile))
@@ -168,12 +167,25 @@ class UserProfileCache @Inject constructor(
      * @param username Usuario de la Junta.
      */
     suspend fun clear(username: String) {
-        memoryCache = memoryCache - username
+        memoryCache.remove(username)
         withContext(Dispatchers.IO) {
             sharedPreferences.edit()
                 .remove(profilePreferenceKey(username))
                 .remove(updatedAtPreferenceKey(username))
                 .apply()
+        }
+    }
+
+    /**
+     * Borra la caché de **todos** los usuarios, en memoria y en disco.
+     *
+     * Se llama al cerrar sesión, para que no queden en el teléfono
+     * los datos personales (centro, fecha de nacimiento…) de quien usó la app antes.
+     */
+    suspend fun clearAll() {
+        memoryCache.clear()
+        withContext(Dispatchers.IO) {
+            sharedPreferences.edit().clear().commit()
         }
     }
 

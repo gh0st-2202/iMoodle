@@ -2,10 +2,6 @@ package onion.gh0st.iMoodle.ui.schedule
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.StringRes
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -19,6 +15,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentScheduleBinding
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 
 /**
  * Pantalla de horario semanal.
@@ -53,30 +51,12 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentScheduleBinding.bind(view)
-        setupWindowInsets(binding)
+        binding.appBarSchedule.applySystemBarsInsets()
 
         val adapter = ScheduleAdapter()
         setupRecyclerView(binding, adapter)
 
         observeUi(binding, adapter)
-    }
-
-    /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     *
-     * @param binding Binding de la vista.
-     */
-    private fun setupWindowInsets(binding: FragmentScheduleBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarSchedule) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                view.paddingBottom,
-            )
-            insets
-        }
     }
 
     /**
@@ -176,12 +156,4 @@ class ScheduleFragment : Fragment(R.layout.fragment_schedule) {
             setOnClickListener { onClick() }
         }
 
-    /**
-     * Muestra un toast corto.
-     *
-     * @param messageResId ID del recurso de string.
-     */
-    private fun showToast(@StringRes messageResId: Int) {
-        Toast.makeText(requireContext(), messageResId, Toast.LENGTH_SHORT).show()
-    }
 }

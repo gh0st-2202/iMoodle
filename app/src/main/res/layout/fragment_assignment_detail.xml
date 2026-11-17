@@ -25,6 +25,7 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_assign"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="16dp"
@@ -148,16 +149,15 @@
                 android:layout_height="56dp"
                 android:layout_marginTop="32dp"
                 android:text="@string/action_submit"
-                android:textColor="@color/submit_button_foreground"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:visibility="visible"
-                app:backgroundTint="@color/submit_button_background"
+                app:backgroundTint="@color/color_acento"
                 app:cornerRadius="12dp"
                 app:icon="@drawable/ic_attach_file"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp"
-                app:iconTint="@color/submit_button_foreground" />
+                app:iconTint="@color/texto_boton" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_delete_submission"

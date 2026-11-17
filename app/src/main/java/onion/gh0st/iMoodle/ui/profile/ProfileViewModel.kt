@@ -3,6 +3,7 @@ package onion.gh0st.iMoodle.ui.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,10 +12,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.session.User
-import onion.gh0st.iMoodle.domain.repository.session.SessionRepository
-import onion.gh0st.iMoodle.domain.repository.session.UserProfileRepository
+import onion.gh0st.iMoodle.domain.usecase.session.EnrichUserProfile
 import onion.gh0st.iMoodle.domain.usecase.session.GetCurrentUser
+import onion.gh0st.iMoodle.domain.usecase.session.Logout
+import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
+import onion.gh0st.iMoodle.domain.usecase.session.UpdateCurrentUser
 import javax.inject.Inject
 
 /**
@@ -35,6 +39,9 @@ sealed interface ProfileEvent {
  *   personales de Pasen (si la consulta ha ido bien).
  * @property provincia Nombre legible de la provincia de la sesión.
  * @property isLoading `true` mientras se carga el perfil básico.
+ * @property isRefreshing `true` mientras dura un refresco manual
+ *   (*pull-to-refresh*). Es independiente de [isLoading] para que la
+ *   carga inicial no muestre el indicador de refresco.
  * @property error Mensaje de error del último refresco de identidad,
  *   o `null`.
  */
@@ -42,6 +49,7 @@ data class ProfileUiState(
     val user: User? = null,
     val provincia: String? = null,
     val isLoading: Boolean = true,
+    val isRefreshing: Boolean = false,
     val error: String? = null,
 )
 
@@ -54,7 +62,7 @@ data class ProfileUiState(
  *
  * 1. **Identidad**: usuario de Moodle vía `GetCurrentUser`.
  * 2. **Perfil extendido**: enriquece el `User` con datos de Pasen
- *    vía `UserProfileRepository.enrich`.
+ *    vía [EnrichUserProfile].
  *
  * ## Orden de los pasos
  *
@@ -71,20 +79,26 @@ data class ProfileUiState(
  *
  * ## Merge de identidad
  *
- * `refreshUserData` preserva los campos de Pasen que ya estaban
+ * `loadUserIdentity` preserva los campos de Pasen que ya estaban
  * cargados en el estado, para que un refresco de identidad no borre
  * el perfil extendido.
  *
- * @param sessionRepo Fuente de la sesión activa.
+ * @param observeSession Lectura de la sesión activa (usuario y
+ *   provincia).
  * @param getCurrentUser Caso de uso para cargar la identidad.
- * @param userProfileRepository Contrato de enriquecimiento del
- *   perfil.
+ * @param enrichUserProfile Caso de uso para completar el perfil con
+ *   Pasen.
+ * @param updateCurrentUser Caso de uso para publicar el usuario
+ *   enriquecido en la sesión.
+ * @param performLogout Caso de uso de cierre de sesión.
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
-    private val sessionRepo: SessionRepository,
+    private val observeSession: ObserveSession,
     private val getCurrentUser: GetCurrentUser,
-    private val userProfileRepository: UserProfileRepository,
+    private val enrichUserProfile: EnrichUserProfile,
+    private val updateCurrentUser: UpdateCurrentUser,
+    private val performLogout: Logout,
 ) : ViewModel() {
 
     /** Estado interno de la pantalla. */
@@ -101,29 +115,70 @@ class ProfileViewModel @Inject constructor(
 
     init {
         seedFromSession()
-        refreshUserData()
-        enrichWithProfileData()
+        viewModelScope.launch {
+            loadUserIdentity(forceRefresh = false)
+            enrichWithProfileData(forceRefresh = false)
+        }
     }
 
     /**
-     * Refresca identidad y perfil extendido.
+     * Cierra la sesión y avisa a la UI para que vuelva al login.
      *
-     * ## Cuándo se llama
+     * ## Qué hace
      *
-     * Cuando el usuario hace pull-to-refresh (cuando se implemente).
-     */
-    fun refresh() {
-        refreshUserData(forceRefresh = true)
-        enrichWithProfileData()
-    }
-
-    /**
-     * Cierra la sesión y avisa a la UI.
+     * Delega en [Logout], que vacía la sesión en
+     * memoria, borra las credenciales, los tokens, los datos locales, las
+     * alarmas y las cachés de horario y perfil. Después emite
+     * [ProfileEvent.NavigateToLogin] y la pantalla navega al login
+     * limpiando la pila de navegación.
+     *
+     * ## Si falla una limpieza
+     *
+     * [Logout] ya vacía la sesión y ejecuta todos los
+     * pasos antes de relanzar el primer error, así que el usuario está
+     * desconectado aunque algo (por ejemplo, la base de datos) falle. Por
+     * eso el error solo se registra y **siempre** se navega al login: no
+     * hacerlo dejaría al usuario en una pantalla de perfil sin sesión.
      */
     fun logout() {
         viewModelScope.launch {
-            sessionRepo.logout()
+            runCatchingCancellable { performLogout() }
+                .onFailure { exception -> Logging.logError(TAG, "logout", exception) }
             _events.send(ProfileEvent.NavigateToLogin)
+        }
+    }
+
+    /**
+     * Refresca identidad y perfil extendido, ignorando cachés.
+     *
+     * ## Cuándo se llama
+     *
+     * Cuando el usuario desliza hacia abajo en el perfil
+     * (*pull-to-refresh*). Pide datos frescos a Moodle y, **cuando
+     * termina**, a Pasen; mantiene [ProfileUiState.isRefreshing]
+     * activo hasta que ambas peticiones terminan, tengan éxito o no.
+     * Se ignora si ya hay un refresco en curso.
+     *
+     * ## Por qué es secuencial y no paralelo
+     *
+     * Porque ambas peticiones escriben el mismo `User`. Si se lanzaran
+     * a la vez, Pasen podría terminar con una copia antigua del
+     * usuario (capturada antes de que Moodle devolviera la identidad)
+     * y sobrescribir nombre, correo o avatar frescos. Encadenarlas
+     * garantiza que el enriquecimiento parte siempre de la última
+     * identidad.
+     */
+    fun refresh() {
+        if (_uiState.value.isRefreshing) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRefreshing = true) }
+            try {
+                loadUserIdentity(forceRefresh = true)
+                enrichWithProfileData(forceRefresh = true)
+            } finally {
+                _uiState.update { it.copy(isRefreshing = false) }
+            }
         }
     }
 
@@ -141,7 +196,7 @@ class ProfileViewModel @Inject constructor(
      * reemplaza.
      */
     private fun seedFromSession() {
-        val activeSession = sessionRepo.session.value ?: return
+        val activeSession = observeSession.currentSession ?: return
         _uiState.update {
             it.copy(
                 user = activeSession.user,
@@ -162,28 +217,30 @@ class ProfileViewModel @Inject constructor(
      * 3. Si no hay usuario, apaga `isLoading` sin más.
      * 4. Si falla, apaga `isLoading` y expone el error en el estado.
      *
+     * Es `suspend`: quien la llama decide en qué corrutina ejecutarla (al
+     * crear el ViewModel, en una propia; al refrescar, dentro de un
+     * `coroutineScope` que espera a que termine).
+     *
      * @param forceRefresh Si `true`, pide datos frescos a la red.
      */
-    private fun refreshUserData(forceRefresh: Boolean = false) {
-        viewModelScope.launch {
-            runCatching { getCurrentUser(forceRefresh) }
-                .onSuccess { user ->
-                    if (user != null) {
-                        val mergedUser = mergePasenFields(user)
-                        sessionRepo.updateUser(mergedUser)
-                        _uiState.update {
-                            it.copy(user = mergedUser, isLoading = false, error = null)
-                        }
-                    } else {
-                        _uiState.update { it.copy(isLoading = false) }
-                    }
-                }
-                .onFailure { exception ->
+    private suspend fun loadUserIdentity(forceRefresh: Boolean) {
+        runCatchingCancellable { getCurrentUser(forceRefresh) }
+            .onSuccess { user ->
+                if (user != null) {
+                    val mergedUser = mergePasenFields(user)
+                    updateCurrentUser(mergedUser)
                     _uiState.update {
-                        it.copy(isLoading = false, error = exception.message)
+                        it.copy(user = mergedUser, isLoading = false, error = null)
                     }
+                } else {
+                    _uiState.update { it.copy(isLoading = false) }
                 }
-        }
+            }
+            .onFailure { exception ->
+                _uiState.update {
+                    it.copy(isLoading = false, error = exception.message)
+                }
+            }
     }
 
     /**
@@ -197,7 +254,7 @@ class ProfileViewModel @Inject constructor(
      *
      * ## Por qué es necesario
      *
-     * Porque `refreshUserData` se ejecuta después de
+     * Porque `loadUserIdentity` se ejecuta después de
      * `enrichWithProfileData` en algunos flujos (por ejemplo, en
      * `refresh()`). Sin este merge, el `User` de Moodle borraría los
      * campos de Pasen que acababa de rellenar el enrich.
@@ -207,7 +264,7 @@ class ProfileViewModel @Inject constructor(
      */
     private fun mergePasenFields(user: User): User {
         val previousUser = _uiState.value.user
-            ?: sessionRepo.session.value?.user
+            ?: observeSession.currentSession?.user
             ?: return user
         return user.copy(
             centerName = user.centerName ?: previousUser.centerName,
@@ -223,29 +280,44 @@ class ProfileViewModel @Inject constructor(
      * ## Qué hace
      *
      * 1. Toma el `User` actual del estado o de la sesión.
-     * 2. Llama a `userProfileRepository.enrich`.
-     * 3. Persiste el `User` enriquecido en la sesión.
-     * 4. Lo publica en el estado.
+     * 2. Llama a [EnrichUserProfile].
+     * 3. Combina los campos de Pasen del resultado con el `User` más
+     *    reciente del estado. Es importante releerlo: mientras Pasen
+     *    responde, la identidad de Moodle puede haber cambiado (por
+     *    ejemplo, si el usuario acaba de editar su nombre en Moodle).
+     *    Así el enriquecimiento solo aporta sus campos y no pisa datos
+     *    más frescos.
+     * 4. Persiste el `User` resultante en la sesión.
+     * 5. Lo publica en el estado.
      *
      * ## Manejo de errores
      *
      * Si falla (por ejemplo, porque Pasen no responde), se loguea y
      * se deja el `User` como estaba. La UI muestra el perfil básico
      * de Moodle sin los datos personales. No es un error fatal: la
-     * app sigue funcionando.
+     * app sigue funcionando. La cancelación de la corrutina sí se propaga.
+     *
+     * @param forceRefresh Si `true`, ignora la caché y consulta Pasen.
      */
-    private fun enrichWithProfileData() {
-        viewModelScope.launch {
-            try {
-                val currentUser = _uiState.value.user
-                    ?: sessionRepo.session.value?.user
-                    ?: return@launch
-                val enrichedUser = userProfileRepository.enrich(currentUser)
-                sessionRepo.updateUser(enrichedUser)
-                _uiState.update { it.copy(user = enrichedUser) }
-            } catch (exception: Exception) {
-                Logging.logError(TAG, "enrichWithProfileData", exception)
-            }
+    private suspend fun enrichWithProfileData(forceRefresh: Boolean) {
+        val currentUser = _uiState.value.user
+            ?: observeSession.currentSession?.user
+            ?: return
+        try {
+            val enrichedUser = enrichUserProfile(currentUser, forceRefresh)
+            val latestUser = _uiState.value.user ?: currentUser
+            val mergedUser = latestUser.copy(
+                centerName = enrichedUser.centerName ?: latestUser.centerName,
+                birthDate = enrichedUser.birthDate ?: latestUser.birthDate,
+                age = enrichedUser.age ?: latestUser.age,
+                gender = enrichedUser.gender ?: latestUser.gender,
+            )
+            updateCurrentUser(mergedUser)
+            _uiState.update { it.copy(user = mergedUser) }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            Logging.logError(TAG, "enrichWithProfileData", exception)
         }
     }
 

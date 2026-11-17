@@ -66,8 +66,17 @@ interface UserProfileRepository {
      * Se devuelve tal cual, sin hacer red. Esto es lo que permite
      * que las siguientes aperturas del perfil sean instantáneas.
      *
+     * ## Forzar la actualización
+     *
+     * Con `forceRefresh = true` se **ignoran** tanto los campos que ya
+     * trae el `User` como la caché y se consultan de nuevo los datos a
+     * Pasen. Es lo que ocurre cuando el usuario desliza hacia abajo
+     * para refrescar el perfil.
+     *
      * @param user Usuario a enriquecer.
+     * @param forceRefresh `true` para volver a pedir los datos a Pasen
+     *   aunque ya estén disponibles en memoria o en caché.
      * @return Copia del usuario con los campos actualizados.
      */
-    suspend fun enrich(user: User): User
+    suspend fun enrich(user: User, forceRefresh: Boolean = false): User
 }

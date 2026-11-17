@@ -3,6 +3,7 @@ package onion.gh0st.iMoodle.api.moodle.auth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
+import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.model.session.StoredSession
 import onion.gh0st.iMoodle.fakes.FakeCredentialsStore
@@ -109,6 +110,29 @@ class MoodleAuthRepositoryTest {
     }
 
     @Test
+    fun `invalid token with a transient refresh failure keeps the stored session`() = runTest {
+        seedStored()
+        credentialsStore.save(JuntaCredentials("jdoe", "secret"))
+        val repo = createRepo(
+            FakeHttp.client { request ->
+                if (request.url.encodedPath.endsWith("server.php")) {
+                    FakeHttp.response(request, FakeHttp.INVALID_TOKEN_JSON)
+                } else {
+                    throw UnknownHostException("offline")
+                }
+            },
+        )
+
+        val recoveredSession = repo.tryAutoLogin()
+
+        assertNotNull(
+            "Un fallo transitorio del refresco no debe borrar la sesión",
+            recoveredSession,
+        )
+        assertNotNull(tokenStore.load(Provincia.CORDOBA.slug))
+    }
+
+    @Test
     fun `valid token recovers the session and keeps it stored`() = runTest {
         seedStored()
         val repo = createRepo(
@@ -127,6 +151,39 @@ class MoodleAuthRepositoryTest {
         seedStored()
         val repo = createRepo(
             FakeHttp.client { FakeHttp.response(it, "<html>Bad gateway</html>", code = 502) },
+        )
+
+        assertNotNull(repo.tryAutoLogin())
+        assertNotNull(tokenStore.load(Provincia.CORDOBA.slug))
+    }
+
+    @Test
+    fun `http unauthorized clears the stored session`() = runTest {
+        seedStored()
+        val repo = createRepo(
+            FakeHttp.client { FakeHttp.response(it, "", code = 401) },
+        )
+
+        assertNull(repo.tryAutoLogin())
+        assertNull(tokenStore.load(Provincia.CORDOBA.slug))
+    }
+
+    @Test
+    fun `http forbidden clears the stored session`() = runTest {
+        seedStored()
+        val repo = createRepo(
+            FakeHttp.client { FakeHttp.response(it, "", code = 403) },
+        )
+
+        assertNull(repo.tryAutoLogin())
+        assertNull(tokenStore.load(Provincia.CORDOBA.slug))
+    }
+
+    @Test
+    fun `http not found keeps the stored session`() = runTest {
+        seedStored()
+        val repo = createRepo(
+            FakeHttp.client { FakeHttp.response(it, "", code = 404) },
         )
 
         assertNotNull(repo.tryAutoLogin())

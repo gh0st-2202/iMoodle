@@ -1,6 +1,7 @@
 package onion.gh0st.iMoodle.api.pasen.repository
 
 import onion.gh0st.iMoodle.api.pasen.network.PasenApiClient
+import onion.gh0st.iMoodle.api.pasen.network.PasenApiException
 import onion.gh0st.iMoodle.api.pasen.network.PasenStudentInfoParser
 import onion.gh0st.iMoodle.data.session.UserProfileCache
 import onion.gh0st.iMoodle.domain.model.session.User
@@ -90,21 +91,30 @@ class PasenUserProfileRepository @Inject constructor(
      * de la caché o con los de la red. Los campos que ya tuviera se
      * respetan.
      *
+     * ## Forzar la actualización
+     *
+     * Con `forceRefresh = true` se saltan los pasos 1 y 2 y se va
+     * directamente a Pasen, de modo que el *pull-to-refresh* del perfil
+     * obtiene datos frescos.
+     *
      * @param user Usuario a enriquecer.
+     * @param forceRefresh `true` para ignorar la caché y consultar Pasen.
      * @return Copia del usuario con los campos de Pasen rellenados.
-     * @throws IllegalStateException si no hay credenciales guardadas
-     *   o falla el login a Pasen.
+     * @throws IllegalStateException si no hay credenciales guardadas.
+     * @throws PasenApiException si falla el login o alguna petición a iPasen.
      */
-    override suspend fun enrich(user: User): User {
-        if (user.hasPasenData()) return user
+    override suspend fun enrich(user: User, forceRefresh: Boolean): User {
+        if (!forceRefresh && user.hasPasenData()) return user
 
-        userProfileCache.get(user.username)?.let { cachedProfile ->
-            return user.copy(
-                centerName = cachedProfile.centerName,
-                birthDate = cachedProfile.birthDate,
-                age = cachedProfile.age,
-                gender = cachedProfile.gender,
-            )
+        if (!forceRefresh) {
+            userProfileCache.get(user.username)?.let { cachedProfile ->
+                return user.copy(
+                    centerName = cachedProfile.centerName,
+                    birthDate = cachedProfile.birthDate,
+                    age = cachedProfile.age,
+                    gender = cachedProfile.gender,
+                )
+            }
         }
 
         return fetchFromPasen(user)
@@ -155,8 +165,8 @@ class PasenUserProfileRepository @Inject constructor(
      *
      * @param user Usuario a enriquecer.
      * @return Copia del usuario con los campos rellenados.
-     * @throws IllegalStateException si no hay credenciales o falla
-     *   alguna petición.
+     * @throws IllegalStateException si no hay credenciales guardadas.
+     * @throws PasenApiException si falla alguna petición a iPasen.
      */
     private suspend fun fetchFromPasen(user: User): User {
         val credentials = credentialsStore.load()

@@ -1,93 +1,80 @@
-@file:Suppress("DEPRECATION")
-
 package onion.gh0st.iMoodle.data.auth
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
-import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Almacén cifrado de las credenciales del usuario de la Junta.
+ * Almacén cifrado de las credenciales de la Junta (usuario y contraseña).
  *
- * ## ¿Qué guarda y por qué?
- * Guarda el usuario y la contraseña de la Junta de Andalucía. Los guarda cifrados
- * para que la app pueda pedir tokens nuevos sin molestar al usuario cada 30 minutos.
+ * ## Qué guarda y para qué
  *
- * ## Sobre el `@file:Suppress("DEPRECATION")`
- * La librería `androidx.security:security-crypto` (que proporciona `MasterKey` y
- * `EncryptedSharedPreferences`) ha sido marcada como obsoleta por Google. Sin embargo,
- * sigue siendo segura y funcional. Al poner el `@file:Suppress` al principio del archivo,
- * le decimos al compilador que ignore los avisos de esta librería en todo el fichero.
+ * Guarda el usuario y la contraseña de IdEA **cifrados** con una clave
+ * del Android Keystore (ver [KeystoreCipher] y [SecureValueStore]). Se
+ * necesitan para renovar el token de Moodle en silencio cuando caduca,
+ * sin pedirte la contraseña cada media hora.
+ *
+ * ## Qué pasa si no se puede leer
+ *
+ * Si el Keystore ha perdido la clave (por ejemplo, tras restaurar una
+ * copia de seguridad en otro teléfono) [load] devuelve `null`, igual que
+ * si nunca se hubieran guardado: la app pedirá iniciar sesión de nuevo.
+ *
+ * ## Migración
+ *
+ * Esta clase sustituye a la versión basada en `EncryptedSharedPreferences`
+ * (obsoleta). Los datos antiguos se descartan al arrancar, por lo que
+ * hay que iniciar sesión una vez tras actualizar.
  *
  * @param context Contexto de aplicación inyectado por Hilt.
+ * @param cipher Cifrador respaldado por el Keystore.
  */
 @Singleton
 class EncryptedCredentialsStore @Inject constructor(
     @ApplicationContext context: Context,
+    cipher: KeystoreCipher,
 ) : CredentialsStore {
 
-    private val encryptedPreferences: SharedPreferences = createPrefs(context)
+    private val store = SecureValueStore(context, PREFERENCES_FILE_NAME, cipher)
 
-    private fun createPrefs(context: Context): SharedPreferences =
-        try {
-            buildEncryptedPreferences(context)
-        } catch (exception: Exception) {
-            deletePreferencesFiles(context)
-            buildEncryptedPreferences(context)
-        }
-
-    private fun buildEncryptedPreferences(context: Context): SharedPreferences {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-        return EncryptedSharedPreferences.create(
-            context,
-            PREFERENCES_FILE_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    /**
+     * Guarda las credenciales, sustituyendo las anteriores.
+     *
+     * @param credentials Usuario y contraseña de la Junta.
+     */
+    override suspend fun save(credentials: JuntaCredentials) = withContext(Dispatchers.IO) {
+        store.putAll(
+            mapOf(
+                KEY_USERNAME to credentials.username,
+                KEY_PASSWORD to credentials.password,
+            ),
         )
     }
 
-    private fun deletePreferencesFiles(context: Context) {
-        val sharedPreferencesDirectory = File(context.applicationInfo.dataDir, "shared_prefs")
-        listOf(PREFERENCES_FILE_NAME, KEYSET_PREFERENCES_FILE_NAME).forEach { preferencesName ->
-            File(sharedPreferencesDirectory, "$preferencesName.xml").delete()
-            File(sharedPreferencesDirectory, "$preferencesName.xml.bak").delete()
-        }
-    }
-
-    override suspend fun save(credentials: JuntaCredentials) = withContext(Dispatchers.IO) {
-        encryptedPreferences.edit()
-            .putString(KEY_USERNAME, credentials.username)
-            .putString(KEY_PASSWORD, credentials.password)
-            .apply()
-    }
-
+    /**
+     * Recupera las credenciales guardadas.
+     *
+     * @return Las credenciales, o `null` si no hay o no se pueden descifrar.
+     */
     override suspend fun load(): JuntaCredentials? = withContext(Dispatchers.IO) {
-        val storedUsername = encryptedPreferences.getString(KEY_USERNAME, null)
-            ?: return@withContext null
-        val storedPassword = encryptedPreferences.getString(KEY_PASSWORD, null)
-            ?: return@withContext null
+        val storedUsername = store.getString(KEY_USERNAME) ?: return@withContext null
+        val storedPassword = store.getString(KEY_PASSWORD) ?: return@withContext null
         JuntaCredentials(username = storedUsername, password = storedPassword)
     }
 
+    /** Borra las credenciales guardadas. */
     override suspend fun clear() = withContext(Dispatchers.IO) {
-        encryptedPreferences.edit().clear().apply()
+        store.clear()
     }
 
     private companion object {
-        const val PREFERENCES_FILE_NAME = "imoodle_junta_credentials"
-        const val KEYSET_PREFERENCES_FILE_NAME = "__androidx_security_crypto_encrypted_prefs__"
+        /** Fichero de preferencias (distinto del antiguo para no mezclar formatos). */
+        const val PREFERENCES_FILE_NAME = "imoodle_credentials_v2"
         const val KEY_USERNAME = "username"
         const val KEY_PASSWORD = "password"
     }

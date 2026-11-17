@@ -1,4 +1,4 @@
-package onion.gh0st.iMoodle.ui.common
+package onion.gh0st.iMoodle.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

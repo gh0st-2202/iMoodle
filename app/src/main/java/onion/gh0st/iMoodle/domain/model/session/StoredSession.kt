@@ -30,7 +30,7 @@ package onion.gh0st.iMoodle.domain.model.session
  * ## Quién lo usa
  *
  * - `EncryptedTokenStore` lo persiste y lo recupera.
- * - `AuthRepositoryImpl` lo crea a partir de un `SessionContext` y lo
+ * - `MoodleAuthRepository` lo crea a partir de un `SessionContext` y lo
  *   lee para reconstruir un `SessionContext`.
  *
  * @property provinciaSlug Slug de la provincia a la que pertenece la

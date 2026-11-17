@@ -1,4 +1,4 @@
-package onion.gh0st.iMoodle.api.cas
+package onion.gh0st.iMoodle.domain.model.session
 
 /**
  * Credenciales del usuario para el CAS de la Junta de Andalucía.

@@ -3,8 +3,6 @@ package onion.gh0st.iMoodle.ui.profile
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -18,6 +16,7 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentProfileBinding
 import onion.gh0st.iMoodle.domain.model.session.User
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.login.LoginActivity
 
 /**
@@ -54,32 +53,16 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentProfileBinding.bind(view)
-        setupWindowInsets(binding)
+        binding.appBarProfile.applySystemBarsInsets()
+        binding.swipeRefreshProfile.setOnRefreshListener { viewModel.refresh() }
         observeUiState(binding)
         observeEvents()
         setupLogoutButton(binding)
     }
 
     /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     *
-     * @param binding Binding de la vista.
-     */
-    private fun setupWindowInsets(binding: FragmentProfileBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarProfile) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
-        }
-    }
-
-    /**
-     * Observa el estado del ViewModel y lo pinta.
+     * Observa el estado del ViewModel y lo pinta, incluido el indicador
+     * del *pull-to-refresh*.
      *
      * @param binding Binding de la vista.
      */
@@ -89,6 +72,7 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 viewModel.uiState.collect { state ->
                     renderUser(binding, state.user)
                     renderProfileDetails(binding, state.user)
+                    binding.swipeRefreshProfile.isRefreshing = state.isRefreshing
                 }
             }
         }

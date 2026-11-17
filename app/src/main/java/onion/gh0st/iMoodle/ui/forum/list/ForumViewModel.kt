@@ -14,9 +14,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.forum.ForumDiscussion
 import onion.gh0st.iMoodle.domain.usecase.forum.GetForumDiscussions
 import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
 /**
  * Estado observable de un foro.
@@ -73,7 +75,7 @@ class ForumViewModel @Inject constructor(
 ) : ViewModel() {
 
     /** ID del foro, extraído de los argumentos de navegación. */
-    private val forumId: Int = savedStateHandle.get<Int>("FORUM_ID") ?: 0
+    private val forumId: Int = savedStateHandle.get<Int>(FragmentArgs.FORUM_ID) ?: 0
 
     /** Estado interno de la pantalla. */
     private val _state = MutableStateFlow(ForumUiState())
@@ -106,7 +108,7 @@ class ForumViewModel @Inject constructor(
      */
     private fun loadDiscussions() = viewModelScope.launch {
         setLoading()
-        runCatching { getForumDiscussions(forumId) }
+        runCatchingCancellable { getForumDiscussions(forumId) }
             .onSuccess { loadedDiscussions -> onLoaded(loadedDiscussions) }
             .onFailure { exception ->
                 Logging.logError(TAG, "getForumDiscussions(forumId=$forumId)", exception)

@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import onion.gh0st.iMoodle.data.local.AppDatabase
+import onion.gh0st.iMoodle.data.local.AppLocalDataCleaner
 import onion.gh0st.iMoodle.data.local.LocalDataCleaner
 import onion.gh0st.iMoodle.data.local.Migrations
 import onion.gh0st.iMoodle.data.local.RoomLocalDataCleaner
@@ -16,6 +17,8 @@ import onion.gh0st.iMoodle.data.local.TransactionRunner
 import onion.gh0st.iMoodle.data.local.dao.AssignmentDao
 import onion.gh0st.iMoodle.data.local.dao.CalendarDao
 import onion.gh0st.iMoodle.data.local.dao.CourseDao
+import onion.gh0st.iMoodle.data.schedule.ScheduleCache
+import onion.gh0st.iMoodle.data.session.UserProfileCache
 import javax.inject.Singleton
 
 /**
@@ -166,9 +169,9 @@ object DatabaseModule {
      * ## Qué es un `LocalDataCleaner`
      *
      * Es una abstracción que permite borrar todos los datos locales
-     * (cursos, tareas, eventos) de golpe. Se usa al hacer logout para
-     * que el siguiente usuario del dispositivo no vea los datos del
-     * anterior.
+     * (cursos, tareas, eventos, horario y perfil) de golpe. Se usa al
+     * hacer logout para que no queden en el teléfono los datos del
+     * usuario anterior.
      *
      * ## Por qué es una interfaz
      *
@@ -176,10 +179,19 @@ object DatabaseModule {
      * (`FakeLocalDataCleaner`) que solo cuenta las llamadas.
      *
      * @param database Base de datos que se va a limpiar.
-     * @return La implementación real sobre Room.
+     * @param scheduleCache Caché del horario, que también se vacía.
+     * @param userProfileCache Caché del perfil, que también se vacía.
+     * @return Un limpiador que vacía Room y las cachés de horario y perfil.
      */
     @Provides
     @Singleton
-    fun provideLocalDataCleaner(database: AppDatabase): LocalDataCleaner =
-        RoomLocalDataCleaner(database)
+    fun provideLocalDataCleaner(
+        database: AppDatabase,
+        scheduleCache: ScheduleCache,
+        userProfileCache: UserProfileCache,
+    ): LocalDataCleaner = AppLocalDataCleaner(
+        databaseCleaner = RoomLocalDataCleaner(database),
+        scheduleCache = scheduleCache,
+        userProfileCache = userProfileCache,
+    )
 }

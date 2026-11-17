@@ -1,6 +1,7 @@
 package onion.gh0st.iMoodle.domain.repository.session
 
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.model.session.SessionContext
 
@@ -26,18 +27,16 @@ import onion.gh0st.iMoodle.domain.model.session.SessionContext
  * otras capas (`MoodleSessionFactory` + `DefaultSessionRepository`).
  * Este contrato no sabe nada de infraestructura.
  *
- * ## Excepción arquitectónica
+ * ## Modelo de dominio
  *
- * Este contrato importa `CasCredentials` desde `api/cas/`. Es la
- * única excepción a la regla "`domain/` no depende de `api/`", y está
- * documentada como aceptable: `CasCredentials` es un modelo de datos
- * puro (usuario + contraseña) sin ninguna dependencia de
- * infraestructura. Si en el futuro se quisiera eliminar la
- * excepción, se movería `CasCredentials` a `domain/`.
+ * Las credenciales (`CasCredentials`) y los errores de autenticación
+ * (`AuthException`) viven en `domain/model/`. Así este contrato y la
+ * UI comparten los mismos tipos sin depender de `api/`: las capas de
+ * infraestructura son las que se adaptan al dominio, y no al revés.
  *
  * ## Quién la implementa
  *
- * - **Producción**: `AuthRepositoryImpl` (hace el login real).
+ * - **Producción**: `MoodleAuthRepository` (hace el login real).
  * - **Tests**: `FakeAuthRepository` (o `mockk` en los tests
  *   existentes).
  *
@@ -77,7 +76,7 @@ interface AuthRepository {
      * @param onInvalidToken Callback cuando el token caduca y no se
      *   puede refrescar.
      * @return La sesión autenticada.
-     * @throws onion.gh0st.iMoodle.api.moodle.auth.AuthException si el
+     * @throws onion.gh0st.iMoodle.domain.model.auth.AuthException si el
      *   login falla.
      */
     suspend fun login(
@@ -97,7 +96,9 @@ interface AuthRepository {
      *    petición ligera a Moodle.
      * 3. Según el resultado:
      *    - **Válido**: devuelve el `SessionContext`.
-     *    - **Inválido**: borra la sesión y devuelve `null`.
+     *    - **Inválido**: intenta refrescarlo con las credenciales
+     *      guardadas. Si lo consigue, devuelve la sesión con el token
+     *      nuevo; si no, borra la sesión y devuelve `null`.
      *    - **No comprobable** (sin red): devuelve el `SessionContext`
      *      asumiendo que puede seguir siendo válido.
      *
@@ -106,13 +107,9 @@ interface AuthRepository {
      * Al arrancar la app, para decidir si hay que mostrar el login o
      * entrar directamente.
      *
-     * @param onInvalidToken Callback si el token se descubre inválido
-     *   durante la comprobación.
      * @return La sesión recuperada, o `null` si no hay ninguna válida.
      */
-    suspend fun tryAutoLogin(
-        onInvalidToken: suspend () -> Unit = {},
-    ): SessionContext?
+    suspend fun tryAutoLogin(): SessionContext?
 
     /**
      * Borra la sesión guardada de una provincia.

@@ -42,7 +42,7 @@ package onion.gh0st.iMoodle.domain.model.session
  * - `MoodleConfig` lo usa para construir la URL base de Moodle.
  * - `CasConfig` lo usa (indirectamente) para construir la URL de
  *   servicio del CAS.
- * - `AuthRepositoryImpl` lo usa para saber contra qué provincia
+ * - `MoodleAuthRepository` lo usa para saber contra qué provincia
  *   autenticar.
  * - `LoginActivity` lo usa para mostrar el spinner de provincias.
  * - `DefaultSessionRepository` lo usa para persistir la sesión por

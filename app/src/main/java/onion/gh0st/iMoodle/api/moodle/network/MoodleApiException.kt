@@ -1,5 +1,7 @@
 package onion.gh0st.iMoodle.api.moodle.network
 
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
+
 /**
  * Error devuelto por la API REST de Moodle que **no** es un problema
  * de autenticación.

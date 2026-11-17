@@ -1,9 +1,10 @@
 package onion.gh0st.iMoodle.ui.login
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,12 +13,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
-import onion.gh0st.iMoodle.api.cas.CasCredentials
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
 import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.domain.model.session.ActiveSession
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
-import onion.gh0st.iMoodle.domain.repository.session.SessionRepository
+import onion.gh0st.iMoodle.domain.usecase.session.Login
+import onion.gh0st.iMoodle.domain.usecase.session.TryAutoLogin
 import javax.inject.Inject
 
 /**
@@ -70,11 +72,23 @@ data class LoginUiState(
 sealed interface LoginEvent {
 
     /**
-     * Muestra un toast con el mensaje dado.
+     * Muestra un toast con un texto de `strings.xml`.
      *
-     * @property message Texto ya resuelto a mostrar.
+     * ## Por qué llega el recurso y no el texto
+     *
+     * Porque el ViewModel no debe tener `Context`: resolver el texto
+     * es trabajo de la capa de presentación. Así la Activity decide
+     * cómo mostrarlo (toast, snackbar…) y el ViewModel sigue siendo
+     * comprobable en tests JVM.
+     *
+     * @property messageRes ID del recurso de string.
+     * @property formatArg Argumento para el `%s` del recurso, o `null`
+     *   si el texto no lleva formato.
      */
-    data class ShowToast(val message: String) : LoginEvent
+    data class ShowToast(
+        @StringRes val messageRes: Int,
+        val formatArg: String? = null,
+    ) : LoginEvent
 
     /**
      * Navega a `MainActivity` cerrando la pila de login.
@@ -87,24 +101,23 @@ sealed interface LoginEvent {
  *
  * ## Qué hace
  *
- * 1. Al construirse, intenta un auto-login
- *    (`SessionRepository.tryAutoLogin`). Si hay una sesión guardada
+ * 1. Al construirse, intenta un auto-login ([TryAutoLogin]). Si hay
+ *    una sesión guardada
  *    válida, navega directamente a `MainActivity`.
  * 2. Si no hay sesión guardada (o el auto-login falla), deja el
  *    formulario visible para que el usuario introduzca sus
  *    credenciales.
  * 3. Cuando el usuario pulsa "Iniciar sesión", hace el login real
- *    (`SessionRepository.login`) y navega a `MainActivity`.
+ *    ([Login]) y navega a `MainActivity`.
  * 4. Traduce los errores de autenticación a mensajes genéricos
  *    para el usuario (el detalle técnico va al log).
  *
- * ## Por qué extiende `AndroidViewModel` y no `ViewModel`
+ * ## Sin `Context`
  *
- * Porque necesita `Application` para resolver strings con
- * `getString`. Un `ViewModel` normal no debería usar `Context`
- * directamente (podría causar fugas de memoria), pero
- * `AndroidViewModel` está diseñado específicamente para esto: el
- * `Application` es un `Context` seguro (vive lo mismo que la app).
+ * Este ViewModel es un `ViewModel` normal: no resuelve textos ni
+ * toca recursos. Emite [LoginEvent.ShowToast] con el **ID** del
+ * string y es la Activity quien lo traduce con `getString`. Así la
+ * misma lógica se puede probar en tests JVM sin Android.
  *
  * ## Sobre los errores de autenticación
  *
@@ -119,14 +132,14 @@ sealed interface LoginEvent {
  * El detalle técnico de la excepción se registra en el log con
  * `Logging.logError`, pero nunca llega al usuario.
  *
- * @param application Contexto de aplicación (para `getString`).
- * @param sessionRepo Fachada de sesión (login + auto-login).
+ * @param performLogin Caso de uso de login manual.
+ * @param autoLogin Caso de uso de recuperación de la sesión guardada.
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    application: Application,
-    private val sessionRepo: SessionRepository,
-) : AndroidViewModel(application) {
+    private val performLogin: Login,
+    private val autoLogin: TryAutoLogin,
+) : ViewModel() {
 
     /** Estado interno de la pantalla. */
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -151,6 +164,18 @@ class LoginViewModel @Inject constructor(
      * UI ya tiene `isButtonEnabled`).
      */
     private var hasInput = false
+
+    /**
+     * Trabajo de autenticación en curso (auto-login o login manual).
+     *
+     * ## Por qué existe
+     *
+     * El estado deshabilita el botón, pero entre dos pulsaciones muy
+     * rápidas la UI puede no haber repintado todavía. Este guard evita
+     * lanzar dos logins concurrentes, que competirían por publicar la
+     * sesión y gastarían peticiones y tokens duplicados.
+     */
+    private var authJob: Job? = null
 
     /**
      * Bloque de inicialización. Se ejecuta al construir el
@@ -226,9 +251,11 @@ class LoginViewModel @Inject constructor(
      *   "reintentar".
      */
     fun attemptAutoLogin() {
-        viewModelScope.launch {
+        if (authJob?.isActive == true) return
+
+        authJob = viewModelScope.launch {
             setLoading()
-            sessionRepo.tryAutoLogin()
+            autoLogin()
                 .onSuccess { activeSession -> handleAutoLoginResult(activeSession) }
                 .onFailure { exception ->
                     Logging.logError(TAG, "tryAutoLogin", exception)
@@ -251,15 +278,23 @@ class LoginViewModel @Inject constructor(
      *
      * Cuando el usuario pulsa "Iniciar sesión".
      *
+     * ## Protección contra dobles pulsaciones
+     *
+     * Si ya hay un auto-login o un login en curso, la llamada se
+     * ignora. Así no se lanzan dos autenticaciones en paralelo aunque
+     * la UI todavía no haya repintado el botón deshabilitado.
+     *
      * @param provincia Provincia contra la que autenticarse.
      * @param user Usuario de la Junta (NIF/NIE/IdEA).
      * @param pass Contraseña del usuario.
      */
     fun login(provincia: Provincia, user: String, pass: String) {
+        if (authJob?.isActive == true) return
+
         hasInput = true
-        viewModelScope.launch {
+        authJob = viewModelScope.launch {
             setLoading()
-            sessionRepo.login(provincia, CasCredentials(user, pass))
+            performLogin(provincia, CasCredentials(user, pass))
                 .onSuccess { activeSession -> onSessionReady(activeSession) }
                 .onFailure { exception -> emitError(exception) }
         }
@@ -363,7 +398,7 @@ class LoginViewModel @Inject constructor(
      */
     private suspend fun emitToast(resId: Int) {
         stopLoading()
-        _events.send(LoginEvent.ShowToast(getApplication<Application>().getString(resId)))
+        _events.send(LoginEvent.ShowToast(resId))
     }
 
     /**
@@ -373,7 +408,7 @@ class LoginViewModel @Inject constructor(
      * @param arg Argumento a inyectar.
      */
     private suspend fun emitToastWithArg(resId: Int, arg: String) {
-        _events.send(LoginEvent.ShowToast(getApplication<Application>().getString(resId, arg)))
+        _events.send(LoginEvent.ShowToast(resId, arg))
     }
 
     /**
@@ -384,6 +419,7 @@ class LoginViewModel @Inject constructor(
      * - **Credenciales incorrectas** (`NoMoodleSession`,
      *   `LoginFailed`): `error_bad_credentials`.
      * - **Error de red** (`Network`): `error_network`.
+     * - **Error del servidor** (`ServerError`, HTTP 5xx): `error_server`.
      * - **Cualquier otra** (`NoExecutionToken`, `NoRedirectToken`,
      *   `BadTokenFormat`, `InvalidToken`, etc.): `error_unexpected`.
      *
@@ -399,6 +435,7 @@ class LoginViewModel @Inject constructor(
         is AuthException.NoMoodleSession,
         is AuthException.LoginFailed -> R.string.error_bad_credentials
         is AuthException.Network -> R.string.error_network
+        is AuthException.ServerError -> R.string.error_server
         else -> R.string.error_unexpected
     }
 

@@ -1,5 +1,7 @@
 package onion.gh0st.iMoodle.core
 
+import onion.gh0st.iMoodle.BuildConfig
+
 /**
  * Constantes compartidas por toda la app.
  *
@@ -52,10 +54,16 @@ internal object Defaults {
      * patrón reconocido, rechazan la petición.
      *
      * En este caso, los servidores de la Junta esperan que empiece
-     * por `iMoodle/`, seguido de la versión. Si la versión es
-     * demasiado antigua, pueden rechazarla.
+     * por `iMoodle/`, seguido de la versión.
+     *
+     * ## De dónde sale la versión
+     *
+     * Se toma de `BuildConfig.VERSION_NAME`, así que el `User-Agent`
+     * siempre coincide con la versión real de la app y no hay que
+     * acordarse de actualizarlo a mano en cada release (antes estaba
+     * fijo en `iMoodle/2.0`).
      */
-    const val USER_AGENT = "iMoodle/2.0"
+    const val USER_AGENT = "iMoodle/${BuildConfig.VERSION_NAME}"
 
     /**
      * Host donde viven todas las instancias de Moodle de la Junta.

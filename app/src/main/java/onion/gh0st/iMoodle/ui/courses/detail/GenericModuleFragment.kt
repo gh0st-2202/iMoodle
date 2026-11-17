@@ -2,13 +2,13 @@ package onion.gh0st.iMoodle.ui.courses.detail
 
 import android.os.Bundle
 import android.view.View
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentGenericModuleBinding
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 
 /**
  * Fragment de "fallback" para módulos sin pantalla específica.
@@ -71,8 +71,8 @@ class GenericModuleFragment : Fragment(R.layout.fragment_generic_module) {
         fun newInstance(module: CourseModule): GenericModuleFragment =
             GenericModuleFragment().apply {
                 arguments = Bundle().apply {
-                    putString("MODULE_NAME", module.name)
-                    putString("MODULE_DESCRIPTION", module.description)
+                    putString(FragmentArgs.MODULE_NAME, module.name)
+                    putString(FragmentArgs.MODULE_DESCRIPTION, module.description)
                 }
             }
     }
@@ -88,8 +88,8 @@ class GenericModuleFragment : Fragment(R.layout.fragment_generic_module) {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        moduleName = arguments?.getString("MODULE_NAME") ?: ""
-        moduleDescription = arguments?.getString("MODULE_DESCRIPTION") ?: ""
+        moduleName = arguments?.getString(FragmentArgs.MODULE_NAME) ?: ""
+        moduleDescription = arguments?.getString(FragmentArgs.MODULE_DESCRIPTION) ?: ""
     }
 
     /**
@@ -101,7 +101,7 @@ class GenericModuleFragment : Fragment(R.layout.fragment_generic_module) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentGenericModuleBinding.bind(view)
         setupToolbar(binding)
-        setupWindowInsets(binding)
+        binding.appBarGeneric.applySystemBarsInsets()
         renderContent(binding)
     }
 
@@ -121,24 +121,6 @@ class GenericModuleFragment : Fragment(R.layout.fragment_generic_module) {
         binding.toolbarGeneric.title = getString(R.string.title_generic_module)
         binding.toolbarGeneric.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
-        }
-    }
-
-    /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     *
-     * @param binding Binding de la vista.
-     */
-    private fun setupWindowInsets(binding: FragmentGenericModuleBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarGeneric) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
         }
     }
 

@@ -3,9 +3,10 @@ package onion.gh0st.iMoodle.api.moodle.network
 import kotlinx.coroutines.CancellationException
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.ByteString.Companion.decodeBase64
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.core.await
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
+import java.io.IOException
 
 /**
  * Estrategia de refresco del token de Moodle basada en las cookies
@@ -42,15 +43,27 @@ import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
  *
  * ## Cuándo devuelve `null`
  *
- * - Si la redirección no contiene `token=` (por ejemplo, porque las
- *   cookies del CAS también han caducado y Moodle nos manda al login
- *   en su lugar).
- * - Si el token decodificado no tiene el formato esperado.
- * - Si la petición falla por cualquier motivo de red.
+ * **Solo cuando el fallo es definitivo**, es decir, cuando no hay
+ * ninguna posibilidad de obtener un token sin volver a pedirle las
+ * credenciales al usuario:
  *
- * En todos esos casos, el `MoodleApiClient` interpretará el `null`
- * como "no se puede refrescar" y cerrará la sesión. El usuario
- * tendrá que volver a loguearse manualmente.
+ * - La redirección no contiene `token=`. Es lo que ocurre cuando las
+ *   cookies del CAS también han caducado y Moodle manda al login en
+ *   su lugar.
+ * - El servidor responde `401`/`403`, señal de que la sesión CAS ya
+ *   no está autorizada.
+ * - El token decodificado no tiene el formato esperado.
+ *
+ * En esos casos, el `MoodleApiClient` interpretará el `null` como
+ * "hace falta un login manual" y cerrará la sesión.
+ *
+ * ## Cuándo lanza una excepción
+ *
+ * Los fallos **transitorios** no se convierten en `null`: se lanzan
+ * como [AuthException.Network] (sin conexión, timeout, `429`…) o
+ * [AuthException.ServerError] (HTTP 5xx). Así el `MoodleApiClient`
+ * falla solo la petición actual y la sesión del usuario se conserva;
+ * basta con reintentar cuando el servidor o la red vuelvan.
  *
  * @param authenticatedClient Cliente HTTP con las cookies del CAS ya
  *   cargadas. La clase lo clona internamente para desactivar el
@@ -90,87 +103,52 @@ class CookiesBasedTokenRefresher(
      *
      * ## Comportamiento con errores
      *
-     * - **Cualquier error de red** (timeout, sin conexión, error HTTP)
-     *   se traga y devuelve `null`. El `MoodleApiClient` interpretará
-     *   el `null` como "no se pudo refrescar" y cerrará la sesión.
-     * - **La excepción de cancelación de corrutinas** sí se propaga,
-     *   para respetar la cancelación estructurada. Si el usuario
-     *   cierra la pantalla a mitad del refresco, no queremos que la
-     *   corrutina siga viva.
+     * - **Sin conexión, timeout u otro fallo de transporte**: se lanza
+     *   [AuthException.Network]. La sesión **no** se cierra.
+     * - **HTTP 5xx**: se lanza [AuthException.ServerError]. La sesión
+     *   **no** se cierra.
+     * - **Códigos 4xx distintos de 401/403**: también se tratan como
+     *   transitorios ([AuthException.Network]), porque no demuestran
+     *   que las credenciales hayan sido rechazadas.
+     * - **401/403 o redirección sin `token=`**: se devuelve `null`,
+     *   que significa "definitivamente no se puede refrescar".
+     * - **Cancelación de la corrutina**: se propaga tal cual, para
+     *   respetar la cancelación estructurada.
      *
-     * ## Por qué no propaga excepciones
-     *
-     * Porque el `MoodleApiClient` está diseñado para tratar el
-     * refresco como "todo o nada": o devuelve un token, o `null`. Si
-     * esta clase lanzara excepciones tipadas, el cliente tendría que
-     * hacer `try/catch` y el código sería más enrevesado.
-     *
-     * @return El token nuevo, o `null` si no se ha podido obtener.
+     * @return El token nuevo, o `null` si hace falta un login manual.
+     * @throws AuthException.Network si el fallo es transitorio de red.
+     * @throws AuthException.ServerError si el servidor responde 5xx.
      */
     override suspend fun refresh(): String? {
-        return try {
-            val redirectLocation = noRedirectClient.newCall(
+        val response = try {
+            noRedirectClient.newCall(
                 Request.Builder()
                     .url(config.launchUrl)
                     .header("User-Agent", config.userAgent)
                     .build(),
-            ).await().use { launchResponse ->
-                launchResponse.header("Location").orEmpty()
-            }
-
-            if (!redirectLocation.contains("token=")) return null
-            decodeWstoken(redirectLocation)
+            ).await()
         } catch (exception: CancellationException) {
             throw exception
+        } catch (exception: AuthException) {
+            throw exception
         } catch (exception: Exception) {
-            null
+            throw AuthException.Network(exception)
         }
-    }
 
-    /**
-     * Decodifica el `wstoken` del query string de la redirección.
-     *
-     * ## Formato del token
-     *
-     * El token viene codificado en Base64 (variante URL-safe) y, una
-     * vez decodificado, tiene un formato con tres partes separadas
-     * por `:::`:
-     *
-     * ```
-     * firma:::token:::privado
-     * ```
-     *
-     * En versiones antiguas, el separador era `:` simple:
-     *
-     * ```
-     * firma:token:privado
-     * ```
-     *
-     * De todas las partes, la que nos interesa es la **segunda** (el
-     * token en sí). Las otras son la firma y un valor privado que no
-     * usamos.
-     *
-     * ## Por qué se normaliza el Base64
-     *
-     * El Base64 "URL-safe" usa `-` y `_` en lugar de `+` y `/`. Antes
-     * de decodificar, hay que convertir los caracteres URL-safe a los
-     * estándar. Además, el padding (`=`) a veces viene recortado,
-     * así que lo recalculamos para que la longitud sea múltiplo de 4.
-     *
-     * @param redirectLocation Cabecera `Location` de la respuesta de
-     *   `launch.php`.
-     * @return El token limpio, o `null` si el formato no es válido.
-     */
-    private fun decodeWstoken(redirectLocation: String): String? {
-        val rawToken = redirectLocation
-            .substringAfter("token=")
-            .substringBefore("&")
-        val normalizedToken = rawToken
-            .replace('-', '+')
-            .replace('_', '/')
-        val paddedToken = normalizedToken + "=".repeat((4 - normalizedToken.length % 4) % 4)
-        val decodedToken = paddedToken.decodeBase64()?.utf8() ?: return null
-        return decodedToken.split(":::").getOrNull(1)?.takeIf { it.isNotEmpty() }
-            ?: decodedToken.split(":").getOrNull(2)?.takeIf { it.isNotEmpty() }
+        return response.use { launchResponse ->
+            val httpCode = launchResponse.code
+            when {
+                httpCode in 500..599 -> throw AuthException.ServerError(httpCode)
+                httpCode == 401 || httpCode == 403 -> null
+                httpCode in 400..499 -> throw AuthException.Network(
+                    IOException("HTTP $httpCode inesperado en launch.php"),
+                )
+                else -> {
+                    val redirectLocation = launchResponse.header("Location").orEmpty()
+                    if (!redirectLocation.contains("token=")) return@use null
+                    redirectLocation.decodeWstokenOrNull()
+                }
+            }
+        }
     }
 }

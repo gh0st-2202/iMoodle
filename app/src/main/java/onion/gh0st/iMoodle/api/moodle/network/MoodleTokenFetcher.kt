@@ -5,8 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.ByteString.Companion.decodeBase64
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.core.await
 import onion.gh0st.iMoodle.api.cas.CasSession
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
@@ -132,7 +131,8 @@ class MoodleTokenFetcher(
         if (!redirectLocation.contains("token=")) {
             throw AuthException.NoRedirectToken(redirectLocation)
         }
-        val wstoken = decodeWstoken(redirectLocation)
+        val wstoken = redirectLocation.decodeWstokenOrNull()
+            ?: throw AuthException.BadTokenFormat()
         return MoodleSession(
             user = casSession.user,
             cookieManager = casSession.cookieManager,
@@ -164,6 +164,9 @@ class MoodleTokenFetcher(
                 .header("User-Agent", config.userAgent)
                 .build(),
         ).await().use { launchResponse ->
+            if (launchResponse.code in 500..599) {
+                throw AuthException.ServerError(launchResponse.code)
+            }
             launchResponse.header("Location").orEmpty()
         }
     }
@@ -196,50 +199,4 @@ class MoodleTokenFetcher(
             onInvalidToken = onInvalidToken,
             initialToken = token,
         )
-
-    /**
-     * Decodifica el `wstoken` del query string de la redirección.
-     *
-     * ## Formato del token
-     *
-     * El token viene codificado en Base64 (variante URL-safe) y, una
-     * vez decodificado, tiene un formato con tres partes separadas
-     * por `:::`:
-     *
-     * ```
-     * firma:::token:::privado
-     * ```
-     *
-     * En versiones antiguas, el separador era `:` simple.
-     *
-     * De todas las partes, la que nos interesa es la **segunda** (el
-     * token en sí).
-     *
-     * ## Por qué se normaliza el Base64
-     *
-     * El Base64 "URL-safe" usa `-` y `_` en lugar de `+` y `/`. Antes
-     * de decodificar, hay que convertir los caracteres URL-safe a los
-     * estándar. Además, el padding (`=`) a veces viene recortado, así
-     * que lo recalculamos para que la longitud sea múltiplo de 4.
-     *
-     * @param redirectLocation Cabecera `Location` de la respuesta de
-     *   `launch.php`.
-     * @return El token limpio.
-     * @throws AuthException.BadTokenFormat si el token no se puede
-     *   decodificar o no tiene el formato esperado.
-     */
-    private fun decodeWstoken(redirectLocation: String): String {
-        val rawToken = redirectLocation
-            .substringAfter("token=")
-            .substringBefore("&")
-        val normalizedToken = rawToken
-            .replace('-', '+')
-            .replace('_', '/')
-        val paddedToken = normalizedToken + "=".repeat((4 - normalizedToken.length % 4) % 4)
-        val decodedToken = paddedToken.decodeBase64()?.utf8()
-            ?: throw AuthException.BadTokenFormat()
-        return decodedToken.split(":::").getOrNull(1)?.takeIf { it.isNotEmpty() }
-            ?: decodedToken.split(":").getOrNull(2)?.takeIf { it.isNotEmpty() }
-            ?: throw AuthException.BadTokenFormat()
-    }
 }

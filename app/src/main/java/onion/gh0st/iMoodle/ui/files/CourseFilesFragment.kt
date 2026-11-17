@@ -4,8 +4,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.StringRes
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -18,9 +16,9 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentCourseFilesBinding
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
-import onion.gh0st.iMoodle.domain.repository.session.SessionRepository
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
-import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 
 /**
  * Pantalla con la lista de archivos de un módulo de curso.
@@ -46,12 +44,6 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
-
-    /**
-     * Fuente de la sesión activa. Se usa como "guard" antes de las
-     * descargas: si no hay sesión, no se permite descargar.
-     */
-    @Inject lateinit var sessionRepo: SessionRepository
 
     /** Nombre del módulo, recibido como argumento. */
     private var moduleName: String? = null
@@ -82,10 +74,10 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
             moduleDescription: String? = null,
         ): CourseFilesFragment = CourseFilesFragment().apply {
             arguments = Bundle().apply {
-                putInt("COURSE_ID", courseId)
-                putInt("MODULE_ID", moduleId)
-                putString("MODULE_NAME", moduleName)
-                putString("MODULE_DESCRIPTION", moduleDescription)
+                putInt(FragmentArgs.COURSE_ID, courseId)
+                putInt(FragmentArgs.MODULE_ID, moduleId)
+                putString(FragmentArgs.MODULE_NAME, moduleName)
+                putString(FragmentArgs.MODULE_DESCRIPTION, moduleDescription)
             }
         }
     }
@@ -101,8 +93,8 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        moduleName = arguments?.getString("MODULE_NAME")
-        moduleDescription = arguments?.getString("MODULE_DESCRIPTION")
+        moduleName = arguments?.getString(FragmentArgs.MODULE_NAME)
+        moduleDescription = arguments?.getString(FragmentArgs.MODULE_DESCRIPTION)
     }
 
     /**
@@ -115,7 +107,7 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
         val binding = FragmentCourseFilesBinding.bind(view)
         setupToolbar(binding)
         setupHeader(binding)
-        setupWindowInsets(binding)
+        binding.appBarFiles.applySystemBarsInsets()
         val adapter = buildAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
@@ -160,24 +152,6 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
         val plainDescription = moduleDescription?.let(HtmlUtils::stripHtml).orEmpty()
         binding.txtModuleDescription.isVisible = plainDescription.isNotBlank()
         binding.txtModuleDescription.text = plainDescription
-    }
-
-    /**
-     * Aplica los insets de barras del sistema al `AppBarLayout`.
-     *
-     * @param binding Binding de la vista.
-     */
-    private fun setupWindowInsets(binding: FragmentCourseFilesBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarFiles) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(
-                view.paddingLeft,
-                systemBars.top,
-                view.paddingRight,
-                systemBars.bottom,
-            )
-            insets
-        }
     }
 
     /**
@@ -240,24 +214,25 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
         viewModel.events.collect { event ->
             when (event) {
                 is CourseFilesUiEvent.ShowError -> showToast(event.messageResId, event.arg)
+                is CourseFilesUiEvent.DownloadStarted ->
+                    showToast(R.string.toast_downloading, event.fileName)
+                CourseFilesUiEvent.DownloadFailed -> showToast(R.string.toast_download_error)
             }
         }
     }
 
     /**
-     * Pide confirmación al usuario y lanza la descarga.
+     * Pide confirmación al usuario y delega la descarga en el ViewModel.
      *
-     * ## Comportamiento
-     *
-     * - Si no hay sesión activa, no hace nada (guard semántico).
-     * - Si hay sesión, muestra un diálogo de confirmación.
+     * El diálogo es UI; la comprobación de sesión y la descarga viven
+     * en el dominio, así que esta pantalla no necesita el repositorio
+     * de sesión.
      *
      * @param file Archivo a descargar.
      */
     private fun confirmDownload(file: CourseFile) {
-        if (sessionRepo.session.value == null) return
-        FileDownloadHelper.showConfirmationDialog(requireContext(), file) {
-            FileDownloadHelper.download(requireContext(), file)
+        FileDownloadDialog.show(requireContext(), file.fileName) {
+            viewModel.downloadFile(file)
         }
     }
 

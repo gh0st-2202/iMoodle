@@ -2,10 +2,12 @@ package onion.gh0st.iMoodle.api.moodle.repository
 
 import onion.gh0st.iMoodle.api.moodle.network.MoodleApiClient
 import onion.gh0st.iMoodle.api.moodle.network.MoodleParams
+import onion.gh0st.iMoodle.api.moodle.network.appendMoodleToken
 import onion.gh0st.iMoodle.data.session.UserCache
 import onion.gh0st.iMoodle.domain.model.session.User
 import onion.gh0st.iMoodle.domain.repository.session.UserRepository
 import org.json.JSONObject
+import java.net.URI
 
 /**
  * Implementación real de [UserRepository] sobre la API REST de
@@ -118,6 +120,13 @@ class MoodleUserRepository(
      * 2. **URL sin context ID**: se reescribe `pluginfile.php` →
      *    `webservice/pluginfile.php` y se añade el token.
      *
+     * ## Seguridad: solo se añade el token al host de Moodle
+     *
+     * El `wstoken` es una credencial de sesión. Si `userpictureurl`
+     * apunta a un host externo (un CDN, por ejemplo), se devuelve la
+     * URL **sin** token. La comprobación se hace con la autoridad
+     * completa de la URL para evitar el truco `host.es@evil.com`.
+     *
      * ## Cuándo devuelve `null`
      *
      * Si la URL de entrada está vacía (usuario sin foto configurada).
@@ -130,19 +139,35 @@ class MoodleUserRepository(
         if (rawUrl.isBlank()) return null
         val currentToken = api.token.value
         val moodleBaseUrl = api.config.moodleBase
+        val moodleHost = api.config.moodleHost
+
+        /*
+         * `userpictureurl` puede ser absoluta o relativa. Si es
+         * absoluta y apunta a otro host (un CDN, un dominio externo),
+         * se devuelve sin token: el `wstoken` es una credencial de
+         * sesión y no debe salir del servidor de Moodle.
+         */
+        val absoluteUrl = when {
+            rawUrl.startsWith("http://") || rawUrl.startsWith("https://") -> rawUrl
+            rawUrl.startsWith("/") -> "$moodleBaseUrl$rawUrl"
+            else -> "$moodleBaseUrl/$rawUrl"
+        }
+        val rawAuthority = runCatching { URI(absoluteUrl).rawAuthority }.getOrNull()
+        if (rawAuthority != null && !rawAuthority.equals(moodleHost, ignoreCase = true)) {
+            return absoluteUrl
+        }
+
         val contextId = Regex("/pluginfile\\.php/(\\d+)/")
-            .find(rawUrl)
+            .find(absoluteUrl)
             ?.groupValues
             ?.get(1)
         return if (contextId != null) {
-            "$moodleBaseUrl/webservice/pluginfile.php/$contextId/user/icon/f1?token=$currentToken"
+            "$moodleBaseUrl/webservice/pluginfile.php/$contextId/user/icon/f1"
+                .appendMoodleToken(currentToken, moodleHost)
         } else {
-            val rewrittenUrl = rawUrl.replace("pluginfile.php", "webservice/pluginfile.php")
-            if (rewrittenUrl.contains("?")) {
-                "$rewrittenUrl&token=$currentToken"
-            } else {
-                "$rewrittenUrl?token=$currentToken"
-            }
+            absoluteUrl
+                .replace("pluginfile.php", "webservice/pluginfile.php")
+                .appendMoodleToken(currentToken, moodleHost)
         }
     }
 }

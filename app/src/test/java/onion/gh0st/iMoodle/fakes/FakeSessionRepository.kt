@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.domain.model.session.ActiveSession
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.model.session.SessionEvent
@@ -57,6 +57,9 @@ class FakeSessionRepository(
     var logoutCalls: Int = 0
         private set
 
+    /** Error que debe lanzar [logout] después de limpiar la sesión. */
+    var logoutFailure: Throwable? = null
+
     /** Número de veces que se ha llamado a [invalidate]. */
     var invalidateCalls: Int = 0
         private set
@@ -93,20 +96,38 @@ class FakeSessionRepository(
     }
 
     /**
-     * Limpia la sesión y cuenta la llamada.
+     * Limpia la sesión, cuenta la llamada y, si está configurado, relanza
+     * [logoutFailure] (igual que el repositorio real: la sesión ya está
+     * vacía aunque falle una limpieza).
      */
     override suspend fun logout() {
         logoutCalls++
         _session.value = null
+        logoutFailure?.let { throw it }
     }
 
+    /**
+     * Emite un evento de sesión, como haría el repositorio real.
+     *
+     * ## Por qué existe
+     *
+     * Los tests necesitan simular tanto `Expired` como
+     * `TokenRefreshed` sin pasar por `invalidate()` (que además vacía
+     * la sesión). Así se puede comprobar que un refresco transparente
+     * **no** saca al usuario de la pantalla.
+     *
+     * @param event Evento a emitir.
+     */
+    suspend fun emitEvent(event: SessionEvent) {
+        _events.emit(event)
+    }
     /**
      * Limpia la sesión, emite `SessionEvent.Expired` y cuenta la llamada.
      */
     override suspend fun invalidate() {
         invalidateCalls++
         _session.value = null
-        _events.tryEmit(SessionEvent.Expired)
+        _events.emit(SessionEvent.Expired)
     }
 
     /**

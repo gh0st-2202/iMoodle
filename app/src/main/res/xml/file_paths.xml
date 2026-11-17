@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Define las rutas seguras desde las que la app puede compartir archivos.
-    Usamos la carpeta "cache" porque es temporal y el sistema la puede
-    borrar si necesita espacio.
+    Define las rutas desde las que la app puede compartir archivos con
+    otras apps (aquí, solo con el instalador de paquetes del sistema).
+
+    Se expone únicamente la subcarpeta "updates" de la caché, donde se
+    guarda el APK descargado, y no toda la caché de la app. La caché es
+    temporal: el sistema puede borrarla si necesita espacio.
 -->
 <paths>
-    <cache-path name="apk_updates" path="." />
+    <cache-path name="apk_updates" path="updates/" />
 </paths>

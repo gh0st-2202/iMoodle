@@ -1,20 +1,22 @@
 package onion.gh0st.iMoodle.ui.web
 
 import android.annotation.SuppressLint
-import android.net.Uri
+import android.view.ViewGroup
 import android.os.Bundle
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import dagger.hilt.android.AndroidEntryPoint
 import onion.gh0st.iMoodle.R
-import onion.gh0st.iMoodle.api.moodle.auth.MoodleSessionProvider
 import onion.gh0st.iMoodle.databinding.ActivityWebBinding
-import javax.inject.Inject
+import onion.gh0st.iMoodle.domain.model.web.WebCookie
 
 /**
  * WebView embebido para contenido de Moodle.
@@ -34,10 +36,17 @@ import javax.inject.Inject
  *
  * Para evitarlo, esta Activity:
  *
- * 1. Obtiene las cookies de la sesión activa desde
- *    `MoodleSessionProvider`.
- * 2. Las inyecta en el `CookieManager` del WebView.
+ * 1. Obtiene la sesión web (host y cookies) del
+ *    [MoodleWebViewModel], que la recibe del dominio.
+ * 2. Inyecta las cookies en el `CookieManager` del WebView.
  * 3. Carga la URL con las cookies ya presentes.
+ *
+ * ## Dependencias de capa
+ *
+ * La Activity no conoce `api/`: todo lo que necesita de la sesión
+ * (host permitido y cookies) llega como un modelo de dominio a través
+ * del ViewModel. La plataforma (`CookieManager`, `WebView`) se queda
+ * aquí, que es donde corresponde.
  *
  * ## Seguridad
  *
@@ -58,10 +67,16 @@ import javax.inject.Inject
 class MoodleWebViewActivity : AppCompatActivity() {
 
     /**
-     * Fuente de la `MoodleSession` viva (con cookies y cliente
-     * HTTP).
+     * ViewModel que expone la sesión web como modelo de dominio.
+     *
+     * ## Por qué aquí y no el repositorio
+     *
+     * Porque `ui/` solo debe hablar con `domain/`. El ViewModel pide
+     * la sesión al caso de uso y la Activity consume
+     * [MoodleWebViewModel.currentSession] sin saber que por debajo hay
+     * OkHttp.
      */
-    @Inject lateinit var moodleSessionProvider: MoodleSessionProvider
+    private val viewModel: MoodleWebViewModel by viewModels()
 
     /** Binding de la vista. */
     private lateinit var binding: ActivityWebBinding
@@ -71,9 +86,9 @@ class MoodleWebViewActivity : AppCompatActivity() {
      *
      * ## Por qué es una propiedad computada
      *
-     * Porque el `MoodleSession` puede cambiar entre llamadas (por
-     * ejemplo, tras un refresco de token), y queremos leer siempre
-     * el valor actual, no uno cacheado.
+     * Porque la sesión puede cambiar entre llamadas (por ejemplo, tras
+     * un refresco de token), y queremos leer siempre el valor actual,
+     * no uno cacheado.
      *
      * ## Si no hay sesión
      *
@@ -81,7 +96,7 @@ class MoodleWebViewActivity : AppCompatActivity() {
      * (fail-safe).
      */
     private val allowedMoodleHost: String?
-        get() = moodleSessionProvider.currentSession()?.api?.config?.moodleHost
+        get() = viewModel.currentSession?.moodleHost
 
     /**
      * Ciclo de vida de la Activity.
@@ -117,20 +132,66 @@ class MoodleWebViewActivity : AppCompatActivity() {
             insets
         }
 
-        val url = intent.getStringExtra("URL") ?: return
-        val title = intent.getStringExtra("TITLE") ?: getString(R.string.title_moodle)
+        val url = intent.getStringExtra(WebExtras.URL)
+        val title = intent.getStringExtra(WebExtras.TITLE) ?: getString(R.string.title_moodle)
 
         binding.toolbarWeb.title = title
         binding.toolbarWeb.setNavigationOnClickListener { finish() }
 
-        if (!isAllowedMoodleUrl(url)) {
+        if (url == null || !isAllowedMoodleUrl(url)) {
             finish()
             return
         }
 
         syncCookiesFromOkHttpToWebView(url)
         configureWebView()
+        setupBackHandler()
         binding.webview.loadUrl(url)
+    }
+
+    /**
+     * Libera el `WebView` al cerrar la pantalla.
+     *
+     * Un `WebView` conserva una referencia a la Activity que lo creó;
+     * si no se destruye explícitamente, ambos quedan en memoria aunque la
+     * pantalla ya se haya cerrado.
+     */
+    override fun onDestroy() {
+        binding.webview.apply {
+            stopLoading()
+            (parent as? ViewGroup)?.removeView(this)
+            destroy()
+        }
+        super.onDestroy()
+    }
+
+    /**
+     * Gestiona el botón "atrás": retrocede por el historial del
+     * `WebView` mientras pueda y, cuando ya no puede, cierra la pantalla.
+     *
+     * El callback solo está habilitado si hay historial al que volver;
+     * en caso contrario el sistema cierra la Activity con su
+     * comportamiento normal. Antes, "atrás" cerraba siempre la pantalla
+     * aunque se hubiera navegado por varias páginas de Moodle.
+     */
+    private fun setupBackHandler() {
+        val webViewBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                binding.webview.goBack()
+            }
+        }
+        onBackPressedDispatcher.addCallback(this, webViewBackCallback)
+
+        val previousClient = binding.webview.webViewClient
+        binding.webview.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean =
+                previousClient.shouldOverrideUrlLoading(view, request)
+
+            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+                super.doUpdateVisitedHistory(view, url, isReload)
+                webViewBackCallback.isEnabled = view?.canGoBack() == true
+            }
+        }
     }
 
     /**
@@ -193,7 +254,7 @@ class MoodleWebViewActivity : AppCompatActivity() {
     private fun isAllowedMoodleUrl(url: String): Boolean {
         val allowedHost = allowedMoodleHost?.lowercase() ?: return false
         return runCatching {
-            val uri = Uri.parse(url)
+            val uri = url.toUri()
             val scheme = uri.scheme?.lowercase()
             val authority = uri.authority?.lowercase()
             (scheme == "http" || scheme == "https") && authority == allowedHost
@@ -222,8 +283,7 @@ class MoodleWebViewActivity : AppCompatActivity() {
         val cookieManager = CookieManager.getInstance()
         cookieManager.setAcceptCookie(true)
         enableThirdPartyCookies(cookieManager)
-        val sessionCookies = moodleSessionProvider.currentSession()
-            ?.cookieManager?.cookieStore?.cookies ?: return
+        val sessionCookies = viewModel.currentSession?.cookies ?: return
         sessionCookies.forEach { cookie -> setWebViewCookie(cookieManager, cookie, fallbackUrl) }
         cookieManager.flush()
     }
@@ -254,12 +314,12 @@ class MoodleWebViewActivity : AppCompatActivity() {
      * - Si no, se usa la URL de la página como fallback.
      *
      * @param cookieManager `CookieManager` del WebView.
-     * @param cookie Cookie de OkHttp.
+     * @param cookie Cookie de la sesión, ya como modelo de dominio.
      * @param fallbackUrl URL de la página para cookies sin dominio.
      */
     private fun setWebViewCookie(
         cookieManager: CookieManager,
-        cookie: java.net.HttpCookie,
+        cookie: WebCookie,
         fallbackUrl: String,
     ) {
         val cookieBaseUrl = cookie.domain?.let { domain -> "https://$domain" } ?: fallbackUrl
@@ -267,7 +327,7 @@ class MoodleWebViewActivity : AppCompatActivity() {
     }
 
     /**
-     * Serializa una `HttpCookie` al formato de cabecera `Cookie:`.
+     * Serializa una [WebCookie] al formato de cabecera `Cookie:`.
      *
      * ## Qué incluye
      *
@@ -277,19 +337,27 @@ class MoodleWebViewActivity : AppCompatActivity() {
      * - `Secure` (si lo tiene).
      * - `HttpOnly` (si lo tiene).
      *
-     * ## Qué NO incluye
+     * - `SameSite=Lax`, siempre.
      *
-     * - **`SameSite`**: limitación de API 28. `HttpCookie` no lo
-     *   expone. El WebView aplica su política por defecto.
+     * ## Sobre `SameSite`
      *
-     * @receiver Cookie de OkHttp.
+     * El modelo de dominio no expone este atributo, pero no hace falta:
+     * la cadena se construye a mano y se la entrega a `CookieManager`
+     * (Chromium), que sí lo interpreta. `Lax` es además el valor que
+     * Chromium aplica por defecto a las cookies que no lo indican, así
+     * que declararlo explícitamente no cambia el comportamiento y deja
+     * la política a la vista. La navegación de esta pantalla es siempre
+     * dentro del propio dominio de Moodle, donde `Lax` envía la cookie.
+     *
+     * @receiver Cookie de la sesión.
      * @return Representación en formato cabecera HTTP.
      */
-    private fun java.net.HttpCookie.toHeaderString(): String = buildString {
+    private fun WebCookie.toHeaderString(): String = buildString {
         append("$name=$value")
         domain?.let { cookieDomain -> append("; Domain=$cookieDomain") }
         path?.let { cookiePath -> append("; Path=$cookiePath") }
         if (secure) append("; Secure")
-        if (isHttpOnly) append("; HttpOnly")
+        if (httpOnly) append("; HttpOnly")
+        append("; SameSite=Lax")
     }
 }

@@ -1,12 +1,14 @@
 package onion.gh0st.iMoodle.api.moodle.auth
 
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import onion.gh0st.iMoodle.core.Defaults
-import onion.gh0st.iMoodle.api.cas.CasCredentials
+import onion.gh0st.iMoodle.core.await
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.api.moodle.config.MoodleConfig
 import onion.gh0st.iMoodle.api.moodle.network.hasInvalidTokenError
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
@@ -16,6 +18,7 @@ import onion.gh0st.iMoodle.domain.model.session.StoredSession
 import onion.gh0st.iMoodle.domain.repository.session.AuthRepository
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
 import onion.gh0st.iMoodle.domain.repository.session.TokenStore
+import java.io.IOException
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -166,52 +169,107 @@ class MoodleAuthRepository @Inject constructor(
      *    - **Token válido**: reconstruye el `SessionContext` y lo
      *      devuelve. El usuario entra directamente sin escribir la
      *      contraseña.
-     *    - **Token inválido**: borra la sesión guardada y devuelve
-     *      `null`. La app mostrará la pantalla de login para que el
-     *      usuario vuelva a identificarse.
+     *    - **Token inválido**: intenta refrescarlo con las credenciales
+     *      guardadas antes de darlo por perdido. Si el refresco
+     *      funciona, guarda el token nuevo y devuelve la sesión; si
+     *      no, borra la sesión guardada y devuelve `null` (la app
+     *      mostrará el login).
      *    - **No se puede comprobar (sin red, timeout, servidor
      *      caído)**: **no** se borra la sesión. Se devuelve igualmente
      *      el `SessionContext`, asumiendo que el token puede seguir
      *      siendo válido. Así el usuario puede acceder a los datos
      *      cacheados en local aunque no tenga conexión.
      *
-     * ## Por qué es importante distinguir "token inválido" de "no se
-     * pudo comprobar"
+     * ## Por qué se intenta refrescar antes de borrar
      *
-     * Si tratáramos cualquier fallo de red como "token inválido",
-     * cualquier usuario que abriera la app sin conexión perdería su
-     * sesión y tendría que volver a escribir la contraseña. Eso sería
-     * muy molesto. En cambio, si el token realmente ha caducado, sí
-     * que conviene borrarlo para que el usuario no se quede con una
-     * sesión que ya no funciona.
+     * Porque el token de Moodle caduca normalmente a los pocos
+     * minutos, y las credenciales del usuario están guardadas
+     * precisamente para renovarlo sin pedir la contraseña. Borrar el
+     * token nada más detectarlo invalidado obligaría a un login
+     * manual en cada arranque, que es justo lo que
+     * `CasCredentialsTokenRefresher` evita.
      *
-     * @param onInvalidToken Callback que se invoca si el token se
-     *   descubre inválido durante la comprobación. El repositorio lo
-     *   usa para forzar el cierre de sesión.
      * @return El `SessionContext` recuperado, o `null` si no hay
      *   ninguna sesión guardada válida.
      */
-    @Suppress("UNUSED_PARAMETER")
-    override suspend fun tryAutoLogin(
-        onInvalidToken: suspend () -> Unit,
-    ): SessionContext? {
+    override suspend fun tryAutoLogin(): SessionContext? {
         val storedSession = tokenStore.mostRecent() ?: return null
+        val provincia = Provincia.fromSlug(storedSession.provinciaSlug) ?: return null
+
         return when (checkTokenValidity(storedSession)) {
-            TokenValidity.Invalid -> {
-                tokenStore.clear(storedSession.provinciaSlug)
-                null
-            }
-            TokenValidity.Valid, TokenValidity.Unknown -> {
-                val provincia = Provincia.fromSlug(storedSession.provinciaSlug) ?: return null
-                SessionContext(
-                    provincia = provincia,
-                    user = storedSession.user,
-                    wstoken = storedSession.wstoken,
-                    userId = storedSession.userId,
-                )
-            }
+            TokenValidity.Invalid -> recoverInvalidToken(storedSession, provincia)
+            TokenValidity.Valid, TokenValidity.Unknown -> storedSession.toSessionContext(provincia)
         }
     }
+
+    /**
+     * Intenta recuperar una sesión guardada cuyo token Moodle ha
+     * rechazado.
+     *
+     * ## Pasos
+     *
+     * 1. Pide un token nuevo a `CasCredentialsTokenRefresher`, que usa
+     *    las credenciales cifradas del usuario.
+     * 2. Si lo consigue, actualiza la sesión guardada y la devuelve.
+     * 3. Si el refresco devuelve `null` (no hay credenciales o han
+     *    sido rechazadas), borra la sesión y devuelve `null`.
+     * 4. Si el refresco falla por un problema transitorio, devuelve
+     *    la sesión con el token antiguo para conservar el acceso
+     *    offline. La próxima petición lo intentará otra vez.
+     *
+     * @param storedSession Sesión guardada con el token rechazado.
+     * @param provincia Provincia ya resuelta.
+     * @return La sesión recuperada o `null` si ya no sirve.
+     */
+    private suspend fun recoverInvalidToken(
+        storedSession: StoredSession,
+        provincia: Provincia,
+    ): SessionContext? {
+        val refreshedToken = try {
+            CasCredentialsTokenRefresher(
+                provincia = provincia,
+                credentialsStore = credentialsStore,
+                httpClient = httpClient,
+            ).refresh()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: AuthException) {
+            /*
+             * Fallo transitorio: no se borra nada. Se devuelve la
+             * sesión con el token antiguo para que la app pueda
+             * arrancar con datos cacheados; el refresco se reintentará
+             * en la siguiente petición.
+             */
+            return storedSession.toSessionContext(provincia)
+        }
+
+        if (refreshedToken == null) {
+            tokenStore.clear(storedSession.provinciaSlug)
+            return null
+        }
+
+        tokenStore.save(
+            storedSession.copy(
+                wstoken = refreshedToken,
+                lastUsedAt = System.currentTimeMillis(),
+            ),
+        )
+        return storedSession.copy(wstoken = refreshedToken).toSessionContext(provincia)
+    }
+
+    /**
+     * Construye el `SessionContext` de dominio desde una sesión
+     * guardada.
+     *
+     * @param provincia Provincia de la sesión.
+     * @return El contexto listo para `DefaultSessionRepository`.
+     */
+    private fun StoredSession.toSessionContext(provincia: Provincia) = SessionContext(
+        provincia = provincia,
+        user = user,
+        wstoken = wstoken,
+        userId = userId,
+    )
 
     /**
      * Borra la sesión guardada de una provincia.
@@ -266,8 +324,10 @@ class MoodleAuthRepository @Inject constructor(
      *   devuelve `Invalid`.
      * - Si la petición va bien y Moodle acepta el token, devuelve
      *   `Valid`.
-     * - Si la petición falla por cualquier motivo (red, timeout, 5xx),
-     *   devuelve `Unknown`. **No** se propaga la excepción: el
+     * - Si Moodle responde `401`/`403`, devuelve `Invalid`: el servidor
+     *   ha rechazado explícitamente el token.
+     * - Si la petición falla por cualquier otro motivo (red, timeout,
+     *   5xx), devuelve `Unknown`. **No** se propaga la excepción: el
      *   llamador prefiere asumir que el token puede valer antes que
      *   molestar al usuario pidiéndole la contraseña otra vez.
      * - Si la corrutina se cancela, la excepción de cancelación se
@@ -286,6 +346,8 @@ class MoodleAuthRepository @Inject constructor(
                 }
             } catch (exception: CancellationException) {
                 throw exception
+            } catch (exception: AuthException.InvalidToken) {
+                TokenValidity.Invalid
             } catch (exception: Exception) {
                 TokenValidity.Unknown
             }
@@ -317,31 +379,55 @@ class MoodleAuthRepository @Inject constructor(
      * @param storedSession Sesión guardada cuyo token hay que probar.
      * @return `true` si Moodle acepta el token; `false` si lo rechaza.
      */
-    private fun isTokenAcceptedByMoodle(storedSession: StoredSession): Boolean =
+    private suspend fun isTokenAcceptedByMoodle(storedSession: StoredSession): Boolean =
         !fetchSiteInfo(storedSession).hasInvalidTokenError()
 
     /**
      * Ejecuta la petición de comprobación contra Moodle.
      *
-     * ## Por qué es síncrona
+     * ## Por qué usa `await()` y no `execute()`
      *
-     * El llamador ([checkTokenValidity]) ya se ejecuta en
-     * `Dispatchers.IO`, así que aquí podemos usar `execute()` sin
-     * miedo a bloquear el hilo principal. Usar `execute()` en lugar
-     * de `await()` evita suspender la corrutina, lo cual es más
-     * eficiente para una operación puntual.
+     * `await()` suspende la corrutina en lugar de bloquear un hilo y,
+     * sobre todo, **cancela la petición HTTP** si la corrutina se
+     * cancela (por ejemplo, si el usuario cierra la app durante el
+     * arranque). `execute()` seguiría bloqueando un hilo de E/S hasta
+     * que acabase el timeout.
+     *
+     * ## Errores HTTP
+     *
+     * Antes se devolvía el cuerpo **fuera cual fuera** el código HTTP.
+     * Eso hacía que una página de error `500` (que no contiene
+     * `invalidtoken`) se interpretara como "token válido". Ahora:
+     *
+     * - `5xx` lanza [AuthException.ServerError], que el llamador
+     *   convierte en `Unknown` (no se borra la sesión).
+     * - `401`/`403` lanzan [AuthException.InvalidToken], porque el
+     *   servidor ha rechazado el token de forma explícita.
+     * - Cualquier otro código no exitoso lanza
+     *   [AuthException.Network] con el código en el mensaje, también
+     *   tratado como `Unknown`.
      *
      * @param storedSession Sesión guardada cuyo token hay que probar.
      * @return El cuerpo de la respuesta (JSON) como cadena.
+     * @throws AuthException.ServerError si el servidor responde 5xx.
+     * @throws AuthException.InvalidToken si responde 401/403.
+     * @throws AuthException.Network si responde otro código no exitoso.
      */
-    private fun fetchSiteInfo(storedSession: StoredSession): String =
+    private suspend fun fetchSiteInfo(storedSession: StoredSession): String =
         httpClient.newCall(
             Request.Builder()
                 .url(buildSiteInfoUrl(storedSession))
                 .header("User-Agent", Defaults.USER_AGENT)
                 .build(),
-        ).execute().use { response ->
-            response.body?.string().orEmpty()
+        ).await().use { response ->
+            when {
+                response.code in 500..599 -> throw AuthException.ServerError(response.code)
+                response.code == 401 || response.code == 403 -> throw AuthException.InvalidToken()
+                !response.isSuccessful -> throw AuthException.Network(
+                    IOException("HTTP ${response.code} al comprobar el token"),
+                )
+                else -> response.body?.string().orEmpty()
+            }
         }
 
     /**

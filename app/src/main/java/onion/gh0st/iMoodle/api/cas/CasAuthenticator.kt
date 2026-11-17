@@ -1,5 +1,6 @@
 package onion.gh0st.iMoodle.api.cas
 
+import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -7,8 +8,9 @@ import okhttp3.FormBody
 import okhttp3.JavaNetCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import onion.gh0st.iMoodle.api.moodle.auth.AuthException
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.core.await
+import java.io.IOException
 import java.net.CookieManager
 import java.net.CookiePolicy
 
@@ -178,8 +180,12 @@ class CasAuthenticator(
      * @return La [CasSession] con las cookies cargadas.
      * @throws AuthException.NoExecutionToken si no se encuentra el
      *   `execution` en el HTML del formulario.
-     * @throws AuthException.LoginFailed si el `POST` devuelve un código
-     *   HTTP que no es 2xx.
+     * @throws AuthException.LoginFailed si el `POST` devuelve `401` o
+     *   `403` (rechazo explícito de las credenciales).
+     * @throws AuthException.ServerError si el servidor responde `5xx`.
+     * @throws AuthException.Network si el `POST` devuelve otro código
+     *   no exitoso (por ejemplo, `429` o `408`): es un fallo
+     *   transitorio, no un rechazo de credenciales.
      * @throws AuthException.NoMoodleSession si el flujo termina pero no
      *   hay cookie de Moodle (credenciales incorrectas u otro
      *   problema).
@@ -197,6 +203,7 @@ class CasAuthenticator(
                 .header("User-Agent", config.userAgent)
                 .build(),
         ).await().use { loginResponse ->
+            throwIfServerError(loginResponse.code)
             loginResponse.body?.string().orEmpty()
         }
 
@@ -217,8 +224,23 @@ class CasAuthenticator(
                 .post(loginFormBody)
                 .build(),
         ).await().use { postResponse ->
+            throwIfServerError(postResponse.code)
             if (!postResponse.isSuccessful) {
-                throw AuthException.LoginFailed("HTTP ${postResponse.code}")
+                /*
+                 * Solo 401/403 se consideran un rechazo definitivo de
+                 * las credenciales. Un 429 (rate limit), un 408
+                 * (timeout) o un 400 inesperado son fallos
+                 * transitorios: si se trataran como `LoginFailed`,
+                 * `CasCredentialsTokenRefresher` borraría las
+                 * credenciales y cerraría la sesión por un problema
+                 * pasajero del servidor.
+                 */
+                when (postResponse.code) {
+                    401, 403 -> throw AuthException.LoginFailed("HTTP ${postResponse.code}")
+                    else -> throw AuthException.Network(
+                        IOException("HTTP ${postResponse.code} en el POST del CAS"),
+                    )
+                }
             }
         }
 
@@ -229,6 +251,23 @@ class CasAuthenticator(
         }
 
         return CasSession(credentials.user, cookieManager, sessionHttpClient)
+    }
+
+    /**
+     * Lanza [AuthException.ServerError] si el servidor respondió con un
+     * error interno (HTTP 5xx).
+     *
+     * Se comprueba **antes** de interpretar el cuerpo o de considerar
+     * "credenciales incorrectas": un 5xx significa que el CAS ni
+     * siquiera ha evaluado el usuario y la contraseña, así que no debe
+     * confundirse con un rechazo de credenciales (que provocaría el
+     * borrado de las credenciales guardadas).
+     *
+     * @param httpCode Código HTTP de la respuesta.
+     * @throws AuthException.ServerError si `httpCode` está entre 500 y 599.
+     */
+    private fun throwIfServerError(httpCode: Int) {
+        if (httpCode in 500..599) throw AuthException.ServerError(httpCode)
     }
 
     /**

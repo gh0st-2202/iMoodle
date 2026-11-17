@@ -22,10 +22,17 @@ import onion.gh0st.iMoodle.api.moodle.network.MoodleSession
  *
  * ## Quién la consume
  *
- * Solo componentes de infraestructura que necesitan las cookies o el
- * `OkHttpClient`. Los ViewModels y los repositorios **no** la usan:
- * para hacer peticiones REST ya existe `SessionApiProvider`, que
- * devuelve el `MoodleApiClient` directamente.
+ * Solo la infraestructura que necesita las cookies o el
+ * `OkHttpClient`:
+ *
+ * - `DefaultWebSessionRepository` (traduce la sesión a un modelo de
+ *   dominio para el `WebView`).
+ * - `CasCredentialsTokenRefresher` y otros componentes internos.
+ *
+ * Los ViewModels y los repositorios de dominio **no** la usan: para
+ * hacer peticiones REST ya existe `SessionApiProvider`, que devuelve
+ * el `MoodleApiClient` directamente, y para el `WebView` está
+ * `WebSessionRepository`.
  *
  * ## Por qué no está en `domain`
  *

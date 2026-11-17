@@ -6,7 +6,11 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.domain.model.session.Provincia
+import onion.gh0st.iMoodle.domain.usecase.session.EnrichUserProfile
 import onion.gh0st.iMoodle.domain.usecase.session.GetCurrentUser
+import onion.gh0st.iMoodle.domain.usecase.session.Logout
+import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
+import onion.gh0st.iMoodle.domain.usecase.session.UpdateCurrentUser
 import onion.gh0st.iMoodle.fakes.FakeSessionRepository
 import onion.gh0st.iMoodle.fakes.FakeUserProfileRepository
 import onion.gh0st.iMoodle.fakes.TestSessions
@@ -30,9 +34,11 @@ class ProfileViewModelTest {
 
     private fun createViewModel(sessionRepo: FakeSessionRepository): ProfileViewModel =
         ProfileViewModel(
-            sessionRepo = sessionRepo,
+            observeSession = ObserveSession(sessionRepo),
             getCurrentUser = GetCurrentUser(sessionRepo),
-            userProfileRepository = profileRepo,
+            enrichUserProfile = EnrichUserProfile(profileRepo),
+            updateCurrentUser = UpdateCurrentUser(sessionRepo),
+            performLogout = Logout(sessionRepo),
         )
 
     @Test
@@ -175,6 +181,25 @@ class ProfileViewModelTest {
     }
 
     @Test
+    fun `logout still navigates to login when a cleanup step fails`() = runTest {
+        val sessionRepo = FakeSessionRepository(
+            TestSessions.active(testUser, Provincia.CORDOBA),
+        )
+        sessionRepo.logoutFailure = RuntimeException("fallo al borrar la base de datos")
+        val vm = createViewModel(sessionRepo)
+        advanceUntilIdle()
+
+        vm.events.test {
+            vm.logout()
+            assertEquals(ProfileEvent.NavigateToLogin, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(1, sessionRepo.logoutCalls)
+        assertNull(sessionRepo.session.value)
+    }
+
+    @Test
     fun `initial load does not refresh`() = runTest {
         val sessionRepo = FakeSessionRepository(
             TestSessions.active(testUser, Provincia.CORDOBA),
@@ -198,5 +223,46 @@ class ProfileViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, sessionRepo.refreshUserCalls)
+    }
+
+    @Test
+    fun `initial enrichment does not force a Pasen refresh`() = runTest {
+        val sessionRepo = FakeSessionRepository(
+            TestSessions.active(testUser, Provincia.CORDOBA),
+        )
+
+        createViewModel(sessionRepo)
+        advanceUntilIdle()
+
+        assertEquals(false, profileRepo.lastForceRefresh)
+    }
+
+    @Test
+    fun `pull to refresh forces a new Pasen request and clears isRefreshing`() = runTest {
+        val sessionRepo = FakeSessionRepository(
+            TestSessions.active(testUser, Provincia.CORDOBA),
+        )
+        val vm = createViewModel(sessionRepo)
+        advanceUntilIdle()
+        val callsBeforeRefresh = profileRepo.enrichCalls
+
+        vm.refresh()
+        advanceUntilIdle()
+
+        assertEquals(callsBeforeRefresh + 1, profileRepo.enrichCalls)
+        assertEquals(true, profileRepo.lastForceRefresh)
+        assertFalse(vm.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun `isRefreshing is not set by the initial load`() = runTest {
+        val sessionRepo = FakeSessionRepository(
+            TestSessions.active(testUser, Provincia.CORDOBA),
+        )
+
+        val vm = createViewModel(sessionRepo)
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.isRefreshing)
     }
 }

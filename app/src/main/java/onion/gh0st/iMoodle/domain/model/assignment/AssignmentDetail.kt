@@ -58,4 +58,21 @@ data class AssignmentDetail(
     val submissionFiles: List<CourseFile> = emptyList(),
     val enabledSubmissionPlugins: Set<String> = emptySet(),
     val statusUnknown: Boolean = false,
-)
+) {
+
+    /** `true` si la entrega ya se ha enviado a calificar (estado `submitted` de Moodle). */
+    val isSubmitted: Boolean
+        get() = submissionStatus == STATUS_SUBMITTED
+
+    /** `true` si hay una entrega guardada como borrador, sin enviar a calificar. */
+    val isDraft: Boolean
+        get() = submissionStatus == STATUS_DRAFT
+
+    private companion object {
+        /** Estado de Moodle de una entrega enviada. */
+        const val STATUS_SUBMITTED = "submitted"
+
+        /** Estado de Moodle de una entrega en borrador. */
+        const val STATUS_DRAFT = "draft"
+    }
+}

@@ -1,6 +1,7 @@
 package onion.gh0st.iMoodle.ui.assignments
 
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -8,18 +9,16 @@ import android.text.method.LinkMovementMethod
 import android.text.util.Linkify
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.StringRes
+import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.core.text.util.LinkifyCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -30,68 +29,165 @@ import onion.gh0st.iMoodle.databinding.ItemSubmissionCommentBinding
 import onion.gh0st.iMoodle.domain.model.assignment.AssignmentDetail
 import onion.gh0st.iMoodle.domain.model.assignment.SubmissionComment
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
-import onion.gh0st.iMoodle.domain.repository.session.SessionRepository
 import onion.gh0st.iMoodle.ui.common.FormatUtils
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
-import onion.gh0st.iMoodle.ui.files.FileDownloadHelper
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.applyImeBottomInset
+import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
+import onion.gh0st.iMoodle.ui.files.FileDownloadDialog
 
 /**
- * La pantalla (el "cuerpo") donde se muestra la tarea.
+ * Pantalla de detalle de una tarea: enunciado, fechas, estado, nota,
+ * archivos, entrega y comentarios.
  *
- * Recibe órdenes del ViewModel (el "cerebro") y dibuja los botones,
- * los textos y la lista de archivos. También captura cuando el usuario
- * toca los botones y se lo comunica al cerebro.
+ * ## Qué muestra
+ *
+ * - Nombre, descripción (sin HTML), fecha límite y estado de la entrega
+ *   (entregada, borrador, sin entregar o desconocido).
+ * - La nota, si el profesor ya ha calificado.
+ * - Los archivos adjuntos a la tarea y los que el alumno ha entregado
+ *   (con confirmación antes de descargar).
+ * - Los comentarios de la entrega, si la tarea tiene activado ese plugin.
+ *
+ * ## Qué permite hacer
+ *
+ * - **Entregar** (o volver a entregar, tras una confirmación) mediante
+ *   [AssignmentSubmissionDialog].
+ * - **Borrar la entrega**, tras una confirmación.
+ * - **Escribir y borrar comentarios** (solo los propios).
+ *
+ * Los botones se pintan en acento o en gris según Moodle permita la
+ * acción y no haya otra operación en curso ([updateButtonAppearance]).
+ *
+ * ## Argumentos
+ *
+ * Se crea con [newInstance]: identificador del curso y de la tarea.
+ * Toda la lógica vive en [AssignmentDetailViewModel]; este fragmento solo
+ * pinta el estado y reenvía las acciones.
  */
 @AndroidEntryPoint
 class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
 
-    @Inject lateinit var sessionRepo: SessionRepository
     private val viewModel: AssignmentDetailViewModel by viewModels()
 
     companion object {
+        /** Nombre del plugin de entrega que habilita los comentarios. */
+        private const val COMMENTS_PLUGIN = "comments"
+
+        /**
+         * Separación (en dp) que se deja entre el botón de publicar y el
+         * borde superior del teclado al desplazar el formulario.
+         */
+        private const val COMMENT_SCROLL_MARGIN_DP = 8f
+
+        /**
+         * Crea el fragmento para una tarea concreta.
+         *
+         * @param courseId Identificador del curso.
+         * @param assignmentId Identificador de la tarea (instancia).
+         * @return El fragmento con sus argumentos ya configurados.
+         */
         fun newInstance(courseId: Int, assignmentId: Int) = AssignmentDetailFragment().apply {
-            arguments = Bundle().apply { putInt("COURSE_ID", courseId); putInt("ASSIGNMENT_ID", assignmentId) }
+            arguments = Bundle().apply {
+                putInt(FragmentArgs.COURSE_ID, courseId)
+                putInt(FragmentArgs.ASSIGNMENT_ID, assignmentId)
+            }
         }
     }
 
+    /**
+     * Prepara la pantalla y empieza a observar el estado.
+     *
+     * @param view Vista raíz ya inflada.
+     * @param savedInstanceState Estado guardado, o `null`.
+     */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentAssignmentDetailBinding.bind(view)
-        setupToolbar(binding)
-        setupWindowInsets(binding)
+        binding.toolbarAssign.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+        binding.appBarAssign.applySystemBarsInsets()
         setupSubmitButton(binding)
         setupDeleteButton(binding)
         setupPostCommentButton(binding)
+        setupKeyboardInsets(binding)
         observeUi(binding)
     }
 
-    private fun setupToolbar(binding: FragmentAssignmentDetailBinding) {
-        binding.toolbarAssign.setNavigationOnClickListener { parentFragmentManager.popBackStack() }
+    /**
+     * Hace sitio para el teclado y desplaza el formulario de comentarios
+     * hasta la zona visible al escribir.
+     *
+     * ## Por qué hace falta
+     *
+     * La pantalla dibuja de borde a borde, así que el sistema no
+     * redimensiona la ventana al abrir el teclado. Sin reservar el inset
+     * del IME, el teclado tapaba el campo de comentario y no se veía lo
+     * que se escribía.
+     *
+     * @param binding Vistas de la pantalla.
+     */
+    private fun setupKeyboardInsets(binding: FragmentAssignmentDetailBinding) {
+        binding.scrollAssign.applyImeBottomInset { keyboardVisible ->
+            if (keyboardVisible) scrollToCommentInput(binding)
+        }
+        binding.inpNewComment.setOnClickListener { scrollToCommentInput(binding) }
     }
 
-    private fun setupWindowInsets(binding: FragmentAssignmentDetailBinding) {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.appBarAssign) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(view.paddingLeft, systemBars.top, view.paddingRight, systemBars.bottom)
-            insets
+    /**
+     * Desplaza el scroll **lo mínimo** necesario para dejar el botón de
+     * publicar (y, con él, el campo de comentario) por encima del
+     * teclado.
+     *
+     * ## Por qué no basta `fullScroll`
+     *
+     * `fullScroll(View.FOCUS_DOWN)` baja hasta el final absoluto del
+     * contenido. Como el scroll y el contenido tienen relleno inferior
+     * (para no quedar pegados al borde), eso dejaba a la vista una franja
+     * vacía del color del fondo justo encima del teclado. Calculando el
+     * hueco real y desplazando solo esa distancia no aparece la franja.
+     *
+     * Se hace en un `post` para esperar a que el relleno del teclado se
+     * haya aplicado: hasta entonces el área visible todavía no es la
+     * definitiva.
+     *
+     * @param binding Vistas de la pantalla.
+     */
+    private fun scrollToCommentInput(binding: FragmentAssignmentDetailBinding) {
+        if (!binding.layoutSubmissionComments.isVisible) return
+        val scroll = binding.scrollAssign
+        scroll.post {
+            val margin = (COMMENT_SCROLL_MARGIN_DP * scroll.resources.displayMetrics.density).toInt()
+            val scrollLocation = IntArray(2).also { scroll.getLocationInWindow(it) }
+            val buttonLocation = IntArray(2).also { binding.btnPostComment.getLocationInWindow(it) }
+            // Fondo del área visible: el borde inferior del scroll menos
+            // el relleno del teclado.
+            val visibleBottom = scrollLocation[1] + scroll.height - scroll.paddingBottom
+            val buttonBottom = buttonLocation[1] + binding.btnPostComment.height + margin
+            val pendingScroll = buttonBottom - visibleBottom
+            if (pendingScroll > 0) scroll.smoothScrollBy(0, pendingScroll)
         }
     }
 
     /**
-     * Cuando pulsas "Entregar", si ya estaba entregado te avisa, si no, abre el diálogo.
+     * Configura el botón de entregar: si ya hay una entrega enviada pide
+     * antes confirmación (la nueva sustituye a la anterior).
+     *
+     * @param binding Vistas de la pantalla.
      */
     private fun setupSubmitButton(binding: FragmentAssignmentDetailBinding) {
         binding.btnSubmitAssignment.setOnClickListener {
-            if (viewModel.state.value.assignment?.submissionStatus == "submitted") showResubmitWarning()
-            else showSubmissionDialog()
+            if (viewModel.state.value.assignment?.isSubmitted == true) {
+                showResubmitWarning()
+            } else {
+                showSubmissionDialog()
+            }
         }
     }
 
     /**
-     * Cuando pulsas "Borrar entrega", te pide confirmación.
+     * Configura el botón de borrar la entrega, con confirmación previa.
+     *
+     * @param binding Vistas de la pantalla.
      */
     private fun setupDeleteButton(binding: FragmentAssignmentDetailBinding) {
         binding.btnDeleteSubmission.setOnClickListener {
@@ -99,53 +195,76 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
                 .setTitle(R.string.dialog_delete_submission_title)
                 .setMessage(R.string.dialog_delete_submission_message)
                 .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteSubmission() }
-                .setNegativeButton(R.string.action_cancel, null).show()
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
         }
     }
 
     /**
-     * Configura el botón de enviar comentario.
+     * Configura el envío de comentarios: el botón publica el texto y
+     * se habilita solo cuando hay texto y no hay otra operación en curso.
+     *
+     * @param binding Vistas de la pantalla.
      */
     private fun setupPostCommentButton(binding: FragmentAssignmentDetailBinding) {
         binding.btnPostComment.setOnClickListener {
-            val text = binding.inpNewComment.text?.toString()?.trim().orEmpty()
-            if (text.isNotBlank()) viewModel.postComment(text)
+            val commentText = binding.inpNewComment.text?.toString()?.trim().orEmpty()
+            if (commentText.isNotBlank()) viewModel.postComment(commentText)
         }
         binding.inpNewComment.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePostCommentButtonState(binding) }
-            override fun afterTextChanged(s: Editable?) {}
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                updatePostCommentButtonState(binding)
+            }
+
+            override fun afterTextChanged(s: Editable?) = Unit
         })
         updatePostCommentButtonState(binding)
     }
 
+    /**
+     * Habilita o deshabilita el botón de comentar y actualiza su texto
+     * ("Enviar" / "Enviando…").
+     *
+     * @param binding Vistas de la pantalla.
+     */
     private fun updatePostCommentButtonState(binding: FragmentAssignmentDetailBinding) {
         val state = viewModel.state.value
-        val busy = state.isSubmitting || state.isDeleting || state.isPostingComment || state.isDeletingComment
-        binding.btnPostComment.isEnabled = !binding.inpNewComment.text.isNullOrBlank() && !busy
-        binding.btnPostComment.text = if (state.isPostingComment) getString(R.string.posting_comment) else getString(R.string.action_post_comment)
+        binding.btnPostComment.isEnabled = !binding.inpNewComment.text.isNullOrBlank() && !state.isBusy()
+        binding.btnPostComment.text = getString(
+            if (state.isPostingComment) R.string.posting_comment else R.string.action_post_comment,
+        )
     }
 
+    /** Pide confirmación antes de volver a entregar, porque sustituye la entrega anterior. */
     private fun showResubmitWarning() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_resubmit_title)
             .setMessage(R.string.dialog_resubmit_message)
             .setPositiveButton(R.string.action_continue) { _, _ -> showSubmissionDialog() }
-            .setNegativeButton(R.string.action_cancel, null).show()
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
+    /** Muestra el diálogo de entrega, evitando abrir dos a la vez. */
     private fun showSubmissionDialog() {
         if (childFragmentManager.findFragmentByTag(AssignmentSubmissionDialog.TAG) == null) {
             AssignmentSubmissionDialog.newInstance().show(childFragmentManager, AssignmentSubmissionDialog.TAG)
         }
     }
 
+    /** Cierra el diálogo de entrega, si está abierto. */
     private fun dismissSubmissionDialog() {
-        (childFragmentManager.findFragmentByTag(AssignmentSubmissionDialog.TAG) as? AssignmentSubmissionDialog)?.dismissAllowingStateLoss()
+        val dialog = childFragmentManager.findFragmentByTag(AssignmentSubmissionDialog.TAG)
+        (dialog as? AssignmentSubmissionDialog)?.dismissAllowingStateLoss()
     }
 
     /**
-     * Se pone a escuchar al ViewModel (al cerebro).
+     * Empieza a observar el estado y los eventos del ViewModel mientras
+     * la pantalla esté visible.
+     *
+     * @param binding Vistas de la pantalla.
      */
     private fun observeUi(binding: FragmentAssignmentDetailBinding) {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -157,164 +276,262 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
     }
 
     /**
-     * Pinta los datos cada vez que el cerebro dice que han cambiado.
+     * Pinta cada nuevo estado: contenido de la tarea, comentarios y
+     * aspecto de los botones.
+     *
+     * @param binding Vistas de la pantalla.
      */
-    private fun observeState(binding: FragmentAssignmentDetailBinding) {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.state.collect { state ->
-                    val assignment = state.assignment
-                    assignment?.let {
-                        renderAssignment(binding, it)
-                        renderComments(binding, it, state.comments)
-                    }
-                    val busy = state.isSubmitting || state.isDeleting || state.isPostingComment || state.isDeletingComment
-
-                    // Pintamos los botones de verde o gris según si tenemos permiso.
-                    updateButtonAppearance(binding.btnSubmitAssignment, !busy && (assignment?.canSubmit ?: false), isOutlined = false)
-                    updateButtonAppearance(binding.btnDeleteSubmission, !busy && (assignment?.canEdit ?: false), isOutlined = true)
-
-                    updatePostCommentButtonState(binding)
-                }
+    private suspend fun observeState(binding: FragmentAssignmentDetailBinding) {
+        viewModel.state.collect { state ->
+            val assignment = state.assignment
+            if (assignment != null) {
+                renderAssignment(binding, assignment)
+                renderComments(binding, assignment, state.comments, state.currentUserId)
             }
+
+            val canInteract = !state.isBusy()
+            updateButtonAppearance(
+                binding.btnSubmitAssignment,
+                enabled = canInteract && assignment?.canSubmit == true,
+                isOutlined = false,
+            )
+            updateButtonAppearance(
+                binding.btnDeleteSubmission,
+                enabled = canInteract && assignment?.canEdit == true,
+                isOutlined = true,
+            )
+            updatePostCommentButtonState(binding)
         }
     }
 
     /**
-     * Cambia los colores de un botón.
+     * Indica si hay alguna operación de red en curso que deba bloquear
+     * los botones.
      *
-     * Si el botón está habilitado, se pinta de verde.
-     * Si está deshabilitado, se pinta de gris translúcido.
+     * @receiver Estado actual de la pantalla.
+     * @return `true` si se está entregando, borrando o gestionando comentarios.
      */
-    private fun updateButtonAppearance(button: com.google.android.material.button.MaterialButton, enabled: Boolean, isOutlined: Boolean) {
+    private fun AssignmentDetailUiState.isBusy(): Boolean =
+        isSubmitting || isDeleting || isPostingComment || isDeletingComment
+
+    /**
+     * Pinta un botón en acento (activo) o en gris (inactivo).
+     *
+     * - Activo, relleno: fondo de acento y texto/icono claros.
+     * - Activo, con borde: fondo transparente y texto/icono/borde de acento.
+     * - Inactivo: todo en gris (fondo, texto, icono y borde).
+     *
+     * @param button Botón a pintar.
+     * @param enabled `true` si el botón debe poder pulsarse.
+     * @param isOutlined `true` para el estilo de botón con borde.
+     */
+    private fun updateButtonAppearance(button: MaterialButton, enabled: Boolean, isOutlined: Boolean) {
         button.isEnabled = enabled
         val context = requireContext()
+
         if (enabled) {
             val accent = ContextCompat.getColor(context, R.color.color_acento)
-            button.backgroundTintList = ColorStateList.valueOf(if (isOutlined) android.graphics.Color.TRANSPARENT else accent)
-            button.setTextColor(if (isOutlined) accent else ContextCompat.getColor(context, R.color.texto_boton))
-            button.iconTint = ColorStateList.valueOf(accent)
+            val white = ContextCompat.getColor(context, R.color.texto_boton)
+            val foregroundColor = if (isOutlined) accent else white
+            val backgroundColor = if (isOutlined) Color.TRANSPARENT else accent
+
+            button.backgroundTintList = ColorStateList.valueOf(backgroundColor)
+            button.setTextColor(foregroundColor)
+            button.iconTint = ColorStateList.valueOf(foregroundColor)
             if (isOutlined) button.strokeColor = ColorStateList.valueOf(accent)
         } else {
-            // Aquí usamos el color que faltaba en colors.xml
-            val disabled = ContextCompat.getColor(context, R.color.boton_deshabilitado)
-            val textDisabled = ContextCompat.getColor(context, R.color.texto_secundario)
-            button.backgroundTintList = ColorStateList.valueOf(disabled)
-            button.setTextColor(textDisabled)
-            button.iconTint = ColorStateList.valueOf(textDisabled)
-            if (isOutlined) button.strokeColor = ColorStateList.valueOf(disabled)
+            val disabledBackground = ContextCompat.getColor(context, R.color.boton_deshabilitado)
+            val disabledForeground = ContextCompat.getColor(context, R.color.texto_secundario)
+
+            button.backgroundTintList = ColorStateList.valueOf(disabledBackground)
+            button.setTextColor(disabledForeground)
+            button.iconTint = ColorStateList.valueOf(disabledForeground)
+            if (isOutlined) button.strokeColor = ColorStateList.valueOf(disabledBackground)
         }
     }
 
     /**
-     * Escucha los eventos (como "éxito al entregar").
+     * Reacciona a los eventos de un solo uso del ViewModel (mensajes y
+     * confirmaciones).
+     *
+     * @param binding Vistas de la pantalla.
      */
     private suspend fun observeEvents(binding: FragmentAssignmentDetailBinding) {
         viewModel.events.collect { event ->
             when (event) {
                 is AssignmentDetailUiEvent.ShowError -> showToast(event.messageResId, event.arg)
-                AssignmentDetailUiEvent.SubmissionSuccess -> { dismissSubmissionDialog(); showToast(R.string.toast_submission_success); viewModel.loadAssignment() }
+                AssignmentDetailUiEvent.SubmissionSuccess -> {
+                    dismissSubmissionDialog()
+                    showToast(R.string.toast_submission_success)
+                }
                 AssignmentDetailUiEvent.DeletionSuccess -> showToast(R.string.toast_deletion_success)
                 AssignmentDetailUiEvent.CommentPosted -> binding.inpNewComment.text?.clear()
                 AssignmentDetailUiEvent.CommentDeleted -> Unit
+                is AssignmentDetailUiEvent.DownloadStarted ->
+                    showToast(R.string.toast_downloading, event.fileName)
+                AssignmentDetailUiEvent.DownloadFailed -> showToast(R.string.toast_download_error)
             }
         }
     }
 
     /**
-     * Pinta los textos principales y los botones.
+     * Pinta los datos de la tarea: textos, estado, nota, botones y archivos.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param assignment Detalle de la tarea.
      */
     private fun renderAssignment(binding: FragmentAssignmentDetailBinding, assignment: AssignmentDetail) {
         binding.txtAssignName.text = assignment.name
-        binding.txtAssignDescription.text = if (assignment.description.isBlank()) getString(R.string.label_no_description) else HtmlUtils.stripHtml(assignment.description)
-        binding.txtAssignDates.text = if (assignment.dueDate != null) {
-            getString(R.string.label_due_date, SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(assignment.dueDate * 1000)))
-        } else getString(R.string.label_no_due_date)
+        binding.txtAssignDescription.text = if (assignment.description.isBlank()) {
+            getString(R.string.label_no_description)
+        } else {
+            HtmlUtils.stripHtml(assignment.description)
+        }
+        binding.txtAssignDates.text = assignment.dueDate
+            ?.let { dueDate -> getString(R.string.label_due_date, FormatUtils.formatDateTime(dueDate)) }
+            ?: getString(R.string.label_no_due_date)
 
         binding.txtSubmissionStatus.text = when {
             assignment.statusUnknown -> getString(R.string.status_unknown)
-            assignment.submissionStatus == "submitted" -> getString(R.string.status_submitted)
-            assignment.submissionStatus == "draft" -> getString(R.string.status_draft)
+            assignment.isSubmitted -> getString(R.string.status_submitted)
+            assignment.isDraft -> getString(R.string.status_draft)
             else -> getString(R.string.status_not_submitted)
         }
 
-        if (!assignment.submissionGraded) binding.txtSubmissionGrade.isVisible = false
-        else {
-            binding.txtSubmissionGrade.isVisible = true
-            val grade = assignment.gradeDisplay?.let { HtmlUtils.stripHtml(it) } ?: (assignment.submissionGrade?.let { "${FormatUtils.formatGrade(it)} / ${FormatUtils.formatGrade(assignment.maxGrade)}" } ?: "")
-            binding.txtSubmissionGrade.text = getString(R.string.label_grade, grade)
+        binding.txtSubmissionGrade.isVisible = assignment.submissionGraded
+        if (assignment.submissionGraded) {
+            binding.txtSubmissionGrade.text = getString(R.string.label_grade, gradeText(assignment))
         }
 
-        val isSubmitted = assignment.submissionStatus == "submitted"
-        binding.btnSubmitAssignment.isVisible = !isSubmitted
-        binding.btnDeleteSubmission.isVisible = isSubmitted
+        binding.btnSubmitAssignment.isVisible = !assignment.isSubmitted
+        binding.btnDeleteSubmission.isVisible = assignment.isSubmitted
 
         binding.containerSubmissionAttachments.removeAllViews()
         binding.layoutSubmissionAttachments.isVisible = assignment.submissionFiles.isNotEmpty()
-        assignment.submissionFiles.forEach { addSubmissionAttachmentView(binding, it) }
+        assignment.submissionFiles.forEach { file ->
+            addFileRow(binding.containerSubmissionAttachments, file)
+        }
 
         binding.containerAttachments.removeAllViews()
         binding.layoutAttachments.isVisible = assignment.files.isNotEmpty()
-        assignment.files.forEach { addAttachmentView(binding, it) }
+        assignment.files.forEach { file -> addFileRow(binding.containerAttachments, file) }
     }
 
     /**
-     * Pinta la lista de mensajes y convierte las URLs en enlaces clicables.
+     * Compone el texto de la nota: el que muestra Moodle si existe, o
+     * "nota / máximo" a partir de los números.
+     *
+     * @param assignment Detalle de la tarea ya calificada.
+     * @return El texto de la nota, o vacío si no hay ningún dato.
      */
-    private fun renderComments(binding: FragmentAssignmentDetailBinding, assignment: AssignmentDetail, comments: List<SubmissionComment>) {
-        val canShow = assignment.submissionId != null && assignment.submissionId > 0 && "comments" in assignment.enabledSubmissionPlugins
+    private fun gradeText(assignment: AssignmentDetail): String {
+        val moodleDisplay = assignment.gradeDisplay?.let { display -> HtmlUtils.stripHtml(display) }
+        if (moodleDisplay != null) return moodleDisplay
+
+        val numericGrade = assignment.submissionGrade ?: return ""
+        return "${FormatUtils.formatGrade(numericGrade)} / ${FormatUtils.formatGrade(assignment.maxGrade)}"
+    }
+
+    /**
+     * Pinta el hilo de comentarios de la entrega, o lo oculta si no procede.
+     *
+     * Solo se muestra la papelera en los comentarios que el usuario puede
+     * borrar ([isOwnComment]).
+     *
+     * @param binding Vistas de la pantalla.
+     * @param assignment Detalle de la tarea.
+     * @param comments Comentarios a pintar.
+     * @param currentUserId Identificador del usuario actual.
+     */
+    private fun renderComments(
+        binding: FragmentAssignmentDetailBinding,
+        assignment: AssignmentDetail,
+        comments: List<SubmissionComment>,
+        currentUserId: Int,
+    ) {
+        val submissionId = assignment.submissionId ?: 0
+        val canShow = submissionId > 0 && COMMENTS_PLUGIN in assignment.enabledSubmissionPlugins
         binding.layoutSubmissionComments.isVisible = canShow
         if (!canShow) return
 
         binding.containerSubmissionComments.removeAllViews()
         binding.txtNoComments.isVisible = comments.isEmpty()
         comments.forEach { comment ->
-            val row = ItemSubmissionCommentBinding.inflate(LayoutInflater.from(requireContext()), binding.containerSubmissionComments, false)
+            val row = ItemSubmissionCommentBinding.inflate(
+                LayoutInflater.from(requireContext()),
+                binding.containerSubmissionComments,
+                false,
+            )
             row.txtCommentAuthor.text = comment.author
-            row.txtCommentDate.text = if (comment.createdAt > 0) SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(comment.createdAt * 1000)) else getString(R.string.label_unknown_date)
-
-            // Renderizamos el HTML y hacemos clicables los enlaces.
+            row.txtCommentDate.text = if (comment.createdAt > 0) {
+                FormatUtils.formatDateTime(comment.createdAt)
+            } else {
+                getString(R.string.label_unknown_date)
+            }
             row.txtCommentContent.text = HtmlUtils.renderHtml(comment.content)
             row.txtCommentContent.movementMethod = LinkMovementMethod.getInstance()
             LinkifyCompat.addLinks(row.txtCommentContent, Linkify.WEB_URLS)
 
-            // Solo mostramos la papelera si el comentario es tuyo.
-            val isOwn = comment.author == sessionRepo.session.value?.user?.fullname
-            row.btnDeleteComment.isVisible = isOwn
-            row.btnDeleteComment.setOnClickListener {
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.dialog_delete_comment_title)
-                    .setMessage(R.string.dialog_delete_comment_message)
-                    .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteComment(comment.id) }
-                    .setNegativeButton(R.string.action_cancel, null).show()
-            }
+            row.btnDeleteComment.isVisible = isOwnComment(comment, currentUserId)
+            row.btnDeleteComment.setOnClickListener { confirmDeleteComment(comment) }
             binding.containerSubmissionComments.addView(row.root)
         }
     }
 
-    private fun addSubmissionAttachmentView(binding: FragmentAssignmentDetailBinding, file: CourseFile) {
-        val item = ItemFileBinding.inflate(LayoutInflater.from(requireContext()), binding.containerSubmissionAttachments, false)
-        item.txtFileName.text = file.fileName; item.txtFileSize.text = FormatUtils.formatFileSize(file.fileSize)
-        item.imgFileIcon.setImageResource(R.drawable.ic_arrow_download)
-        item.root.setOnClickListener { confirmDownload(file) }
-        binding.containerSubmissionAttachments.addView(item.root)
+    /**
+     * Decide si un comentario es del usuario actual.
+     *
+     * Se fía de lo que indica Moodle ([SubmissionComment.canDelete]) y,
+     * como respaldo, compara los **identificadores** de usuario. Antes se
+     * comparaban los nombres completos, lo que fallaba con homónimos o
+     * si el nombre cambiaba.
+     *
+     * @param comment Comentario a evaluar.
+     * @param currentUserId Identificador del usuario actual (`0` si se desconoce).
+     * @return `true` si el comentario es propio.
+     */
+    private fun isOwnComment(comment: SubmissionComment, currentUserId: Int): Boolean =
+        comment.canDelete || (currentUserId != 0 && comment.authorId == currentUserId)
+
+    /**
+     * Pide confirmación antes de borrar un comentario.
+     *
+     * @param comment Comentario que se borraría.
+     */
+    private fun confirmDeleteComment(comment: SubmissionComment) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_delete_comment_title)
+            .setMessage(R.string.dialog_delete_comment_message)
+            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteComment(comment.id) }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
-    private fun addAttachmentView(binding: FragmentAssignmentDetailBinding, file: CourseFile) {
-        val item = ItemFileBinding.inflate(LayoutInflater.from(requireContext()), binding.containerAttachments, false)
-        item.txtFileName.text = file.fileName; item.txtFileSize.text = FormatUtils.formatFileSize(file.fileSize)
+    /**
+     * Añade a un contenedor una fila con el nombre, el tamaño y el icono
+     * de descarga de un archivo; al pulsarla se pide confirmación para
+     * descargarlo.
+     *
+     * @param container Contenedor al que se añade la fila.
+     * @param file Archivo que representa la fila.
+     */
+    private fun addFileRow(container: ViewGroup, file: CourseFile) {
+        val item = ItemFileBinding.inflate(LayoutInflater.from(requireContext()), container, false)
+        item.txtFileName.text = file.fileName
+        item.txtFileSize.text = FormatUtils.formatFileSize(file.fileSize)
         item.imgFileIcon.setImageResource(R.drawable.ic_arrow_download)
         item.root.setOnClickListener { confirmDownload(file) }
-        binding.containerAttachments.addView(item.root)
+        container.addView(item.root)
     }
 
+    /**
+     * Pide confirmación y delega la descarga en el ViewModel.
+     *
+     * @param file Archivo a descargar.
+     */
     private fun confirmDownload(file: CourseFile) {
-        if (sessionRepo.session.value == null) return
-        FileDownloadHelper.showConfirmationDialog(requireContext(), file) { FileDownloadHelper.download(requireContext(), file) }
-    }
-
-    private fun showToast(@StringRes resId: Int, arg: String? = null) {
-        val msg = if (arg != null) getString(resId, arg) else getString(resId)
-        Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        FileDownloadDialog.show(requireContext(), file.fileName) {
+            viewModel.downloadFile(file)
+        }
     }
 }

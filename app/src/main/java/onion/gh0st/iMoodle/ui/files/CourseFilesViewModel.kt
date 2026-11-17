@@ -14,9 +14,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseFiles
+import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
 import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
 /**
  * Estado observable de la pantalla de archivos de un módulo.
@@ -62,6 +65,16 @@ sealed interface CourseFilesUiEvent {
         @param:StringRes val messageResId: Int,
         val arg: String? = null,
     ) : CourseFilesUiEvent
+
+    /**
+     * La descarga de un archivo se ha encolado correctamente.
+     *
+     * @property fileName Nombre del archivo, para el aviso al usuario.
+     */
+    data class DownloadStarted(val fileName: String) : CourseFilesUiEvent
+
+    /** No se pudo encolar la descarga (sin sesión o error del sistema). */
+    data object DownloadFailed : CourseFilesUiEvent
 }
 
 /**
@@ -83,11 +96,13 @@ sealed interface CourseFilesUiEvent {
  *
  * @param savedStateHandle Handle con `COURSE_ID` y `MODULE_ID`.
  * @param getCourseFiles Caso de uso que resuelve los archivos.
+ * @param downloadCourseFile Caso de uso para descargar un archivo.
  */
 @HiltViewModel
 class CourseFilesViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getCourseFiles: GetCourseFiles,
+    private val downloadCourseFile: DownloadCourseFile,
 ) : ViewModel() {
 
     /**
@@ -99,10 +114,10 @@ class CourseFilesViewModel @Inject constructor(
      * construirse. Al rotar, el Fragment se recrea y los argumentos
      * se perderían. `SavedStateHandle` los conserva.
      */
-    private val courseId: Int = savedStateHandle.get<Int>("COURSE_ID") ?: 0
+    private val courseId: Int = savedStateHandle.get<Int>(FragmentArgs.COURSE_ID) ?: 0
 
     /** ID del módulo, extraído de los argumentos de navegación. */
-    private val moduleId: Int = savedStateHandle.get<Int>("MODULE_ID") ?: 0
+    private val moduleId: Int = savedStateHandle.get<Int>(FragmentArgs.MODULE_ID) ?: 0
 
     /** Estado interno de la pantalla. */
     private val _state = MutableStateFlow(CourseFilesUiState())
@@ -157,7 +172,7 @@ class CourseFilesViewModel @Inject constructor(
      */
     private fun loadFiles() = viewModelScope.launch {
         setLoading()
-        runCatching { getCourseFiles(courseId, moduleId) }
+        runCatchingCancellable { getCourseFiles(courseId, moduleId) }
             .onSuccess { loadedFiles -> onFilesLoaded(loadedFiles) }
             .onFailure { exception ->
                 Logging.logError(
@@ -190,6 +205,31 @@ class CourseFilesViewModel @Inject constructor(
      * anterior visible mientras llega la nueva (evita el parpadeo).
      */
     private fun setLoading() = _state.update { it.copy(isLoading = true) }
+
+    /**
+     * Descarga un archivo del módulo.
+     *
+     * ## Qué hace
+     *
+     * Delega en [DownloadCourseFile] (que comprueba la sesión) y emite
+     * el evento necesario para que la pantalla informe al usuario.
+     *
+     * ## Cuándo se llama
+     *
+     * Cuando el usuario confirma en el diálogo de descarga.
+     *
+     * @param file Archivo a descargar.
+     */
+    fun downloadFile(file: CourseFile) {
+        viewModelScope.launch {
+            downloadCourseFile(file)
+                .onSuccess { _events.send(CourseFilesUiEvent.DownloadStarted(file.fileName)) }
+                .onFailure { exception ->
+                    Logging.logError(TAG, "downloadFile", exception)
+                    _events.send(CourseFilesUiEvent.DownloadFailed)
+                }
+        }
+    }
 
     private companion object {
         /** Etiqueta de logcat para `Logging.logError`. */

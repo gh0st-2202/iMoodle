@@ -41,7 +41,7 @@ import onion.gh0st.iMoodle.domain.model.session.StoredSession
  *
  * ## Quién la consume
  *
- * - `AuthRepositoryImpl` (al hacer login y auto-login).
+ * - `MoodleAuthRepository` (al hacer login y auto-login).
  * - `DefaultSessionRepository` (al hacer logout y al refrescar el
  *   token).
  */

@@ -24,24 +24,21 @@
     <string name="action_download">Descargar</string>
 
     <!-- Mensajes (Toasts) -->
-    <string name="toast_storage_error">Error crítico: Almacén seguro no disponible</string>
     <string name="toast_welcome_back">Bienvenido de nuevo, %1$s</string>
-    <string name="toast_session_expired">La sesión ha caducado. Vuelve a entrar.</string>
     <string name="toast_session_recovery_failed">No se pudo recuperar la sesión</string>
-    <string name="toast_login_success">Sesión iniciada en %1$s</string>
     <string name="toast_no_notifications_permission">No recibirás recordatorios de tareas sin permiso de notificaciones</string>
     <string name="toast_no_notifications_permission_short">No recibirás recordatorios de tareas</string>
     <string name="toast_notifications_enabled">Notificaciones activadas</string>
     <string name="toast_exact_alarm_settings">Abre los ajustes para permitir alarmas exactas</string>
-    <string name="toast_upload_in_development">Subida de archivos en desarrollo</string>
     <string name="toast_downloading">Descargando %1$s…</string>
     <string name="toast_download_error">Error al descargar. Inténtalo de nuevo.</string>
 
     <!-- Errores -->
     <string name="error_bad_credentials">Usuario o contraseña incorrectos</string>
     <string name="error_network">Error de red. Comprueba tu conexión.</string>
+    <string name="error_server">El servidor de la Junta no responde correctamente. Inténtalo más tarde.</string>
     <string name="error_unexpected">Error inesperado. Inténtalo de nuevo.</string>
-    <string name="error_generic">Error. Inténtalo de nuevo.</string>
+    <string name="error_assignment_operation">No se pudo completar la operación: %1$s</string>
     <string name="error_identify_user">No se pudo identificar al usuario. Cierra sesión y vuelve a entrar.</string>
     <string name="error_open_url">No se pudo obtener el enlace</string>
     <string name="error_unsafe_url">Enlace no admitido</string>
@@ -59,7 +56,6 @@
     <string name="nav_courses">Cursos</string>
     <string name="nav_calendar">Agenda</string>
     <string name="nav_schedule">Horario</string>
-    <string name="nav_messages">Mensajes</string>
     <string name="nav_profile">Perfil</string>
     <string name="title_courses">Mis Cursos</string>
     <string name="title_schedule">Mi Horario</string>
@@ -70,8 +66,6 @@
 
     <!-- Filtros y Estados -->
     <string name="filter_all">Todos</string>
-    <string name="filter_in_progress">En curso</string>
-    <string name="filter_favorites">Favoritos</string>
     <string name="empty_courses_title">Sin cursos todavía</string>
     <string name="empty_courses_desc">Cuando te matricules aparecerán aquí automáticamente.</string>
 
@@ -109,7 +103,6 @@
     <string name="notification_channel_name">Recordatorios de Tareas</string>
     <string name="notification_title_due_soon">Caduca pronto</string>
     <string name="notification_default_task_name">Tarea pendiente</string>
-    <string name="notification_download_description">Descargando archivo del curso…</string>
 
     <!-- Perfil del Alumno -->
     <string name="profile_info_title">Información del Alumno</string>
@@ -117,13 +110,16 @@
     <string name="profile_birthdate">Fecha de nacimiento</string>
     <string name="profile_age">Edad</string>
     <string name="profile_gender">Sexo</string>
-    <string name="profile_loading_info">Cargando datos de PASEN…</string>
     <string name="profile_no_info">No se pudieron cargar los datos de PASEN.</string>
 
     <!-- Actualizaciones -->
     <string name="update_dialog_title">Nueva versión disponible (v%1$s)</string>
     <string name="update_action_download">Descargar</string>
     <string name="update_action_later">Más tarde</string>
+    <string name="update_no_changelog">No hay notas de la versión disponibles.</string>
+    <string name="update_downloading">Descargando actualización…</string>
+    <string name="update_download_failed">No se pudo descargar la actualización. Inténtalo más tarde.</string>
+    <string name="update_install_failed">No se pudo abrir el instalador de paquetes.</string>
 
     <!-- ================================================ -->
     <!-- ENTREGA DE TAREAS                                -->
@@ -138,7 +134,6 @@
     <string name="label_existing_files">Archivos ya subidos</string>
     <string name="label_no_files_selected">No has añadido archivos nuevos</string>
     <string name="dialog_submission_title">Entregar tarea</string>
-    <string name="dialog_submission_existing_files_hint">Los archivos que ya tenías en la entrega se conservarán</string>
     <string name="dialog_resubmit_title">Ya has entregado esta tarea</string>
     <string name="dialog_resubmit_message">Si vuelves a entregar, se reemplazará la entrega anterior. ¿Quieres continuar?</string>
     <string name="toast_submission_success">Tarea entregada correctamente</string>

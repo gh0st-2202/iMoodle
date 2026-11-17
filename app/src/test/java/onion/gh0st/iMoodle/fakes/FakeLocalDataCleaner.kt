@@ -16,7 +16,21 @@ class FakeLocalDataCleaner : LocalDataCleaner {
     /**
      * Incrementa [clearCalls]. No borra nada real.
      */
+    /** Si no es `null`, [clear] cuenta la llamada y lanza este error (simula un fallo de disco). */
+    var error: Throwable? = null
+
+    /**
+     * Acción opcional que se ejecuta al final de [clear].
+     *
+     * Permite simular que otra corrutina (por ejemplo, un refresco de
+     * token) reacciona al cierre de sesión, incluso desde un hilo
+     * distinto.
+     */
+    var onClear: (suspend () -> Unit)? = null
+
     override suspend fun clear() {
         clearCalls++
+        onClear?.invoke()
+        error?.let { throw it }
     }
 }

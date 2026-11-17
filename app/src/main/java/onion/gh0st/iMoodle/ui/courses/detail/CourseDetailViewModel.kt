@@ -4,15 +4,23 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import onion.gh0st.iMoodle.core.Logging
+import onion.gh0st.iMoodle.core.runCatchingCancellable
+import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.model.course.CourseSection
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseContents
 import onion.gh0st.iMoodle.domain.usecase.course.GetUrlExternalUrl
+import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
 import javax.inject.Inject
+import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
 /**
  * Estado observable de la pantalla de detalle de un curso.
@@ -35,6 +43,28 @@ data class CourseDetailUiState(
 )
 
 /**
+ * Eventos de un solo uso de la pantalla de detalle de un curso.
+ *
+ * Son cosas que ocurren una vez y no forman parte del estado persistente
+ * de la pantalla (por ejemplo, mostrar un mensaje de error).
+ */
+sealed interface CourseDetailUiEvent {
+
+    /** No se pudieron cargar los contenidos del curso (sin red, error del servidor…). */
+    data object LoadFailed : CourseDetailUiEvent
+
+    /**
+     * La descarga de un archivo se ha encolado correctamente.
+     *
+     * @property fileName Nombre del archivo, para el aviso al usuario.
+     */
+    data class DownloadStarted(val fileName: String) : CourseDetailUiEvent
+
+    /** No se pudo encolar la descarga (sin sesión o error del sistema). */
+    data object DownloadFailed : CourseDetailUiEvent
+}
+
+/**
  * ViewModel de la pantalla de detalle de un curso.
  *
  * ## Qué hace
@@ -47,6 +77,9 @@ data class CourseDetailUiState(
  * 4. Permite filtrar los items por sección.
  * 5. Resuelve la URL externa de los módulos de tipo `url` bajo
  *    demanda.
+ * 6. Si la carga falla, lo notifica con [CourseDetailUiEvent.LoadFailed]
+ *    (antes el fallo era silencioso y la pantalla quedaba vacía sin
+ *    explicación).
  *
  * ## Dependencias
  *
@@ -70,12 +103,14 @@ data class CourseDetailUiState(
  * @param getCourseContents Caso de uso para cargar secciones y
  *   módulos.
  * @param getUrlExternalUrl Caso de uso para resolver URLs externas.
+ * @param downloadCourseFile Caso de uso para descargar un archivo.
  */
 @HiltViewModel
 class CourseDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getCourseContents: GetCourseContents,
     private val getUrlExternalUrl: GetUrlExternalUrl,
+    private val downloadCourseFile: DownloadCourseFile,
 ) : ViewModel() {
 
     /**
@@ -88,13 +123,18 @@ class CourseDetailViewModel @Inject constructor(
      * argumentos se pierden. `SavedStateHandle` los conserva y los
      * expone al ViewModel.
      */
-    private val courseId: Int = savedStateHandle.get<Int>("COURSE_ID") ?: 0
+    private val courseId: Int = savedStateHandle.get<Int>(FragmentArgs.COURSE_ID) ?: 0
 
     /** Estado interno de la pantalla. */
     private val _state = MutableStateFlow(CourseDetailUiState())
 
     /** Estado observable de la pantalla. */
     val state = _state.asStateFlow()
+
+    private val _events = Channel<CourseDetailUiEvent>(Channel.BUFFERED)
+
+    /** Eventos de un solo uso (errores y descargas). */
+    val events: Flow<CourseDetailUiEvent> = _events.receiveAsFlow()
 
     /**
      * Secciones completas cargadas la última vez.
@@ -185,9 +225,10 @@ class CourseDetailViewModel @Inject constructor(
      * 1. Pone `isLoading = true`.
      * 2. Llama al caso de uso `GetCourseContents`.
      * 3. Si va bien, publica las secciones y los items.
-     * 4. Si falla, apaga `isLoading` (sin mostrar error: el
-     *    `CourseDetailFragment` no tiene un canal de eventos para
-     *    errores; si en el futuro se añade, se haría aquí).
+     * 4. Si falla, registra el error, apaga `isLoading` y emite
+     *    [CourseDetailUiEvent.LoadFailed] para que la pantalla avise.
+     *    Si la corrutina se cancela, la cancelación se propaga y no se
+     *    considera un fallo.
      *
      * ## Por qué usa `viewModelScope`
      *
@@ -199,9 +240,13 @@ class CourseDetailViewModel @Inject constructor(
      */
     private fun loadContents(forceRefresh: Boolean) = viewModelScope.launch {
         setLoading()
-        runCatching { getCourseContents(courseId, forceRefresh) }
+        runCatchingCancellable { getCourseContents(courseId, forceRefresh) }
             .onSuccess { courseSections -> onContentsLoaded(courseSections) }
-            .onFailure { stopLoading() }
+            .onFailure { exception ->
+                Logging.logError("CourseDetailViewModel", "loadContents(courseId=$courseId)", exception)
+                stopLoading()
+                _events.send(CourseDetailUiEvent.LoadFailed)
+            }
     }
 
     /**
@@ -338,4 +383,34 @@ class CourseDetailViewModel @Inject constructor(
      * Apaga el flag de carga.
      */
     private fun stopLoading() = _state.update { it.copy(isLoading = false) }
+
+    /**
+     * Descarga un archivo del curso.
+     *
+     * ## Qué hace
+     *
+     * Delega en [DownloadCourseFile], que comprueba que haya sesión
+     * antes de encolar la descarga. Después emite el evento adecuado
+     * para que la pantalla muestre el aviso.
+     *
+     * ## Cuándo se llama
+     *
+     * Cuando el usuario confirma en el diálogo de descarga.
+     *
+     * @param file Archivo a descargar.
+     */
+    fun downloadFile(file: CourseFile) {
+        viewModelScope.launch {
+            downloadCourseFile(file)
+                .onSuccess { _events.send(CourseDetailUiEvent.DownloadStarted(file.fileName)) }
+                .onFailure { exception ->
+                    Logging.logError(TAG, "downloadFile", exception)
+                    _events.send(CourseDetailUiEvent.DownloadFailed)
+                }
+        }
+    }
+
+    private companion object {
+        const val TAG = "CourseDetailViewModel"
+    }
 }
