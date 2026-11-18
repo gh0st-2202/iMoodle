@@ -113,7 +113,9 @@ open class MoodleApiClient(
         params: MoodleParams = MoodleParams(),
     ): String {
         val builtParams = params.build()
-        return execute(allowRetry = true) { token -> performRequest(function, builtParams, token) }
+        return execute(function, allowRetry = true) { token ->
+            performRequest(function, builtParams, token)
+        }
     }
 
     /**
@@ -133,7 +135,9 @@ open class MoodleApiClient(
     open suspend fun callRESTWithFormBody(
         function: String,
         params: Map<String, String>,
-    ): String = execute(allowRetry = true) { token -> performFormBodyRequest(function, params, token) }
+    ): String = execute(function, allowRetry = true) { token ->
+        performFormBodyRequest(function, params, token)
+    }
 
     /**
      * Ciclo común de toda llamada: pedir, comprobar el resultado y, si el
@@ -148,17 +152,32 @@ open class MoodleApiClient(
      * 4. Si era el primer intento, refresca el token ([refreshTokenOrInvalidate])
      *    y vuelve a ejecutar [request] con `allowRetry = false`.
      *
+     * Cada petición y su respuesta se copian a Logcat con [NetworkLogger]
+     * (solo en `debug`), lo que permite ver la función, los parámetros y el
+     * error JSON cuando Moodle rechaza una llamada.
+     *
+     * @param function Función de Moodle ejecutada (para las trazas).
      * @param allowRetry `true` en el primer intento; `false` en el reintento
      *   posterior al refresco, para evitar bucles infinitos.
      * @param request Función que realiza la petición HTTP con el token dado.
      * @return Cuerpo JSON de la respuesta.
      */
     private suspend fun execute(
+        function: String,
         allowRetry: Boolean,
         request: suspend (token: String) -> String,
     ): String = withContext(Dispatchers.IO) {
         val usedToken = _token.value
-        val responseBody = request(usedToken)
+        val startedAt = System.currentTimeMillis()
+        val responseBody = try {
+            request(usedToken)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            NetworkLogger.failure(function, exception)
+            throw exception
+        }
+        NetworkLogger.response(function, responseBody, System.currentTimeMillis() - startedAt)
 
         if (!responseBody.hasInvalidTokenError()) {
             responseBody.throwIfMoodleException()
@@ -168,7 +187,7 @@ open class MoodleApiClient(
         if (!allowRetry) failInvalid()
 
         refreshTokenOrInvalidate(usedToken)
-        execute(allowRetry = false, request)
+        execute(function, allowRetry = false, request)
     }
 
     /**
@@ -183,12 +202,15 @@ open class MoodleApiClient(
         function: String,
         params: Map<String, String>,
         token: String,
-    ): String = send(
-        Request.Builder()
-            .url(buildUrl(function, params, token))
-            .header("User-Agent", config.userAgent)
-            .build(),
-    )
+    ): String {
+        NetworkLogger.request(function, params)
+        return send(
+            Request.Builder()
+                .url(buildUrl(function, params, token))
+                .header("User-Agent", config.userAgent)
+                .build(),
+        )
+    }
 
     /**
      * Construye y envía una petición `POST` con los parámetros en el cuerpo.
@@ -203,6 +225,8 @@ open class MoodleApiClient(
         params: Map<String, String>,
         token: String,
     ): String {
+        NetworkLogger.request(function, params)
+
         val formBody = FormBody.Builder().apply {
             add("wstoken", token)
             add("wsfunction", function)

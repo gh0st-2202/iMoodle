@@ -73,7 +73,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Estado de la entrega"
+                        android:text="@string/label_submission_status"
                         android:textColor="@color/texto_secundario"
                         android:textSize="14sp" />
 
@@ -104,7 +104,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Descripción"
+                android:text="@string/label_description"
                 android:textColor="@color/texto_principal"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -129,7 +129,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Archivos adjuntos"
+                    android:text="@string/label_submission_files"
                     android:textColor="@color/texto_principal"
                     android:textSize="18sp"
                     android:textStyle="bold" />

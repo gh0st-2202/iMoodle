@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.data.schedule
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -152,10 +153,10 @@ class ScheduleCache @Inject constructor(
     suspend fun put(username: String, slots: List<ScheduleSlot>) {
         memoryCache[username] = slots
         withContext(Dispatchers.IO) {
-            sharedPreferences.edit()
-                .putString(slotsPreferenceKey(username), serializeSlots(slots))
-                .putLong(updatedAtPreferenceKey(username), System.currentTimeMillis())
-                .apply()
+            sharedPreferences.edit {
+                putString(slotsPreferenceKey(username), serializeSlots(slots))
+                putLong(updatedAtPreferenceKey(username), System.currentTimeMillis())
+            }
         }
     }
 
@@ -177,10 +178,10 @@ class ScheduleCache @Inject constructor(
     suspend fun clear(username: String) {
         memoryCache.remove(username)
         withContext(Dispatchers.IO) {
-            sharedPreferences.edit()
-                .remove(slotsPreferenceKey(username))
-                .remove(updatedAtPreferenceKey(username))
-                .apply()
+            sharedPreferences.edit {
+                remove(slotsPreferenceKey(username))
+                remove(updatedAtPreferenceKey(username))
+            }
         }
     }
 
@@ -193,7 +194,7 @@ class ScheduleCache @Inject constructor(
     suspend fun clearAll() {
         memoryCache.clear()
         withContext(Dispatchers.IO) {
-            sharedPreferences.edit().clear().commit()
+            sharedPreferences.edit(commit = true) { clear() }
         }
     }
 

@@ -1,5 +1,6 @@
 package onion.gh0st.iMoodle.ui.web
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.ViewGroup
@@ -118,6 +119,7 @@ class WebActivity : AppCompatActivity() {
      *
      * @param url URL inicial a cargar.
      */
+    @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView(url: String) = binding.webview.apply {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true

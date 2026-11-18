@@ -2,7 +2,6 @@ package onion.gh0st.iMoodle.ui.assignments
 
 import android.app.Dialog
 import android.os.Bundle
-import android.view.LayoutInflater
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.net.toUri
@@ -87,7 +86,7 @@ class AssignmentSubmissionDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         restoreSelection(savedInstanceState)
 
-        binding = DialogAssignmentSubmissionBinding.inflate(LayoutInflater.from(requireContext()))
+        binding = DialogAssignmentSubmissionBinding.inflate(layoutInflater)
         binding.btnAddFile.setOnClickListener { pickFileLauncher.launch(ANY_FILE_MIME_TYPE) }
 
         configureCommentVisibility()
@@ -222,7 +221,7 @@ class AssignmentSubmissionDialog : DialogFragment() {
         binding.layoutExistingFiles.isVisible = keptFiles.isNotEmpty()
         keptFiles.forEach { file ->
             val row = DialogSubmissionFileItemBinding.inflate(
-                LayoutInflater.from(requireContext()),
+                layoutInflater,
                 binding.containerExistingFiles,
                 false,
             )
@@ -241,7 +240,7 @@ class AssignmentSubmissionDialog : DialogFragment() {
         binding.txtNoFiles.isVisible = selectedFiles.isEmpty()
         selectedFiles.forEach { file ->
             val row = DialogSubmissionFileItemBinding.inflate(
-                LayoutInflater.from(requireContext()),
+                layoutInflater,
                 binding.containerSelectedFiles,
                 false,
             )

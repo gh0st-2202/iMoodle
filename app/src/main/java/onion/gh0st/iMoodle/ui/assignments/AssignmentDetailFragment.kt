@@ -43,8 +43,9 @@ import onion.gh0st.iMoodle.ui.files.FileDownloadDialog
  *
  * ## Qué muestra
  *
- * - Nombre, descripción (sin HTML), fecha límite y estado de la entrega
- *   (entregada, borrador, sin entregar o desconocido).
+ * - Nombre, descripción con su formato (enlaces clicables), fecha
+ *   límite y estado de la entrega (entregada, borrador, sin entregar o
+ *   desconocido).
  * - La nota, si el profesor ya ha calificado.
  * - Los archivos adjuntos a la tarea y los que el alumno ha entregado
  *   (con confirmación antes de descargar).
@@ -377,15 +378,21 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
     /**
      * Pinta los datos de la tarea: textos, estado, nota, botones y archivos.
      *
+     * La descripción se renderiza con sus spans (negritas, enlaces…)
+     * en vez de aplanarse a texto: Moodle suele enlazar el cuestionario
+     * o los materiales con un texto distinto de la URL, y aplanarlo
+     * dejaba esos enlaces invisibles e inutilizables.
+     *
      * @param binding Vistas de la pantalla.
      * @param assignment Detalle de la tarea.
      */
     private fun renderAssignment(binding: FragmentAssignmentDetailBinding, assignment: AssignmentDetail) {
         binding.txtAssignName.text = assignment.name
-        binding.txtAssignDescription.text = if (assignment.description.isBlank()) {
-            getString(R.string.label_no_description)
+        if (assignment.description.isBlank()) {
+            binding.txtAssignDescription.text = getString(R.string.label_no_description)
         } else {
-            HtmlUtils.stripHtml(assignment.description)
+            binding.txtAssignDescription.text = HtmlUtils.renderHtml(assignment.description)
+            binding.txtAssignDescription.movementMethod = LinkMovementMethod.getInstance()
         }
         binding.txtAssignDates.text = assignment.dueDate
             ?.let { dueDate -> getString(R.string.label_due_date, FormatUtils.formatDateTime(dueDate)) }

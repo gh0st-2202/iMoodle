@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
 
@@ -18,8 +18,8 @@ android {
         applicationId = "onion.gh0st.iMoodle"
         minSdk = 28
         targetSdk = 37
-        versionCode = 25
-        versionName = "2.5"
+        versionCode = 26
+        versionName = "2.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,28 +52,31 @@ android {
 }
 
 dependencies {
-    implementation(libs.coil.svg)
+    implementation(libs.androidx.activity.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.swiperefreshlayout)
-    implementation(libs.viewbinding)
-    implementation(libs.coil)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.urlconnection)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.core)
+    implementation(libs.material)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    implementation(libs.androidx.activity.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.material)
-
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
+
+    implementation(libs.coil.core)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.coil.svg)
+    implementation(libs.markwon.core)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.urlconnection)
+
+    implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.viewbinding)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

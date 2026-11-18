@@ -49,6 +49,7 @@
         <ImageView
             android:layout_width="96dp"
             android:layout_height="96dp"
+            android:contentDescription="@null"
             android:src="@drawable/ic_courses"
             app:tint="@color/texto_hint" />
 

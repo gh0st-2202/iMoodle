@@ -19,7 +19,6 @@ import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
  * en la app. Por ejemplo:
  *
  * - **Cuestionarios** (`quiz`).
- * - **Wikis** (`wiki`).
  * - **Libros** (`book`).
  * - **Páginas** (`page`).
  *

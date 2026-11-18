@@ -20,8 +20,6 @@
     <color name="boton_deshabilitado">#1FFFFFFF</color> <!-- 12% de blanco -->
 
     <!-- Mantén también los colores base si los usas en algún sitio -->
-    <color name="verde_junta">#087021</color>
-    <color name="verde_junta_oscuro">#065A1A</color>
     <color name="verde_junta_suave">#1A3321</color>
 
     <!-- PALETA AMPLIADA PARA EL HORARIO -->

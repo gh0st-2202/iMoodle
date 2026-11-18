@@ -213,6 +213,7 @@ class MoodleWebViewActivity : AppCompatActivity() {
      * intenta navegar a una nueva URL. Si la URL no pertenece al
      * host de Moodle, se bloquea (devuelve `true`).
      */
+    @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() = binding.webview.apply {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true

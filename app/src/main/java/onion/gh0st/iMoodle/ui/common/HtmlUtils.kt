@@ -4,7 +4,8 @@ import android.text.Html
 import android.text.Spanned
 
 /**
- * Utilidades para convertir HTML de Moodle a texto.
+ * Utilidades para convertir el HTML de Moodle al formato que necesita
+ * cada pantalla.
  *
  * ## Qué problema resuelve
  *
@@ -21,21 +22,28 @@ import android.text.Spanned
  * - **Para descripciones cortas**: texto plano sin etiquetas.
  * - **Para párrafos largos**: texto plano preservando saltos de
  *   línea (para que se lean bien los párrafos).
- * - **Para posts de foro**: spans preservados (enlaces clicables,
- *   negritas, cursivas).
+ * - **Para textos interactivos**: spans preservados (enlaces
+ *   clicables, negritas, cursivas).
  *
- * Esta utilidad expone tres métodos, uno para cada caso.
+ * Además incluye dos ayudas específicas: convertir el texto que escribe
+ * el usuario en HTML seguro para las actividades que lo guardan así
+ * (glosario, wiki) y retirar el «chrome» que Moodle añade al contenido
+ * web de una wiki (índice y enlaces «[Editar]»).
  *
  * ## Quién la usa
  *
  * - `CourseDetailAdapter`: para limpiar las descripciones de los
  *   módulos y las etiquetas.
- * - `AssignmentDetailFragment`: para limpiar la descripción de las
- *   tareas.
+ * - `AssignmentDetailFragment`: para renderizar la descripción de las
+ *   tareas con sus enlaces.
  * - `DiscussionAdapter`: para renderizar los posts de foro con
  *   formato.
  * - `GenericModuleFragment`: para limpiar la descripción de los
  *   módulos genéricos.
+ * - `WikiPageFragment`: para limpiar el contenido de una página antes
+ *   de renderizarlo.
+ * - `GlossaryEntryDialog` y `NewWikiPageDialog`: para convertir el
+ *   texto del usuario en HTML.
  */
 object HtmlUtils {
 
@@ -143,4 +151,78 @@ object HtmlUtils {
      */
     fun renderHtml(html: String): Spanned =
         Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT)
+
+    /**
+     * Convierte el texto que escribe el usuario en HTML sencillo.
+     *
+     * ## Qué problema resuelve
+     *
+     * Los editores de Moodle (glosario, wiki) guardan el contenido en
+     * HTML. Si se envía el texto tal cual, los saltos de línea se
+     * pierden al mostrarlo y cualquier `<` que haya escrito el usuario se
+     * interpreta como una etiqueta. Esta función escapa los caracteres
+     * especiales y convierte cada salto de línea en un `<br>`, de modo
+     * que el texto se ve igual dentro y fuera del editor.
+     *
+     * ## Qué NO hace
+     *
+     * No interpreta el texto como HTML: no convierte `**negrita**` ni
+     * nada parecido. Si el usuario quiere formato, tendría que escribirlo
+     * y eso aquí quedaría escapado. Es el compromiso de un editor de
+     * texto plano.
+     *
+     * @param text Texto plano escrito por el usuario.
+     * @return El mismo texto en HTML seguro, con los saltos preservados.
+     */
+    fun plainTextToHtml(text: String): String =
+        Html.escapeHtml(text)
+            .replace("\r\n", "\n")
+            .replace("\n", "<br>")
+
+    /**
+     * Quita del contenido renderizado de una wiki el «chrome» de la web
+     * de Moodle.
+     *
+     * ## Qué problema resuelve
+     *
+     * `mod_wiki_get_page_contents` devuelve `cachedcontent`, que es el
+     * HTML que Moodle pinta en su propia página. Ese HTML incluye dos
+     * elementos que solo tienen sentido en el navegador:
+     *
+     * - El **índice** (`<div class="wiki-toc">…</div>`), con enlaces
+     *   internos a `#toc-1`, `#toc-2`…
+     * - Un enlace **[Editar]** al final de cada encabezado de nivel 1
+     *   (`<a class="wiki_edit_section" href="edit.php?…">`), que abre
+     *   el editor web de esa sección.
+     *
+     * En la app no hay navegador ni editor por secciones: el índice
+     * ocupa media pantalla y los enlaces `edit.php` no llevan a ningún
+     * sitio. Peor aún, su texto (`[Editar]`) se queda pegado al título
+     * de la sección como si fuera parte de él.
+     *
+     * ## Qué NO hace
+     *
+     * No convierte el HTML a texto ni elimina otro contenido: solo
+     * retira esos dos elementos. Los encabezados y los enlaces propios
+     * de la página se conservan.
+     *
+     * @param html Contenido renderizado devuelto por Moodle.
+     * @return El mismo HTML sin el índice ni los enlaces de edición.
+     */
+    fun stripWikiChrome(html: String): String =
+        html.replace(WIKI_TOC, "")
+            .replace(WIKI_SECTION_EDIT_LINK, "")
+            .trim()
+
+    /** Índice que Moodle añade al principio del contenido de una wiki. */
+    private val WIKI_TOC = Regex(
+        """<div\s+class\s*=\s*["']wiki-toc["'][^>]*>.*?</div>""",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    )
+
+    /** Enlace «[Editar]» que Moodle añade al final de cada encabezado. */
+    private val WIKI_SECTION_EDIT_LINK = Regex(
+        """\s*<a\b[^>]*class\s*=\s*["'][^"']*wiki_edit_section[^"']*["'][^>]*>.*?</a>""",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    )
 }

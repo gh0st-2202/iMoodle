@@ -12,7 +12,9 @@ import onion.gh0st.iMoodle.api.moodle.repository.MoodleAssignmentSubmissionRepos
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCalendarRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCourseRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleForumRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleGlossaryRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleSubmissionCommentsRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleWikiRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenScheduleRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenUserProfileRepository
 import onion.gh0st.iMoodle.data.auth.EncryptedCredentialsStore
@@ -31,6 +33,7 @@ import onion.gh0st.iMoodle.domain.repository.course.CourseRepository
 import onion.gh0st.iMoodle.domain.repository.course.FavouritesRepository
 import onion.gh0st.iMoodle.domain.repository.file.FileDownloader
 import onion.gh0st.iMoodle.domain.repository.forum.ForumRepository
+import onion.gh0st.iMoodle.domain.repository.glossary.GlossaryRepository
 import onion.gh0st.iMoodle.domain.repository.notification.NotificationScheduler
 import onion.gh0st.iMoodle.domain.repository.schedule.ScheduleRepository
 import onion.gh0st.iMoodle.domain.repository.session.AuthRepository
@@ -41,6 +44,7 @@ import onion.gh0st.iMoodle.domain.repository.session.UserProfileRepository
 import onion.gh0st.iMoodle.domain.repository.update.ApkInstaller
 import onion.gh0st.iMoodle.domain.repository.update.UpdateRepository
 import onion.gh0st.iMoodle.domain.repository.web.WebSessionRepository
+import onion.gh0st.iMoodle.domain.repository.wiki.WikiRepository
 import onion.gh0st.iMoodle.notifications.DefaultNotificationScheduler
 import javax.inject.Singleton
 
@@ -127,6 +131,20 @@ abstract class DataModule {
      */
     @Binds @Singleton
     abstract fun bindForumRepository(impl: MoodleForumRepository): ForumRepository
+
+    /**
+     * Vincula el contrato [GlossaryRepository] con su implementación real,
+     * [MoodleGlossaryRepository]. Hilt inyecta esta última cada vez que se pide la interfaz.
+     */
+    @Binds @Singleton
+    abstract fun bindGlossaryRepository(impl: MoodleGlossaryRepository): GlossaryRepository
+
+    /**
+     * Vincula el contrato [WikiRepository] con su implementación real,
+     * [MoodleWikiRepository]. Hilt inyecta esta última cada vez que se pide la interfaz.
+     */
+    @Binds @Singleton
+    abstract fun bindWikiRepository(impl: MoodleWikiRepository): WikiRepository
 
     /**
      * Vincula el contrato [CredentialsStore] con su implementación real,

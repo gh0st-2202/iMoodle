@@ -47,4 +47,16 @@ internal object FragmentArgs {
 
     /** Identificador de la tarea (su `id` de instancia en Moodle). */
     const val ASSIGNMENT_ID = "ASSIGNMENT_ID"
+
+    /** Identificador de la instancia del glosario. */
+    const val GLOSSARY_ID = "GLOSSARY_ID"
+
+    /** Identificador de la instancia de la wiki. */
+    const val WIKI_ID = "WIKI_ID"
+
+    /** Identificador de una página de wiki. */
+    const val WIKI_PAGE_ID = "WIKI_PAGE_ID"
+
+    /** Título de una página de wiki (se muestra mientras carga). */
+    const val WIKI_PAGE_TITLE = "WIKI_PAGE_TITLE"
 }

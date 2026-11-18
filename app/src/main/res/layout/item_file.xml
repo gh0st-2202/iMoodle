@@ -17,6 +17,7 @@
         android:id="@+id/img_file_icon"
         android:layout_width="32dp"
         android:layout_height="32dp"
+        android:contentDescription="@null"
         android:src="@drawable/ic_arrow_download"
         app:tint="@color/color_acento" />
 

@@ -56,7 +56,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AndroidFileDownloader @Inject constructor(
-    @ApplicationContext private val context: Context,
+    @param:ApplicationContext private val context: Context,
 ) : FileDownloader {
 
     /**

@@ -24,6 +24,7 @@
             android:id="@+id/img_course_banner"
             android:layout_width="match_parent"
             android:layout_height="160dp"
+            android:contentDescription="@null"
             android:scaleType="fitXY"
             android:background="@color/verde_junta_suave"
             tools:srcCompat="@tools:sample/backgrounds/scenic" />
@@ -56,6 +57,7 @@
                     android:layout_width="28dp"
                     android:layout_height="28dp"
                     android:layout_marginStart="8dp"
+                    android:contentDescription="@string/favourite_toggle"
                     android:src="@drawable/ic_star_outline"
                     app:tint="@color/texto_hint" />
             </LinearLayout>
@@ -69,7 +71,7 @@
                 android:layout_marginTop="16dp"
                 android:background="@drawable/bg_button"
                 android:stateListAnimator="@null"
-                android:text="Entrar al curso"
+                android:text="@string/action_enter_course"
                 android:textColor="@color/texto_boton"
                 android:textSize="15sp"
                 android:textStyle="bold" />

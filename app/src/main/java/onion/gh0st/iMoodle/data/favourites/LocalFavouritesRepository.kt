@@ -1,6 +1,7 @@
 package onion.gh0st.iMoodle.data.favourites
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -78,7 +79,7 @@ class LocalFavouritesRepository @Inject constructor(
                     } else {
                         updatedIds.remove(courseId.toString())
                     }
-                    sharedPreferences.edit().putStringSet(KEY_COURSE_IDS, updatedIds).apply()
+                    sharedPreferences.edit { putStringSet(KEY_COURSE_IDS, updatedIds) }
                 }
             }
         }

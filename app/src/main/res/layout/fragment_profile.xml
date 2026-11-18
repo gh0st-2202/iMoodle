@@ -67,6 +67,7 @@
                         android:id="@+id/img_avatar_photo"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
+                        android:contentDescription="@string/profile_avatar"
                         android:scaleType="centerCrop"
                         tools:src="@tools:sample/avatars" />
                 </FrameLayout>
@@ -237,7 +238,7 @@
                 android:layout_marginBottom="24dp"
                 android:background="@drawable/bg_button"
                 android:stateListAnimator="@null"
-                android:text="Cerrar Sesión"
+                android:text="@string/action_logout"
                 android:textColor="@color/texto_boton"
                 android:textSize="16sp"
                 android:textStyle="bold" />

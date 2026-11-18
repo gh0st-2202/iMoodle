@@ -52,12 +52,22 @@ class MoodleParams {
      * simplemente no los envías. Evita tener que hacer `if (x != null)`
      * en cada llamada.
      *
+     * ## Booleanos: `1` y `0`, nunca `true` y `false`
+     *
+     * Moodle valida los parámetros con
+     * `\core\param::validate_param()`: primero limpia el valor y después
+     * exige que la cadena resultante sea **idéntica** a la original. Un
+     * `PARAM_BOOL` limpia `"false"` a `"0"`, así que `"false" !== "0"` y
+     * Moodle rechaza la llamada con `invalidparameter`. Enviar `"0"` y
+     * `"1"` evita ese rechazo y es el formato que documenta su API
+     * (`includecontent=0`, `lockonly=0`…).
+     *
      * @param key Nombre del parámetro.
      * @param value Valor. Si es `null`, se ignora.
      */
     fun put(key: String, value: Any?) {
         if (value == null) return
-        parameters.add(key to value.toString())
+        parameters.add(key to stringify(value))
     }
 
     /**
@@ -91,7 +101,7 @@ class MoodleParams {
      */
     fun putArray(key: String, values: List<Any>) {
         values.forEachIndexed { index, value ->
-            parameters.add("$key[$index]" to value.toString())
+            parameters.add("$key[$index]" to stringify(value))
         }
     }
 
@@ -124,7 +134,21 @@ class MoodleParams {
      * @param value Valor.
      */
     fun putNested(prefix: String, key: String, value: Any) {
-        parameters.add("$prefix[$key]" to value.toString())
+        parameters.add("$prefix[$key]" to stringify(value))
+    }
+
+    /**
+     * Convierte un valor al texto que espera Moodle.
+     *
+     * Los booleanos se envían como `1` y `0` (ver [put]); el resto usa
+     * su representación habitual.
+     *
+     * @param value Valor a convertir.
+     * @return El texto que se enviará a Moodle.
+     */
+    private fun stringify(value: Any): String = when (value) {
+        is Boolean -> if (value) "1" else "0"
+        else -> value.toString()
     }
 
     /**

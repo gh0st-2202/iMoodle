@@ -22,7 +22,7 @@
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+    <onion.gh0st.iMoodle.ui.common.StableSwipeRefreshLayout
         android:id="@+id/swipe_refresh_calendar"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -34,7 +34,7 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingBottom="4dp" />
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </onion.gh0st.iMoodle.ui.common.StableSwipeRefreshLayout>
 
     <LinearLayout
         android:id="@+id/empty_state_calendar"
@@ -53,6 +53,7 @@
         <ImageView
             android:layout_width="72dp"
             android:layout_height="72dp"
+            android:contentDescription="@null"
             android:src="@drawable/ic_calendar"
             app:tint="@color/texto_hint" />
 
@@ -60,7 +61,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="No hay eventos próximos"
+            android:text="@string/empty_calendar_title"
             android:textColor="@color/texto_principal"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -70,7 +71,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Tus entregas y exámenes de los próximos 30 días aparecerán aquí."
+            android:text="@string/empty_calendar_desc"
             android:textColor="@color/texto_hint"
             android:textSize="14sp" />
     </LinearLayout>

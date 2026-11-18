@@ -330,6 +330,8 @@ class CourseDetailAdapter(
         private fun iconFor(type: ModuleType): Int = when (type) {
             is ModuleType.Assignment -> R.drawable.ic_courses
             is ModuleType.Forum -> R.drawable.ic_messages
+            is ModuleType.Glossary -> R.drawable.ic_glossary
+            is ModuleType.Wiki -> R.drawable.ic_wiki
             is ModuleType.Resource -> R.drawable.ic_arrow_download
             is ModuleType.Folder -> R.drawable.ic_folder
             is ModuleType.Url -> R.drawable.ic_web

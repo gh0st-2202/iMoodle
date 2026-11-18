@@ -29,15 +29,18 @@ import onion.gh0st.iMoodle.ui.common.showToast
 import onion.gh0st.iMoodle.ui.files.CourseFilesFragment
 import onion.gh0st.iMoodle.ui.files.FileDownloadDialog
 import onion.gh0st.iMoodle.ui.forum.list.ForumFragment
+import onion.gh0st.iMoodle.ui.glossary.GlossaryFragment
+import onion.gh0st.iMoodle.ui.wiki.WikiFragment
 
 /**
  * Pantalla de detalle de un curso: secciones y módulos con un filtro
  * por sección.
  *
  * Desde aquí se navega a las pantallas de detalle (tarea, carpeta,
- * foro, módulo genérico) en `R.id.detail_container`, el contenedor que
- * `MainActivity` superpone al `ViewPager2`. Los enlaces se abren en el
- * navegador del sistema y los recursos se descargan tras confirmar.
+ * foro, glosario, wiki, módulo genérico) en `R.id.detail_container`, el
+ * contenedor que `MainActivity` superpone al `ViewPager2`. Los enlaces se
+ * abren en el navegador del sistema y los recursos se descargan tras
+ * confirmar.
  * Se crea con [newInstance]; la lógica vive en [CourseDetailViewModel].
  */
 @AndroidEntryPoint
@@ -205,7 +208,8 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
 
     /**
      * Decide qué pantalla abrir según el tipo de módulo tocado: tarea,
-     * recurso, carpeta, enlace, foro o genérico. Las etiquetas no hacen nada.
+     * recurso, carpeta, enlace, foro, glosario, wiki o genérico. Las
+     * etiquetas no hacen nada.
      *
      * @param moduleType Módulo tocado, ya clasificado por tipo.
      */
@@ -215,6 +219,8 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
         is ModuleType.Folder -> openFolder(moduleType.module)
         is ModuleType.Url -> openUrl(moduleType.module)
         is ModuleType.Forum -> openForum(moduleType.module)
+        is ModuleType.Glossary -> openGlossary(moduleType.module)
+        is ModuleType.Wiki -> openWiki(moduleType.module)
         is ModuleType.Label -> Unit
         is ModuleType.Other -> openGeneric(moduleType.module)
     }
@@ -302,10 +308,39 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
     }
 
     /**
+     * Navega al glosario usando `detail_container`.
+     *
+     * @param module Módulo de tipo glosario.
+     */
+    private fun openGlossary(module: CourseModule) {
+        parentFragmentManager.commit {
+            replace(
+                R.id.detail_container,
+                GlossaryFragment.newInstance(module.instance, module.name),
+            )
+            addToBackStack(null)
+        }
+    }
+
+    /**
+     * Navega a la wiki usando `detail_container`.
+     *
+     * @param module Módulo de tipo wiki.
+     */
+    private fun openWiki(module: CourseModule) {
+        parentFragmentManager.commit {
+            replace(
+                R.id.detail_container,
+                WikiFragment.newInstance(module.instance, module.name),
+            )
+            addToBackStack(null)
+        }
+    }
+
+    /**
      * Navega a la pantalla genérica usando `detail_container`.
      */
-    private fun openGeneric(module: CourseModule) {
-        parentFragmentManager.commit {
+    private fun openGeneric(module: CourseModule) {        parentFragmentManager.commit {
             replace(
                 R.id.detail_container,
                 GenericModuleFragment.newInstance(module),

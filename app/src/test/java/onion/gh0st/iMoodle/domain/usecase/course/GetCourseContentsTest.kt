@@ -50,10 +50,34 @@ class GetCourseContentsTest {
     }
 
     /**
-     * Un módulo `label` con descripción debe clasificarse como
-     * [ModuleType.Label] preservando el contenido.
+     * Un módulo `glossary` debe clasificarse como [ModuleType.Glossary].
      */
     @Test
+    fun `glossary module is classified as Glossary`() = runTest {
+        repo.courseContents = listOf(section(module(id = 5, modname = "glossary")))
+
+        val sections = useCase(courseId = 1)
+
+        assertTrue(sections[0].modules[0] is ModuleType.Glossary)
+    }
+
+    /**
+     * Un módulo `wiki` debe clasificarse como [ModuleType.Wiki] y no
+     * caer en el cajón de sastre [ModuleType.Other].
+     */
+    @Test
+    fun `wiki module is classified as Wiki`() = runTest {
+        repo.courseContents = listOf(section(module(id = 6, modname = "wiki")))
+
+        val sections = useCase(courseId = 1)
+
+        assertTrue(sections[0].modules[0] is ModuleType.Wiki)
+    }
+
+    /**
+     * Un módulo `label` con descripción debe clasificarse como
+     * [ModuleType.Label] preservando el contenido.
+     */    @Test
     fun `label module keeps its content`() = runTest {
         repo.courseContents = listOf(
             section(module(id = 3, modname = "label", description = "<p>Hola</p>")),

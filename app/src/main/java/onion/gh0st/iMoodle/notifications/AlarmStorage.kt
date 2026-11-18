@@ -1,6 +1,7 @@
 package onion.gh0st.iMoodle.notifications
 
 import android.content.Context
+import androidx.core.content.edit
 import onion.gh0st.iMoodle.domain.model.calendar.CalendarEvent
 import org.json.JSONArray
 import org.json.JSONObject
@@ -67,10 +68,9 @@ internal object AlarmStorage {
     fun save(context: Context, events: List<CalendarEvent>) {
         val eventsArray = JSONArray()
         events.forEach { event -> eventsArray.put(event.toJsonObject()) }
-        sharedPreferences(context)
-            .edit()
-            .putString(KEY_ALARMS, eventsArray.toString())
-            .apply()
+        sharedPreferences(context).edit {
+            putString(KEY_ALARMS, eventsArray.toString())
+        }
     }
 
     /**
@@ -107,7 +107,7 @@ internal object AlarmStorage {
      * @param context Contexto para acceder a `SharedPreferences`.
      */
     fun clear(context: Context) {
-        sharedPreferences(context).edit().remove(KEY_ALARMS).apply()
+        sharedPreferences(context).edit { remove(KEY_ALARMS) }
     }
 
     /**

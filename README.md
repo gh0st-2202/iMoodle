@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blueviolet?logo=kotlin)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-API%2028%2B-green?logo=android)](https://developer.android.com)
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.5-blue)](./app/build.gradle.kts)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.6-blue)](./app/build.gradle.kts)
 [![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)]()
 
 ---
@@ -32,6 +32,8 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 📂 Detalle de curso con secciones, módulos y archivos descargables.
 - 📝 Detalle de tarea con fechas, estado de entrega, nota y adjuntos.
 - 💬 Foros con discusiones y mensajes en HTML (enlaces clicables).
+- 📖 **Glosarios**: consulta las entradas de un glosario y crea, edita o borra las tuyas. Si Moodle rechaza el cambio (por ejemplo, por permisos), se muestra su motivo.
+- 📝 **Wikis**: lee sus páginas y edita su contenido cuando Moodle lo permite, además de crear páginas nuevas. La acción de editar solo aparece si el servidor informa de que tienes permiso.
 - 📅 Agenda de los próximos 30 días con eventos del calendario.
 - 📤 **Entrega de tareas**: texto en línea y archivos del teléfono, conservando o quitando los ya entregados, con confirmación antes de sustituir una entrega y opción de borrarla. Si Moodle rechaza la entrega (por ejemplo, plazo cerrado) se muestra el motivo.
 - 💭 **Comentarios de la entrega**: lee, escribe y borra tus comentarios en el hilo de la tarea.
@@ -51,6 +53,19 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 💾 **Offline-first**: cursos, tareas y calendario se cachean en local.
 - ⚡ **Caché por usuario** de horario y perfil: solo se llama a Pasen la primera vez o al hacer *pull-to-refresh*.
 - 🌓 **Tema claro/oscuro** (Material Components DayNight).
+
+---
+
+## 🆕 Novedades de la 2.6
+
+La versión **2.6** cierra la ronda de correcciones que salió de probar la app en un móvil real:
+
+- 📖 **Glosarios y wikis nativos**: leer, crear, editar y borrar entradas del glosario; leer, editar y crear páginas de una wiki (con el formato original intacto y sin el índice ni los enlaces «[Editar]» de la web de Moodle).
+- 🔄 **Girar el móvil ya no cierra el detalle**: la tarea, el foro o el curso abiertos siguen en pantalla, también en la pestaña **Cursos**.
+- 📅 **Agenda en horizontal**: las tarjetas vuelven a responder al toque y abren la tarea.
+- ✏️ **Editar una wiki funciona**: se envía `lockonly` como `0` (los booleanos de Moodle son `1`/`0`) y se omite `section`, así que Moodle ya no responde `invalidparameter`.
+- 🔗 **Enlaces en las tareas**: el enunciado conserva sus enlaces pulsables aunque el texto no sea la URL.
+- 🧪 **Trazas de red** solo en `debug`, acotadas a los *web services* de Moodle (`adb logcat -s iMoodleNet`), sin el `wstoken`.
 
 ---
 
@@ -97,19 +112,19 @@ Reglas que se respetan en todo el proyecto:
 
 | Categoría | Tecnología |
 |---|---|
-| Lenguaje | Kotlin 2.x |
+| Lenguaje | Kotlin 2.2 (integrado en AGP) |
 | UI | Material 3 · ViewBinding · ViewPager2 |
 | Arquitectura | MVVM + Clean Architecture |
 | Inyección de dependencias | Hilt |
 | Persistencia local | Room + `SharedPreferences` (los datos sensibles, cifrados con el Keystore) |
-| Red | OkHttp 4.12 |
+| Red | OkHttp 5.5 |
 | Concurrencia | Coroutines + Flow |
-| Imágenes | Coil (con `SvgDecoder` para patrones generados) |
+| Imágenes | Coil 3 (con `SvgDecoder` para patrones generados) |
 | Markdown | Markwon (changelog de actualizaciones) |
 | Actualizaciones | API de GitHub · FileProvider · Package Installer (`Intent.ACTION_VIEW`) |
 | Seguridad | Android Keystore directo (AES-256-GCM); sin `security-crypto`, que está deprecada |
 | Tests | JUnit 4 · MockK · Turbine |
-| Build | Gradle 9.6 · AGP 9.4.1 |
+| Build | Gradle 9.9.1 · AGP 9.4.0 |
 
 ---
 
@@ -138,6 +153,8 @@ cd iMoodle
 
 También puedes abrir el proyecto en Android Studio y usar **Run ▶︎** como con cualquier proyecto Android.
 
+> **Depurar la red de Moodle**: en compilaciones `debug`, `MoodleApiClient` escribe en Logcat (etiqueta `iMoodleNet`) la función de *web service*, sus parámetros y el JSON de respuesta o error. Filtra con `adb logcat -s iMoodleNet`. El `wstoken` no se registra y los parámetros sensibles se redactan; el tráfico del CAS y del login no pasa por ahí.
+
 > La app no se publica en Play Store. El APK generado es para uso personal.
 >
 > **Nota sobre actualizaciones**: para que el actualizador interno instale una nueva versión, el APK debe estar firmado con **el mismo keystore** que la versión ya instalada en el dispositivo. Android rechaza la actualización si las firmas no coinciden.
@@ -156,6 +173,7 @@ La app maneja datos sensibles, así que conviene explicar cómo se tratan:
 - **Actualizaciones**: el APK descargado se guarda temporalmente en `cache/updates/` y se instala mediante `FileProvider` + el instalador nativo de Android. Solo se descarga si la URL pertenece a las *releases* del repositorio oficial de GitHub del proyecto, y Android rechaza instalar un APK firmado con otra clave.
 - **Actualizar desde una versión anterior**: al cambiar el almacenamiento cifrado (se abandona `EncryptedSharedPreferences`, deprecada) los datos guardados antes no se pueden migrar, así que **hay que iniciar sesión una vez** tras actualizar.
 - **Sin telemetría**: la app no envía datos a ningún servidor propio. Todas las peticiones van directamente a los servidores de la Junta.
+- **Trazas de red**: solo se generan en compilaciones `debug`. Cubren exclusivamente los *web services* de Moodle (función, parámetros y JSON), nunca el login ni el CAS, y redactan los parámetros con `token`, `password`, `passwd` o `secret`; el `wstoken` no se registra.
 - **Sin publicidad**: no hay SDKs de terceros que rastreen al usuario.
 
 Si detectas una vulnerabilidad, abre un *issue* describiéndola sin incluir datos reales.
@@ -181,21 +199,24 @@ app/src/main/java/onion/gh0st/iMoodle/
 │   ├── update/       Releases de GitHub, descarga del APK e instalación con FileProvider
 │   └── web/          Traducción de la sesión viva a un modelo de dominio para el WebView
 ├── domain/           Contratos de negocio
-│   ├── model/        Modelos (auth/, file/, session/, update/, web/…)
-│   ├── repository/   Contratos (file/, session/, update/, web/…)
+│   ├── model/        Modelos (auth/, course/, forum/, glossary/, wiki/, file/, session/, update/, web/…)
+│   ├── repository/   Contratos (file/, forum/, glossary/, wiki/, session/, update/, web/…)
 │   ├── rules/
-│   └── usecase/      Casos de uso (calendar/, course/, file/, notification/, schedule/, session/, update/, web/)
+│   └── usecase/      Casos de uso (calendar/, course/, file/, forum/, glossary/, notification/, schedule/, session/, update/, web/, wiki/)
 ├── inyectores/       Módulos de Hilt
 ├── notifications/    Recordatorios con AlarmManager
 └── ui/               Pantallas, ViewModels y adapters
     ├── calendar/     CalendarViewModel (programa alarmas, sin permisos)
     ├── courses/list/ CourseAdapter con estrella y CoursesViewModel con favoritos
     ├── files/        FileDownloadDialog (la descarga vive en data/)
+    ├── forum/        list/ (discusiones) y discussion/ (posts)
+    ├── glossary/     GlossaryFragment, GlossaryAdapter y GlossaryEntryDialog (alta y edición)
     ├── login/        LoginViewModel sin Context: emite @StringRes
     ├── main/         MainActivity con ViewPager2 y OnBackPressedCallback;
     │                 MainViewModel como puerta única a la sesión
     ├── update/       UpdateDialogHelper y UpdateViewModel (el instalador vive en data/)
-    └── web/          MoodleWebViewActivity y MoodleWebViewModel
+    ├── web/          MoodleWebViewActivity y MoodleWebViewModel
+    └── wiki/         WikiFragment (páginas), WikiPageFragment (contenido) y diálogos de alta y edición
 ```
 
 ---

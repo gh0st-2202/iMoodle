@@ -7,8 +7,11 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import coil.decode.SvgDecoder
-import coil.load
+import coil3.load
+import coil3.request.crossfade
+import coil3.request.error
+import coil3.request.placeholder
+import coil3.svg.SvgDecoder
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ItemCourseBinding
 import onion.gh0st.iMoodle.ui.common.MoodleGeoPattern

@@ -107,6 +107,18 @@ class MainActivity : AppCompatActivity() {
         R.id.nav_profile,
     )
 
+    /**
+     * `true` mientras la pestaña se sincroniza de forma programática desde
+     * el [ViewPager2].
+     *
+     * `NavigationBarView` trata la selección de un ítem ya seleccionado como
+     * una **repulsación** y llama al `OnItemReselectedListener`; además, si
+     * el ítem cambia, llama al `OnItemSelectedListener`. Sin esta bandera,
+     * la sincronización pestaña ↔ pager se confundiría con una acción del
+     * usuario y cerraría el detalle abierto (§9.66).
+     */
+    private var isSyncingNavigation = false
+
     /** Cierra el detalle abierto al pulsar "atrás". Solo está habilitado si hay un detalle. */
     private val detailBackCallback = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -231,11 +243,39 @@ class MainActivity : AppCompatActivity() {
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                if (::navigationView.isInitialized) {
-                    navigationView.selectedItemId = sectionMenuIds.getOrElse(position) { R.id.nav_courses }
-                }
+                syncNavigationSelection(position)
             }
         })
+    }
+
+    /**
+     * Marca en la barra de navegación la pestaña que muestra el pager.
+     *
+     * ## Por qué comprueba si ya está marcada
+     *
+     * `NavigationBarView.setSelectedItemId()` pasa por el mismo callback
+     * que un toque. Si el ítem ya estaba seleccionado (lo normal al
+     * restaurar la sección de Cursos tras una rotación, porque es el
+     * primero del menú), Material lo interpreta como repulsación y avisa
+     * al `OnItemReselectedListener`, que cierra los detalles. Saltarse la
+     * llamada cuando el ítem ya está marcado evita ese cierre; la
+     * bandera [isSyncingNavigation] cubre el caso contrario (cambiar de
+     * sección de forma programática).
+     *
+     * @param position Posición del pager que debe reflejarse en la barra.
+     */
+    private fun syncNavigationSelection(position: Int) {
+        if (!::navigationView.isInitialized) return
+
+        val itemId = sectionMenuIds.getOrElse(position) { R.id.nav_courses }
+        if (navigationView.selectedItemId == itemId) return
+
+        isSyncingNavigation = true
+        try {
+            navigationView.selectedItemId = itemId
+        } finally {
+            isSyncingNavigation = false
+        }
     }
 
     /**
@@ -253,7 +293,9 @@ class MainActivity : AppCompatActivity() {
         applyNavigationInsets(navigationView, isLandscape())
 
         navigationView.setOnItemSelectedListener { menuItem -> navigateToItem(menuItem.itemId) }
-        navigationView.setOnItemReselectedListener { closeAllDetails() }
+        navigationView.setOnItemReselectedListener {
+            if (!isSyncingNavigation) closeAllDetails()
+        }
 
         if (savedInstanceState != null) {
             viewPager.setCurrentItem(savedInstanceState.getInt(STATE_CURRENT_SECTION, 0), false)
@@ -294,8 +336,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Cambia a la sección elegida en la barra de navegación, cerrando antes
+     * Cambia a la sección elegida en la barra de navegación, cerrando
      * cualquier pantalla de detalle abierta.
+     *
+     * ## Por qué distingue la sincronización programática
+     *
+     * `NavigationBarView.setSelectedItemId()` despacha el
+     * `OnItemSelectedListener` o, si el ítem ya estaba marcado, el
+     * `OnItemReselectedListener`. [syncNavigationSelection] usa esos
+     * callbacks para mantener la pestaña alineada con el `ViewPager2`
+     * (al restaurar la sección tras una rotación, al cambiar de página…).
+     * Cuando el aviso viene de ahí, [isSyncingNavigation] está activo y
+     * aquí solo se confirma la sección: no hay acción del usuario que
+     * justifique cerrar el detalle.
+     *
+     * Re-seleccionar la pestaña activa **a mano** sigue cerrando el
+     * detalle mediante `setOnItemReselectedListener`.
      *
      * @param itemId Identificador del elemento del menú pulsado.
      * @return `true` si el elemento corresponde a una sección conocida.
@@ -304,8 +360,12 @@ class MainActivity : AppCompatActivity() {
         val position = sectionMenuIds.indexOf(itemId)
         if (position < 0) return false
 
-        closeAllDetails()
-        viewPager.currentItem = position
+        if (isSyncingNavigation) return true
+
+        if (position != viewPager.currentItem) {
+            closeAllDetails()
+            viewPager.currentItem = position
+        }
         return true
     }
 

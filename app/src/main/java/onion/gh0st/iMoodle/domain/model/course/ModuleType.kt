@@ -22,11 +22,13 @@ package onion.gh0st.iMoodle.domain.model.course
  *
  * - **`Assignment`**: tarea entregable.
  * - **`Forum`**: foro de discusión.
+ * - **`Glossary`**: glosario de términos editable.
+ * - **`Wiki`**: conjunto de páginas colaborativas.
  * - **`Resource`**: recurso descargable (uno o varios archivos).
  * - **`Folder`**: carpeta con archivos.
  * - **`Url`**: enlace externo a un sitio web.
  * - **`Label`**: etiqueta de contenido inline (no navegable).
- * - **`Other`**: cualquier otro tipo (quiz, wiki, book, page…), que
+ * - **`Other`**: cualquier otro tipo (quiz, book, page…), que
  *   se muestra con una pantalla genérica.
  *
  * ## Quién lo usa
@@ -60,6 +62,26 @@ sealed interface ModuleType {
      * @property module Módulo original.
      */
     data class Forum(override val module: CourseModule) : ModuleType
+
+    /**
+     * Glosario de términos (`modname = "glossary"`).
+     *
+     * La app permite consultar sus entradas y, si el curso lo permite,
+     * añadirlas, editarlas y borrarlas.
+     *
+     * @property module Módulo original.
+     */
+    data class Glossary(override val module: CourseModule) : ModuleType
+
+    /**
+     * Wiki de páginas (`modname = "wiki"`).
+     *
+     * La app permite leer sus páginas y editarlas cuando Moodle da
+     * permiso.
+     *
+     * @property module Módulo original.
+     */
+    data class Wiki(override val module: CourseModule) : ModuleType
 
     /**
      * Recurso descargable (`modname = "resource"`).
@@ -100,7 +122,7 @@ sealed interface ModuleType {
     ) : ModuleType
 
     /**
-     * Cualquier otro tipo de módulo (`quiz`, `wiki`, `book`, `page`…).
+     * Cualquier otro tipo de módulo (`quiz`, `book`, `page`…).
      *
      * Se muestra con una pantalla genérica que solo muestra el nombre
      * y la descripción.
@@ -131,6 +153,8 @@ sealed interface ModuleType {
         fun from(module: CourseModule): ModuleType = when (module.modname) {
             "assign" -> Assignment(module)
             "forum" -> Forum(module)
+            "glossary" -> Glossary(module)
+            "wiki" -> Wiki(module)
             "resource" -> Resource(module)
             "folder" -> Folder(module)
             "url" -> Url(module)

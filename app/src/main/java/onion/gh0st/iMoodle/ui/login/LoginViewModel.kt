@@ -86,7 +86,7 @@ sealed interface LoginEvent {
      *   si el texto no lleva formato.
      */
     data class ShowToast(
-        @StringRes val messageRes: Int,
+        @param:StringRes val messageRes: Int,
         val formatArg: String? = null,
     ) : LoginEvent
 

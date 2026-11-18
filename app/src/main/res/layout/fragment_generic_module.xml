@@ -73,6 +73,7 @@
                     <ImageView
                         android:layout_width="32dp"
                         android:layout_height="32dp"
+                        android:contentDescription="@null"
                         android:src="@drawable/ic_courses"
                         app:tint="@color/color_acento" />
 
@@ -80,7 +81,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
-                        android:text="La interacción con este tipo de actividad (como realizarla o editarla) debe hacerse desde la web oficial de Moodle."
+                        android:text="@string/label_generic_module_hint"
                         android:textColor="@color/texto_principal"
                         android:textSize="14sp" />
                 </LinearLayout>

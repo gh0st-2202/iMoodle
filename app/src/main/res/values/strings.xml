@@ -27,8 +27,6 @@
     <string name="toast_welcome_back">Bienvenido de nuevo, %1$s</string>
     <string name="toast_session_recovery_failed">No se pudo recuperar la sesión</string>
     <string name="toast_no_notifications_permission">No recibirás recordatorios de tareas sin permiso de notificaciones</string>
-    <string name="toast_no_notifications_permission_short">No recibirás recordatorios de tareas</string>
-    <string name="toast_notifications_enabled">Notificaciones activadas</string>
     <string name="toast_exact_alarm_settings">Abre los ajustes para permitir alarmas exactas</string>
     <string name="toast_downloading">Descargando %1$s…</string>
     <string name="toast_download_error">Error al descargar. Inténtalo de nuevo.</string>
@@ -63,11 +61,16 @@
     <string name="title_generic_module">Detalle del módulo</string>
     <string name="title_web_link">Enlace</string>
     <string name="title_moodle">Moodle</string>
+    <string name="action_enter_course">Entrar al curso</string>
+    <string name="favourite_toggle">Marcar o quitar de favoritos</string>
+    <string name="profile_avatar">Foto de perfil</string>
 
     <!-- Filtros y Estados -->
     <string name="filter_all">Todos</string>
     <string name="empty_courses_title">Sin cursos todavía</string>
     <string name="empty_courses_desc">Cuando te matricules aparecerán aquí automáticamente.</string>
+    <string name="empty_calendar_title">No hay eventos próximos</string>
+    <string name="empty_calendar_desc">Tus entregas y exámenes de los próximos 30 días aparecerán aquí.</string>
 
     <!-- Horario -->
     <string name="empty_schedule_title">Sin clases</string>
@@ -87,9 +90,12 @@
     <string name="status_draft">Borrador (no entregado)</string>
     <string name="status_not_submitted">Sin entregar</string>
     <string name="status_unknown">Estado desconocido</string>
+    <string name="label_description">Descripción</string>
+    <string name="label_submission_status">Estado de la entrega</string>
 
     <!-- Módulo genérico -->
     <string name="label_no_description_module">Este módulo no tiene descripción.</string>
+    <string name="label_generic_module_hint">La interacción con este tipo de actividad (como realizarla o editarla) debe hacerse desde la web oficial de Moodle.</string>
 
     <!-- Foro -->
     <string name="label_forum_author_date">Por %1$s · %2$s</string>
@@ -164,4 +170,47 @@
     <string name="action_delete_comment">Borrar comentario</string>
     <string name="dialog_delete_comment_title">Borrar comentario</string>
     <string name="dialog_delete_comment_message">¿Estás seguro de que quieres borrar este comentario? Esta acción no se puede deshacer.</string>
+
+    <!-- ================================================ -->
+    <!-- ACCIONES DE EDICIÓN COMPARTIDAS                  -->
+    <!-- ================================================ -->
+    <string name="action_save">Guardar</string>
+    <string name="label_saving">Guardando…</string>
+
+    <!-- ================================================ -->
+    <!-- GLOSARIO                                         -->
+    <!-- ================================================ -->
+    <string name="glossary_add_entry">Añadir entrada</string>
+    <string name="glossary_edit_entry">Editar entrada</string>
+    <string name="glossary_delete_entry">Borrar entrada</string>
+    <string name="hint_glossary_concept">Concepto</string>
+    <string name="hint_glossary_definition">Definición</string>
+    <string name="label_glossary_author_date">Por %1$s · %2$s</string>
+    <string name="error_concept_required">Escribe un concepto</string>
+    <string name="error_definition_required">Escribe una definición</string>
+    <string name="error_glossary_operation">No se pudo completar la operación: %1$s</string>
+    <string name="dialog_delete_glossary_entry_title">Borrar entrada</string>
+    <string name="dialog_delete_glossary_entry_message">¿Seguro que quieres borrar esta entrada? Esta acción no se puede deshacer.</string>
+    <string name="toast_glossary_saved">Entrada guardada</string>
+    <string name="toast_glossary_deleted">Entrada borrada</string>
+    <string name="empty_glossary_title">Glosario vacío</string>
+    <string name="empty_glossary_desc">Este glosario todavía no tiene entradas.</string>
+
+    <!-- ================================================ -->
+    <!-- WIKI                                             -->
+    <!-- ================================================ -->
+    <string name="wiki_add_page">Nueva página</string>
+    <string name="wiki_edit_page">Editar página</string>
+    <string name="hint_wiki_title">Título</string>
+    <string name="hint_wiki_content">Contenido</string>
+    <string name="label_wiki_modified">Modificada: %1$s</string>
+    <string name="label_wiki_first_page">Portada</string>
+    <string name="label_wiki_page_empty">Esta página todavía no tiene contenido.</string>
+    <string name="error_title_required">Escribe un título</string>
+    <string name="error_content_required">Escribe el contenido</string>
+    <string name="error_wiki_operation">No se pudo completar la operación: %1$s</string>
+    <string name="toast_wiki_saved">Página guardada</string>
+    <string name="toast_wiki_created">Página creada</string>
+    <string name="empty_wiki_title">Wiki vacía</string>
+    <string name="empty_wiki_desc">Esta wiki todavía no tiene páginas.</string>
 </resources>
