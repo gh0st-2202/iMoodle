@@ -42,6 +42,10 @@ class MoodleAssignmentRepositoryTest {
         assertEquals("7,5 / 10", detail.gradeDisplay)
         assertTrue(detail.submissionGraded)
         assertFalse(detail.statusUnknown)
+        assertEquals("<p>Buen trabajo</p>", detail.feedbackComment)
+        assertEquals(1, detail.gradedFiles.size)
+        assertEquals("corregido.pdf", detail.gradedFiles.single().fileName)
+        assertTrue(detail.gradedFiles.single().fileUrl.contains("token=test_token"))
     }
 
     @Test
@@ -153,7 +157,39 @@ class MoodleAssignmentRepositoryTest {
               },
               "feedback": {
                 "grade": {"grade": 7.5},
-                "gradefordisplay": "7,5 / 10"
+                "gradefordisplay": "7,5 / 10",
+                "plugins": [
+                  {
+                    "type": "comments",
+                    "name": "Comentarios",
+                    "editorfields": [
+                      {
+                        "name": "comments",
+                        "description": "Comentarios",
+                        "text": "<p>Buen trabajo</p>",
+                        "format": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "file",
+                    "name": "Archivos",
+                    "fileareas": [
+                      {
+                        "area": "feedback_files",
+                        "files": [
+                          {
+                            "filename": "corregido.pdf",
+                            "fileurl": "https://educacionadistancia.juntadeandalucia.es/pluginfile.php/1/corregido.pdf",
+                            "filesize": 1234,
+                            "mimetype": "application/pdf",
+                            "timemodified": 1790000000
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             }
         """

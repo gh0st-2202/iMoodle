@@ -15,8 +15,10 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.core.runCatchingCancellable
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.domain.model.forum.ForumDiscussion
 import onion.gh0st.iMoodle.domain.usecase.forum.GetForumDiscussions
+import onion.gh0st.iMoodle.domain.usecase.forum.ManageForumPosts
 import javax.inject.Inject
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
@@ -25,10 +27,14 @@ import onion.gh0st.iMoodle.ui.common.FragmentArgs
  *
  * @property isLoading `true` mientras se cargan las discusiones.
  * @property discussions Lista de discusiones cargadas.
+ * @property canCreateDiscussion `true` si Moodle permite abrir un tema nuevo.
+ * @property isPosting `true` mientras se publica un tema nuevo.
  */
 data class ForumUiState(
     val isLoading: Boolean = true,
     val discussions: List<ForumDiscussion> = emptyList(),
+    val canCreateDiscussion: Boolean = false,
+    val isPosting: Boolean = false,
 )
 
 /**
@@ -46,6 +52,9 @@ sealed interface ForumUiEvent {
         @param:StringRes val messageResId: Int,
         val arg: String? = null,
     ) : ForumUiEvent
+
+    /** El tema nuevo se ha publicado correctamente. */
+    data object DiscussionCreated : ForumUiEvent
 }
 
 /**
@@ -61,17 +70,20 @@ sealed interface ForumUiEvent {
  *
  * ## Dependencias
  *
- * Solo depende del caso de uso `GetForumDiscussions`. No filtra ni
+ * Depende de dos casos de uso: `GetForumDiscussions` para leer y
+ * `ManageForumPosts` para comprobar permisos y publicar. No filtra ni
  * reordena: el repositorio entrega la lista tal cual la devuelve
  * Moodle.
  *
  * @param savedStateHandle Handle con `FORUM_ID`.
  * @param getForumDiscussions Caso de uso de discusiones.
+ * @param manageForumPosts Caso de uso de escritura en foros.
  */
 @HiltViewModel
 class ForumViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getForumDiscussions: GetForumDiscussions,
+    private val manageForumPosts: ManageForumPosts,
 ) : ViewModel() {
 
     /** ID del foro, extraído de los argumentos de navegación. */
@@ -91,6 +103,7 @@ class ForumViewModel @Inject constructor(
 
     init {
         loadDiscussions()
+        loadPermissions()
     }
 
     /**
@@ -102,6 +115,59 @@ class ForumViewModel @Inject constructor(
      * - Desde el pull-to-refresh del Fragment.
      */
     fun refresh() = loadDiscussions()
+
+    /**
+     * Publica un tema nuevo y recarga la lista.
+     *
+     * Se ignora si el asunto o el mensaje están vacíos o si ya hay una
+     * publicación en curso.
+     *
+     * @param subject Asunto del tema.
+     * @param message Mensaje inicial.
+     */
+    fun createDiscussion(subject: String, message: String) {
+        if (subject.isBlank() || message.isBlank() || _state.value.isPosting) return
+
+        viewModelScope.launch {
+            _state.update { currentState -> currentState.copy(isPosting = true) }
+            runCatchingCancellable { manageForumPosts.addDiscussion(forumId, subject, message) }
+                .onSuccess {
+                    _state.update { currentState -> currentState.copy(isPosting = false) }
+                    _events.send(ForumUiEvent.DiscussionCreated)
+                    loadDiscussions()
+                }
+                .onFailure { exception ->
+                    Logging.logError(TAG, "addDiscussion(forumId=$forumId)", exception)
+                    _state.update { currentState -> currentState.copy(isPosting = false) }
+                    _events.send(exception.toErrorEvent())
+                }
+        }
+    }
+
+    /**
+     * Pregunta a Moodle si se puede abrir un tema nuevo.
+     *
+     * Si la consulta falla, el botón queda oculto: es preferible a
+     * enseñar una acción que luego no funciona.
+     */
+    private fun loadPermissions() = viewModelScope.launch {
+        val canCreate = runCatchingCancellable { manageForumPosts.canAddDiscussion(forumId) }
+            .getOrDefault(false)
+        _state.update { currentState -> currentState.copy(canCreateDiscussion = canCreate) }
+    }
+
+    /**
+     * Traduce un fallo en el mensaje que se enseña al usuario.
+     *
+     * @receiver Fallo ocurrido.
+     * @return Evento de error listo para emitir.
+     */
+    private fun Throwable.toErrorEvent(): ForumUiEvent.ShowError = when {
+        this is AuthException.Network -> ForumUiEvent.ShowError(R.string.error_network)
+        this is IllegalStateException && !message.isNullOrBlank() ->
+            ForumUiEvent.ShowError(R.string.error_forum_operation, message)
+        else -> ForumUiEvent.ShowError(R.string.error_unexpected)
+    }
 
     /**
      * Lanza la carga de discusiones en `viewModelScope`.

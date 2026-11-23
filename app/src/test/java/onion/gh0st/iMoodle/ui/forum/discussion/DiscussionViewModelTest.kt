@@ -8,6 +8,7 @@ import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.domain.model.forum.ForumPost
 import onion.gh0st.iMoodle.domain.usecase.forum.GetDiscussionPosts
+import onion.gh0st.iMoodle.domain.usecase.forum.ManageForumPosts
 import onion.gh0st.iMoodle.fakes.FakeForumRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,6 +32,7 @@ class DiscussionViewModelTest {
         return DiscussionViewModel(
             savedStateHandle = savedState,
             getDiscussionPosts = GetDiscussionPosts(fakeRepo),
+            manageForumPosts = ManageForumPosts(fakeRepo),
         )
     }
 
@@ -61,6 +63,30 @@ class DiscussionViewModelTest {
             assertEquals(R.string.error_unexpected, event.messageResId)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `reply answers the first post`() = runTest {
+        fakeRepo.posts = listOf(post(7, "Hola"), post(8, "Respuesta"))
+        val vm = createViewModel()
+
+        vm.events.test {
+            vm.reply("Re: Hola", "Gracias")
+            assertEquals(DiscussionUiEvent.ReplyPosted, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(Triple(7, "Re: Hola", "Gracias"), fakeRepo.lastReply)
+        assertFalse(vm.state.value.isPosting)
+    }
+
+    @Test
+    fun `reply without posts does nothing`() = runTest {
+        val vm = createViewModel()
+
+        vm.reply("Re: Hola", "Gracias")
+
+        assertEquals(null, fakeRepo.lastReply)
     }
 
     private fun post(id: Int, subject: String) = ForumPost(

@@ -1,16 +1,19 @@
 package onion.gh0st.iMoodle.ui.courses.detail
 
+import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ItemLabelBinding
 import onion.gh0st.iMoodle.databinding.ItemModuleBinding
+import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
 
@@ -88,9 +91,12 @@ sealed class CourseDetailItem {
  *
  * @param onModuleClick Callback al pulsar un módulo navegable. El
  *   Fragment decide a qué pantalla ir según `ModuleType`.
+ * @param onCompletionClick Callback al pulsar el icono de finalización
+ *   de un módulo marcable a mano.
  */
 class CourseDetailAdapter(
     private val onModuleClick: (ModuleType) -> Unit,
+    private val onCompletionClick: (CourseModule) -> Unit,
 ) : ListAdapter<CourseDetailItem, RecyclerView.ViewHolder>(DIFF) {
 
     companion object {
@@ -192,7 +198,7 @@ class CourseDetailAdapter(
                 (holder as HeaderViewHolder).bind(item.title)
 
             is CourseDetailItem.Module ->
-                (holder as ModuleViewHolder).bind(item.type, onModuleClick)
+                (holder as ModuleViewHolder).bind(item.type, onModuleClick, onCompletionClick)
 
             is CourseDetailItem.Label ->
                 (holder as LabelViewHolder).bind(item.content)
@@ -280,18 +286,85 @@ class CourseDetailAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         /**
-         * Binde nombre, descripción, icono y click del módulo.
+         * Binde nombre, descripción, icono, finalización y click del
+         * módulo.
+         *
+         * El icono se pinta en verde de acento para los módulos que
+         * tienen pantalla propia y en gris con forma de candado para
+         * los que no se pueden abrir desde la app ([ModuleType.Other]).
          *
          * @param type Tipo de módulo (determina el icono).
          * @param onClick Callback al pulsar; se delega al
          *   `onModuleClick` del adapter.
+         * @param onCompletionClick Callback al pulsar el icono de
+         *   finalización.
          */
-        fun bind(type: ModuleType, onClick: (ModuleType) -> Unit) = with(binding) {
+        fun bind(
+            type: ModuleType,
+            onClick: (ModuleType) -> Unit,
+            onCompletionClick: (CourseModule) -> Unit,
+        ) = with(binding) {
             val module = type.module
             txtModuleName.text = module.name
             bindDescription(module.description)
             imgModuleIcon.setImageResource(iconFor(type))
+            imgModuleIcon.imageTintList = ColorStateList.valueOf(
+                imgModuleIcon.context.getColor(
+                    if (type is ModuleType.Other) R.color.texto_hint else R.color.color_acento,
+                ),
+            )
+            bindCompletion(module, onCompletionClick)
             root.setOnClickListener { onClick(type) }
+        }
+
+        /**
+         * Pinta el icono de finalización de la actividad.
+         *
+         * ## Cuándo se muestra
+         *
+         * Solo si el profesor activó el seguimiento (`completionMode`
+         * distinto de `0`). Si no, el hueco queda oculto y la fila se ve
+         * como siempre.
+         *
+         * ## Cuándo se puede pulsar
+         *
+         * Solo si la finalización es manual. En las automáticas el
+         * icono es informativo: el alumno no puede cambiarlo.
+         *
+         * @param module Módulo de la fila.
+         * @param onCompletionClick Callback al pulsar el icono.
+         */
+        private fun bindCompletion(
+            module: CourseModule,
+            onCompletionClick: (CourseModule) -> Unit,
+        ) = with(binding.imgModuleCompletion) {
+            isVisible = module.tracksCompletion
+            if (!module.tracksCompletion) return@with
+            setImageResource(
+                if (module.isCompleted) R.drawable.ic_check_circle else R.drawable.ic_circle_outline,
+            )
+            setColorFilter(
+                context.getColor(
+                    if (module.isCompleted) R.color.color_acento else R.color.texto_hint,
+                ),
+            )
+            isClickable = module.canToggleCompletion
+            contentDescription = context.getString(
+                when {
+                    module.canToggleCompletion && module.isCompleted ->
+                        R.string.completion_mark_pending
+                    module.canToggleCompletion -> R.string.completion_mark_done
+                    module.isCompleted -> R.string.completion_state_done
+                    else -> R.string.completion_state_pending
+                },
+            )
+            setOnClickListener(
+                if (module.canToggleCompletion) {
+                    View.OnClickListener { onCompletionClick(module) }
+                } else {
+                    null
+                },
+            )
         }
 
         /**
@@ -317,6 +390,10 @@ class CourseDetailAdapter(
         /**
          * Devuelve el drawable correspondiente al tipo de módulo.
          *
+         * Los módulos sin pantalla propia ([ModuleType.Other]) usan un
+         * candado para indicar de un vistazo que no se pueden abrir
+         * desde la aplicación.
+         *
          * ## Por qué el `when` es exhaustivo
          *
          * Porque `ModuleType` es un `sealed interface`. El compilador
@@ -335,8 +412,10 @@ class CourseDetailAdapter(
             is ModuleType.Resource -> R.drawable.ic_arrow_download
             is ModuleType.Folder -> R.drawable.ic_folder
             is ModuleType.Url -> R.drawable.ic_web
+            is ModuleType.Page -> R.drawable.ic_web
+            is ModuleType.Book -> R.drawable.ic_courses
             is ModuleType.Label -> R.drawable.ic_courses
-            is ModuleType.Other -> R.drawable.ic_courses
+            is ModuleType.Other -> R.drawable.ic_lock
         }
     }
 }

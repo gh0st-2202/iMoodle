@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.api.moodle.repository
 
 import onion.gh0st.iMoodle.api.moodle.auth.SessionApiProvider
 import onion.gh0st.iMoodle.api.moodle.network.MoodleParams
+import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.forum.ForumDiscussion
 import onion.gh0st.iMoodle.domain.model.forum.ForumPost
 import onion.gh0st.iMoodle.domain.repository.forum.ForumRepository
@@ -34,9 +35,17 @@ import javax.inject.Singleton
  *   nuevos, respuestas, ediciones) y cachearlos sería más un problema
  *   que una ayuda: el usuario vería contenido desactualizado. Se
  *   consultan siempre frescos.
- * - **No permite escribir posts**. La app solo consulta; no
- *   implementa la publicación.
  * - **No gestiona suscripciones ni notificaciones** de foros.
+ * - **No permite editar ni borrar posts**: solo leer, abrir temas y
+ *   responder.
+ *
+ * ## Escritura
+ *
+ * Moodle interpreta el mensaje como HTML (`mod_forum_add_discussion`
+ * solo acepta HTML). Por eso la capa de UI convierte antes el texto
+ * plano con `HtmlUtils.plainTextToHtml`: escapa los caracteres
+ * especiales y conserva los saltos de línea como `<br>`. Así un alumno
+ * no puede inyectar etiquetas sin querer al escribir desde el móvil.
  *
  * @param sessionApi Fuente del cliente REST autenticado.
  */
@@ -99,6 +108,73 @@ class MoodleForumRepository @Inject constructor(
         ensureNoMoodleError(postsResponseJson)
         val postsArray = postsResponseJson.optJSONArray("posts") ?: return emptyList()
         return parsePosts(postsArray)
+    }
+
+    /**
+     * Comprueba si el alumno puede abrir una discusión nueva.
+     *
+     * ## Interpretación de la respuesta
+     *
+     * Moodle ha devuelto el permiso con dos nombres distintos según la
+     * versión (`status` en unas, `canadddiscussion` en otras). Se
+     * acepta cualquiera de los dos. Si la llamada falla (por ejemplo,
+     * porque el centro no expone esta función), se devuelve `false` y
+     * el botón no se muestra: es preferible a enseñar una acción que
+     * luego no funciona.
+     *
+     * @param forumId ID del foro.
+     * @return `true` si se puede crear una discusión.
+     */
+    override suspend fun canAddDiscussion(forumId: Int): Boolean {
+        val requestParams = MoodleParams().apply { put("forumid", forumId) }
+        return runCatchingCancellable {
+            val responseJson = JSONObject(callRest("mod_forum_can_add_discussion", requestParams))
+            responseJson.optBoolean("canadddiscussion", false) ||
+                responseJson.optBoolean("status", false)
+        }.getOrDefault(false)
+    }
+
+    /**
+     * Abre una discusión nueva en un foro.
+     *
+     * @param forumId ID del foro.
+     * @param subject Asunto del tema.
+     * @param message Mensaje inicial, ya en HTML seguro.
+     * @return ID de la discusión creada (`0` si Moodle no lo devuelve).
+     */
+    override suspend fun addDiscussion(forumId: Int, subject: String, message: String): Int {
+        val requestParams = MoodleParams().apply {
+            put("forumid", forumId)
+            put("subject", subject)
+            put("message", message)
+        }
+        val responseJson = JSONObject(
+            callRestWithFormBody("mod_forum_add_discussion", requestParams),
+        )
+        return responseJson.optInt("discussionid", 0)
+            .takeIf { discussionId -> discussionId > 0 }
+            ?: responseJson.optJSONObject("discussion")?.optInt("id", 0)
+            ?: 0
+    }
+
+    /**
+     * Responde dentro de una discusión existente.
+     *
+     * @param parentPostId ID del post al que se responde.
+     * @param subject Asunto de la respuesta.
+     * @param message Cuerpo de la respuesta, ya en HTML seguro.
+     * @return ID del post creado (`0` si Moodle no lo devuelve).
+     */
+    override suspend fun addReply(parentPostId: Int, subject: String, message: String): Int {
+        val requestParams = MoodleParams().apply {
+            put("postid", parentPostId)
+            put("subject", subject)
+            put("message", message)
+        }
+        val responseJson = JSONObject(
+            callRestWithFormBody("mod_forum_add_discussion_post", requestParams),
+        )
+        return responseJson.optInt("postid", 0)
     }
 
     // --- Obtención de datos de red ---
@@ -220,4 +296,20 @@ class MoodleForumRepository @Inject constructor(
      */
     private suspend fun callRest(function: String, params: MoodleParams): String =
         sessionApi.requireApi().callREST(function, params)
+
+    /**
+     * Ejecuta una función REST de escritura enviando los parámetros en
+     * el cuerpo del `POST`.
+     *
+     * Se usa para los mensajes del foro porque pueden ser largos: en la
+     * URL superarían el límite de algunos servidores y Moodle
+     * respondería con un error de petición.
+     *
+     * @param function Nombre de la función de Moodle.
+     * @param params Parámetros ya montados.
+     * @return Cuerpo JSON de la respuesta.
+     * @throws IllegalStateException si no hay sesión activa.
+     */
+    private suspend fun callRestWithFormBody(function: String, params: MoodleParams): String =
+        sessionApi.requireApi().callRESTWithFormBody(function, params.build())
 }

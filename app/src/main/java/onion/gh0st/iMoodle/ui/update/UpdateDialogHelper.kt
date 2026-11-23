@@ -23,7 +23,7 @@ import onion.gh0st.iMoodle.domain.model.update.AppUpdate
  *
  * El número de versión en el título, las notas de la versión renderizadas
  * desde Markdown (con [Markwon], igual que en GitHub) y dos botones:
- * "Descargar" y "Más tarde". Si la publicación no tiene notas se muestra
+ * "Actualizar" y "Más tarde". Si la publicación no tiene notas se muestra
  * un texto por defecto.
  *
  * ## Quién decide qué pasa

@@ -41,12 +41,13 @@ import onion.gh0st.iMoodle.ui.update.UpdateEvent
 import onion.gh0st.iMoodle.ui.update.UpdateViewModel
 
 /**
- * Pantalla principal de la app: contiene las cuatro secciones (Cursos,
- * Agenda, Horario y Perfil) y aloja las pantallas de detalle.
+ * Pantalla principal de la app: contiene las cinco secciones (Cursos,
+ * Agenda, Horario, Calificaciones y Perfil) y aloja las pantallas de
+ * detalle.
  *
  * ## Estructura
  *
- * - Un [ViewPager2] con las cuatro secciones, entre las que se puede
+ * - Un [ViewPager2] con las cinco secciones, entre las que se puede
  *   navegar **deslizando** (solo en vertical) o con la barra de
  *   navegación: inferior en vertical ([R.id.bottom_nav]) y lateral en
  *   horizontal ([R.id.navigation_rail]). Ambas son [NavigationBarView],
@@ -104,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         R.id.nav_courses,
         R.id.nav_calendar,
         R.id.nav_schedule,
+        R.id.nav_grades,
         R.id.nav_profile,
     )
 

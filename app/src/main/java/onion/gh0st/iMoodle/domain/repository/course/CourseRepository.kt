@@ -1,8 +1,10 @@
 package onion.gh0st.iMoodle.domain.repository.course
 
 import kotlinx.coroutines.flow.Flow
+import onion.gh0st.iMoodle.domain.model.book.BookContent
 import onion.gh0st.iMoodle.domain.model.course.Course
 import onion.gh0st.iMoodle.domain.model.course.CourseContent
+import onion.gh0st.iMoodle.domain.model.page.PageContent
 
 /**
  * Contrato de acceso a los cursos del alumno.
@@ -137,6 +139,46 @@ interface CourseRepository {
         instanceId: Int,
         forceRefresh: Boolean = false,
     ): String?
+
+    /**
+     * Devuelve el contenido de una página de Moodle (`mod_page`).
+     *
+     * ## Por qué es una petición aparte
+     *
+     * El listado de contenidos del curso solo dice "aquí hay un
+     * módulo de tipo page", pero no incluye su cuerpo. Hay que
+     * pedirlo con `mod_page_get_pages_by_courses`. Se hace bajo
+     * demanda, solo cuando el usuario abre la página.
+     *
+     * @param courseId ID del curso.
+     * @param instanceId ID de la instancia del módulo `page`.
+     * @param forceRefresh Si `true`, ignora la caché.
+     * @return El contenido, o `null` si no se encuentra o falla.
+     */
+    suspend fun getPageContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean = false,
+    ): PageContent?
+
+    /**
+     * Devuelve el contenido de un libro de Moodle (`mod_book`).
+     *
+     * ## Por qué es una petición aparte
+     *
+     * Igual que la página: el listado de contenidos del curso no
+     * trae los capítulos. Se piden con `mod_book_get_books_by_courses`.
+     *
+     * @param courseId ID del curso.
+     * @param instanceId ID de la instancia del módulo `book`.
+     * @param forceRefresh Si `true`, ignora la caché.
+     * @return El contenido, o `null` si no se encuentra o falla.
+     */
+    suspend fun getBookContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean = false,
+    ): BookContent?
 
     /**
      * Limpia las cachés en memoria del repositorio.

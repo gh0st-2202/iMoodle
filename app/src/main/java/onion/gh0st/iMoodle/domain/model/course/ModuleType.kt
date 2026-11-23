@@ -27,8 +27,10 @@ package onion.gh0st.iMoodle.domain.model.course
  * - **`Resource`**: recurso descargable (uno o varios archivos).
  * - **`Folder`**: carpeta con archivos.
  * - **`Url`**: enlace externo a un sitio web.
+ * - **`Page`**: página de contenido (apunte) en HTML.
+ * - **`Book`**: libro con capítulos en HTML.
  * - **`Label`**: etiqueta de contenido inline (no navegable).
- * - **`Other`**: cualquier otro tipo (quiz, book, page…), que
+ * - **`Other`**: cualquier otro tipo (quiz, scorm, lesson…), que
  *   se muestra con una pantalla genérica.
  *
  * ## Quién lo usa
@@ -109,6 +111,20 @@ sealed interface ModuleType {
     data class Url(override val module: CourseModule) : ModuleType
 
     /**
+     * Página de contenido (`modname = "page"`).
+     *
+     * @property module Módulo original.
+     */
+    data class Page(override val module: CourseModule) : ModuleType
+
+    /**
+     * Libro con capítulos (`modname = "book"`).
+     *
+     * @property module Módulo original.
+     */
+    data class Book(override val module: CourseModule) : ModuleType
+
+    /**
      * Etiqueta de contenido inline (`modname = "label"`).
      *
      * No es navegable: se muestra como texto dentro del curso.
@@ -130,6 +146,33 @@ sealed interface ModuleType {
      * @property module Módulo original.
      */
     data class Other(override val module: CourseModule) : ModuleType
+
+    /**
+     * Devuelve una copia de este tipo con otro módulo subyacente.
+     *
+     * ## Para qué sirve
+     *
+     * Cuando el alumno marca o desmarca la finalización de una
+     * actividad, el `CourseModule` cambia pero el tipo sigue siendo el
+     * mismo. Este método evita tener que repetir un `when` con los
+     * nueve tipos cada vez que hay que actualizar un módulo.
+     *
+     * @param module Módulo actualizado.
+     * @return El mismo tipo, envolviendo el módulo nuevo.
+     */
+    fun withModule(module: CourseModule): ModuleType = when (this) {
+        is Assignment -> copy(module = module)
+        is Forum -> copy(module = module)
+        is Glossary -> copy(module = module)
+        is Wiki -> copy(module = module)
+        is Resource -> copy(module = module)
+        is Folder -> copy(module = module)
+        is Url -> copy(module = module)
+        is Page -> copy(module = module)
+        is Book -> copy(module = module)
+        is Label -> copy(module = module)
+        is Other -> copy(module = module)
+    }
 
     companion object {
 
@@ -158,6 +201,8 @@ sealed interface ModuleType {
             "resource" -> Resource(module)
             "folder" -> Folder(module)
             "url" -> Url(module)
+            "page" -> Page(module)
+            "book" -> Book(module)
             "label" -> Label(module, module.description.orEmpty())
             else -> Other(module)
         }

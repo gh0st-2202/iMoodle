@@ -8,7 +8,6 @@ import onion.gh0st.iMoodle.domain.model.assignment.Assignment
 import onion.gh0st.iMoodle.domain.model.assignment.AssignmentDetail
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.repository.assignment.AssignmentRepository
-import org.json.JSONArray
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -160,6 +159,8 @@ class MoodleAssignmentRepository @Inject constructor(
             submissionId = submissionInfo.submissionId,
             files = parseIntroFiles(assignmentJson),
             submissionFiles = parseSubmissionFiles(submissionStatusResult),
+            feedbackComment = submissionInfo.feedbackComment,
+            gradedFiles = parseGradedFiles(submissionStatusResult),
             enabledSubmissionPlugins = parseEnabledSubmissionPlugins(assignmentJson),
             statusUnknown = submissionInfo.statusUnknown,
         )
@@ -255,6 +256,32 @@ class MoodleAssignmentRepository @Inject constructor(
     }
 
     /**
+     * Obtiene los archivos que el profesor ha adjuntado a la corrección.
+     *
+     * ## Dónde vienen
+     *
+     * En `feedback.plugins[tipo=file].fileareas[area=feedback_files]
+     * .files`. Son, por ejemplo, la tarea corregida o una plantilla con
+     * anotaciones. Igual que los entregados, llevan el token en la URL
+     * para poder descargarlos.
+     *
+     * @param submissionStatusResult Resultado de pedir el estado de entrega.
+     * @return Los archivos de la corrección, o lista vacía si no hay.
+     */
+    private fun parseGradedFiles(submissionStatusResult: Result<JSONObject>): List<CourseFile> {
+        val (token, host) = currentAuth() ?: return emptyList()
+        val statusJson = submissionStatusResult.getOrNull() ?: return emptyList()
+
+        return statusJson.optJSONObject("feedback")
+            ?.optJSONArray("plugins").objects()
+            .filter { plugin -> plugin.optString("type") == "file" }
+            .flatMap { plugin -> plugin.optJSONArray("fileareas").objects() }
+            .filter { fileArea -> fileArea.optString("area") == "feedback_files" }
+            .flatMap { fileArea -> fileArea.optJSONArray("files").objects() }
+            .map { fileJson -> fileJson.toCourseFile(fileJson.optString("fileurl").appendMoodleToken(token, host)) }
+    }
+
+    /**
      * Obtiene los archivos adjuntos a la descripción de la tarea
      * (enunciados, plantillas…), con el token añadido a cada URL.
      *
@@ -318,6 +345,7 @@ class MoodleAssignmentRepository @Inject constructor(
      * @property canEdit `true` si Moodle permite editar la entrega.
      * @property lastAttemptAt Fecha de la última modificación (segundos Unix), o `null`.
      * @property submissionId Identificador de la entrega, o `null` si no existe.
+     * @property feedbackComment Comentario del profesor, o `null`.
      * @property statusUnknown `true` si no se pudo obtener el estado de Moodle.
      */
     private data class SubmissionInfo(
@@ -328,11 +356,12 @@ class MoodleAssignmentRepository @Inject constructor(
         val canEdit: Boolean,
         val lastAttemptAt: Long?,
         val submissionId: Int?,
+        val feedbackComment: String?,
         val statusUnknown: Boolean,
     ) {
         companion object {
             /** Estado cuando no hay datos: sin entrega y editable. */
-            private val EMPTY = SubmissionInfo(null, null, null, false, true, null, null, false)
+            private val EMPTY = SubmissionInfo(null, null, null, false, true, null, null, null, false)
 
             /**
              * Interpreta el resultado de pedir el estado de entrega.
@@ -368,6 +397,7 @@ class MoodleAssignmentRepository @Inject constructor(
                     canEdit = lastAttempt?.optBoolean("canedit", true) ?: true,
                     lastAttemptAt = submission?.optLong("timemodified", 0)?.takeIf { epoch -> epoch > 0 },
                     submissionId = submission?.optInt("id", 0)?.takeIf { id -> id > 0 },
+                    feedbackComment = feedback?.readFeedbackComment(),
                     statusUnknown = false,
                 )
             }
@@ -378,4 +408,27 @@ class MoodleAssignmentRepository @Inject constructor(
         /** Estado de Moodle de una entrega ya enviada a calificar. */
         const val STATUS_SUBMITTED = "submitted"
     }
+}
+
+/**
+ * Lee el comentario que dejó el profesor al corregir.
+ *
+ * ## Dónde viene
+ *
+ * El plugin de comentarios de Moodle (`assignfeedback_comments`)
+ * entrega el texto en `plugins[tipo=comments].editorfields[nombre=comments].text`,
+ * no en un campo plano `comments`. Se mantiene también la lectura
+ * directa por si alguna versión lo expone así.
+ *
+ * @receiver Objeto `feedback` de `mod_assign_get_submission_status`.
+ * @return El comentario en HTML, o `null` si no hay.
+ */
+private fun JSONObject.readFeedbackComment(): String? {
+    val editorComment = optJSONArray("plugins").objects()
+        .firstOrNull { plugin -> plugin.optString("type") == "comments" }
+        ?.optJSONArray("editorfields").objects()
+        ?.firstOrNull { field -> field.optString("name") == "comments" }
+        ?.optString("text")
+        ?.takeIf { text -> text.isNotBlank() }
+    return editorComment ?: optString("comments", "").takeIf { text -> text.isNotBlank() }
 }

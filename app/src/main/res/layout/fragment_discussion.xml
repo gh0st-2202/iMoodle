@@ -33,6 +33,18 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingBottom="24dp" />
+            android:paddingBottom="88dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_reply"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/forum_reply"
+        android:src="@drawable/ic_edit"
+        android:visibility="gone"
+        app:backgroundTint="@color/color_acento"
+        app:tint="@color/texto_boton" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

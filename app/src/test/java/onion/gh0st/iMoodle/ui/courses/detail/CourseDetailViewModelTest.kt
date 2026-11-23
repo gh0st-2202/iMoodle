@@ -9,8 +9,10 @@ import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseContents
 import onion.gh0st.iMoodle.domain.usecase.course.GetUrlExternalUrl
+import onion.gh0st.iMoodle.domain.usecase.course.ManageModuleCompletion
 import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
 import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
+import onion.gh0st.iMoodle.fakes.FakeCompletionRepository
 import onion.gh0st.iMoodle.fakes.FakeCourseRepository
 import onion.gh0st.iMoodle.fakes.FakeFileDownloader
 import onion.gh0st.iMoodle.fakes.FakeSessionRepository
@@ -31,6 +33,7 @@ class CourseDetailViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val fakeRepo = FakeCourseRepository()
+    private val completionRepo = FakeCompletionRepository()
     private val observeSession = ObserveSession(FakeSessionRepository(TestSessions.active()))
     private val fileDownloader = FakeFileDownloader()
 
@@ -41,6 +44,7 @@ class CourseDetailViewModelTest {
             getCourseContents = GetCourseContents(fakeRepo),
             getUrlExternalUrl = GetUrlExternalUrl(fakeRepo),
             downloadCourseFile = DownloadCourseFile(observeSession, fileDownloader),
+            manageModuleCompletion = ManageModuleCompletion(completionRepo),
         )
     }
 
@@ -111,7 +115,8 @@ class CourseDetailViewModelTest {
         vm.setSection("Tema 2")
 
         val headers = vm.state.value.items.filterIsInstance<CourseDetailItem.SectionHeader>()
-        assertTrue(headers.isEmpty())
+        assertEquals(1, headers.size)
+        assertEquals("Tema 2", headers.single().title)
 
         val modules = vm.state.value.items.filterIsInstance<CourseDetailItem.Module>()
         assertEquals(1, modules.size)
@@ -142,6 +147,49 @@ class CourseDetailViewModelTest {
         assertFalse(vm.state.value.isLoading)
     }
 
+    @Test
+    fun `markModuleViewed sends the module`() = runTest {
+        val vm = createViewModel()
+
+        vm.markModuleViewed(module(id = 5, modname = "assign"))
+
+        assertEquals(5, completionRepo.lastViewedModule?.id)
+    }
+
+    @Test
+    fun `toggleCompletion marks a pending module as complete`() = runTest {
+        fakeRepo.courseContents = listOf(
+            section(id = 1, name = "Tema 1", module(id = 3, modname = "assign", completionMode = 1)),
+        )
+        val vm = createViewModel()
+        val pendingModule = vm.currentModule(id = 3)
+
+        vm.toggleCompletion(pendingModule)
+
+        assertEquals(3 to true, completionRepo.lastCompletionChange)
+        assertTrue(vm.currentModule(id = 3).isCompleted)
+    }
+
+    @Test
+    fun `toggleCompletion failure keeps the module pending`() = runTest {
+        completionRepo.completionResult = Result.failure(RuntimeException("boom"))
+        fakeRepo.courseContents = listOf(
+            section(id = 1, name = "Tema 1", module(id = 3, modname = "assign", completionMode = 1)),
+        )
+        val vm = createViewModel()
+        val pendingModule = vm.currentModule(id = 3)
+
+        vm.toggleCompletion(pendingModule)
+
+        assertFalse(vm.currentModule(id = 3).isCompleted)
+    }
+
+    private fun CourseDetailViewModel.currentModule(id: Int): CourseModule =
+        state.value.items
+            .filterIsInstance<CourseDetailItem.Module>()
+            .first { item -> item.type.module.id == id }
+            .type.module
+
     private fun section(
         id: Int,
         name: String,
@@ -152,6 +200,7 @@ class CourseDetailViewModelTest {
         id: Int,
         modname: String,
         description: String? = null,
+        completionMode: Int = 0,
     ) = CourseModule(
         id = id,
         instance = id,
@@ -160,5 +209,6 @@ class CourseDetailViewModelTest {
         url = null,
         description = description,
         files = emptyList(),
+        completionMode = completionMode,
     )
 }

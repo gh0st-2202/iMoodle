@@ -22,6 +22,7 @@
     <string name="action_cancel">Cancelar</string>
     <string name="action_logout">Cerrar Sesión</string>
     <string name="action_download">Descargar</string>
+    <string name="action_retry">Reintentar</string>
 
     <!-- Mensajes (Toasts) -->
     <string name="toast_welcome_back">Bienvenido de nuevo, %1$s</string>
@@ -55,6 +56,11 @@
     <string name="nav_calendar">Agenda</string>
     <string name="nav_schedule">Horario</string>
     <string name="nav_profile">Perfil</string>
+    <string name="nav_grades">Calificaciones</string>
+    <string name="title_pasen_grades">Calificaciones</string>
+    <string name="empty_pasen_grades">Todavía no hay calificaciones publicadas.</string>
+    <string name="error_pasen_grades_load">No se pudieron cargar las calificaciones.</string>
+    <string name="pasen_class_average">Media de la clase: %1$s</string>
     <string name="title_courses">Mis Cursos</string>
     <string name="title_schedule">Mi Horario</string>
     <string name="title_files">Archivos</string>
@@ -120,7 +126,7 @@
 
     <!-- Actualizaciones -->
     <string name="update_dialog_title">Nueva versión disponible (v%1$s)</string>
-    <string name="update_action_download">Descargar</string>
+    <string name="update_action_download">Actualizar</string>
     <string name="update_action_later">Más tarde</string>
     <string name="update_no_changelog">No hay notas de la versión disponibles.</string>
     <string name="update_downloading">Descargando actualización…</string>
@@ -213,4 +219,52 @@
     <string name="toast_wiki_created">Página creada</string>
     <string name="empty_wiki_title">Wiki vacía</string>
     <string name="empty_wiki_desc">Esta wiki todavía no tiene páginas.</string>
+
+    <!-- ================================================ -->
+    <!-- NOTAS DEL CURSO                                  -->
+    <!-- ================================================ -->
+    <string name="title_grades">Notas</string>
+    <string name="menu_grades">Notas</string>
+    <string name="grades_total">Nota total del curso</string>
+    <string name="grades_total_hint">Calculada por el docente con las actividades del curso</string>
+    <string name="empty_grades_desc">Todavía no hay notas publicadas en este curso. Cuando el docente las publique aparecerán aquí.</string>
+    <string name="error_grades_load">No se pudieron cargar las notas.</string>
+
+    <!-- ================================================ -->
+    <!-- FINALIZACIÓN DE ACTIVIDADES                      -->
+    <!-- ================================================ -->
+    <string name="completion_mark_done">Marcar como completada</string>
+    <string name="completion_mark_pending">Marcar como pendiente</string>
+    <string name="completion_state_done">Actividad completada</string>
+    <string name="completion_state_pending">Actividad pendiente</string>
+    <string name="toast_completion_updated">Finalización actualizada</string>
+    <string name="error_completion_update">No se pudo actualizar la finalización de la actividad</string>
+
+    <!-- ================================================ -->
+    <!-- PÁGINAS Y LIBROS                                 -->
+    <!-- ================================================ -->
+    <string name="title_page">Página</string>
+    <string name="title_book">Libro</string>
+    <string name="error_page_load">No se pudo cargar la página.</string>
+    <string name="error_book_load">No se pudo cargar el libro.</string>
+
+    <!-- ================================================ -->
+    <!-- ESCRIBIR EN FOROS                                -->
+    <!-- ================================================ -->
+    <string name="forum_new_discussion">Nuevo tema</string>
+    <string name="forum_reply">Responder</string>
+    <string name="hint_forum_subject">Asunto</string>
+    <string name="hint_forum_message">Escribe tu mensaje…</string>
+    <string name="action_send">Enviar</string>
+    <string name="toast_forum_posted">Mensaje publicado</string>
+    <string name="error_forum_subject_required">Escribe un asunto</string>
+    <string name="error_forum_message_required">Escribe un mensaje</string>
+    <string name="error_forum_operation">No se pudo publicar: %1$s</string>
+    <string name="forum_reply_prefix">Re: %1$s</string>
+
+    <!-- ================================================ -->
+    <!-- CORRECCIÓN DE TAREAS                             -->
+    <!-- ================================================ -->
+    <string name="label_teacher_feedback">Comentario del docente</string>
+    <string name="label_graded_files">Archivos corregidos</string>
 </resources>

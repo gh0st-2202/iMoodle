@@ -49,4 +49,16 @@
             tools:text="Subir archivo .zip" />
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/img_module_completion"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginStart="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/completion_mark_done"
+        android:padding="2dp"
+        android:src="@drawable/ic_circle_outline"
+        android:visibility="gone"
+        app:tint="@color/texto_hint" />
+
 </LinearLayout>

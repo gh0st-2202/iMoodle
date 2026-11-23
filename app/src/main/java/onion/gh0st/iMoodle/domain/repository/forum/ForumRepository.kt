@@ -77,4 +77,44 @@ interface ForumRepository {
      * @return Lista de posts ordenados.
      */
     suspend fun getPosts(discussionId: Int): List<ForumPost>
+
+    /**
+     * Comprueba si el alumno puede abrir una discusión nueva.
+     *
+     * ## Por qué se pregunta antes de mostrar el botón
+     *
+     * Algunos foros son de solo lectura o tienen las suscripciones
+     * cerradas. Preguntarlo al abrir evita enseñar un botón que
+     * Moodle rechazaría después.
+     *
+     * @param forumId ID del foro.
+     * @return `true` si Moodle permite crear una discusión.
+     */
+    suspend fun canAddDiscussion(forumId: Int): Boolean
+
+    /**
+     * Abre una discusión nueva en un foro.
+     *
+     * @param forumId ID del foro.
+     * @param subject Asunto del tema.
+     * @param message Mensaje inicial, ya en HTML seguro.
+     * @return ID de la discusión creada.
+     */
+    suspend fun addDiscussion(forumId: Int, subject: String, message: String): Int
+
+    /**
+     * Responde dentro de una discusión existente.
+     *
+     * ## Cómo se elige el mensaje padre
+     *
+     * Moodle pide el ID del post al que se responde. La app responde
+     * siempre al mensaje inicial de la discusión (`parentPostId`), de
+     * modo que todas las respuestas quedan al mismo nivel.
+     *
+     * @param parentPostId ID del post al que se responde.
+     * @param subject Asunto de la respuesta.
+     * @param message Cuerpo de la respuesta, ya en HTML seguro.
+     * @return ID del post creado.
+     */
+    suspend fun addReply(parentPostId: Int, subject: String, message: String): Int
 }

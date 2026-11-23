@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blueviolet?logo=kotlin)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-API%2028%2B-green?logo=android)](https://developer.android.com)
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.6-blue)](./app/build.gradle.kts)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.7-blue)](./app/build.gradle.kts)
 [![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)]()
 
 ---
@@ -14,7 +14,7 @@
 iMoodle es una aplicación Android **personal y no oficial** que unifica en una sola app los dos servicios que más usa el alumnado andaluz:
 
 - **Moodle Centros**: cursos, tareas, foros, archivos y calendario.
-- **iPasen**: horario semanal y datos personales del alumno.
+- **iPasen**: horario semanal, datos personales y calificaciones por convocatoria.
 
 Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos servicios. La app está pensada para **uso personal**, no se distribuye en Play Store y no está afiliada a la Junta de Andalucía.
 
@@ -32,6 +32,10 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 📂 Detalle de curso con secciones, módulos y archivos descargables.
 - 📝 Detalle de tarea con fechas, estado de entrega, nota y adjuntos.
 - 💬 Foros con discusiones y mensajes en HTML (enlaces clicables).
+- ✍️ **Escribir en foros**: abre temas nuevos y responde en las discusiones. El botón de nuevo tema solo aparece si Moodle permite publicar en ese foro.
+- 📊 **Notas del curso**: la nota total y la de cada actividad calificable, agrupadas por unidad en el mismo orden que el curso y con acceso directo al detalle de las tareas, desde el menú del detalle del curso.
+- 🧑‍🏫 **Corrección de tareas**: el detalle muestra el comentario del profesor y los archivos corregidos, descargables como cualquier otro adjunto.
+- ✅ **Finalización de actividades**: cada módulo indica si está completado. Las actividades con finalización manual se marcan o desmarcan con un toque; las automáticas se registran al abrirlas.
 - 📖 **Glosarios**: consulta las entradas de un glosario y crea, edita o borra las tuyas. Si Moodle rechaza el cambio (por ejemplo, por permisos), se muestra su motivo.
 - 📝 **Wikis**: lee sus páginas y edita su contenido cuando Moodle lo permite, además de crear páginas nuevas. La acción de editar solo aparece si el servidor informa de que tienes permiso.
 - 📅 Agenda de los próximos 30 días con eventos del calendario.
@@ -41,9 +45,10 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 ### iPasen
 - 🗓️ **Horario semanal** con colores únicos por asignatura y filtro por día.
 - 👤 **Perfil del alumno** enriquecido con datos personales (centro, fecha de nacimiento, edad, sexo), con *pull-to-refresh* que vuelve a consultar iPasen.
+- 📊 **Calificaciones**: pestaña "Calificaciones" en la barra inferior con las convocatorias de evaluación y las notas por asignatura (iPasen).
 
 ### General
-- 👆 **Navegación por gestos**: desliza el dedo entre las pestañas de Cursos, Agenda, Horario y Perfil (en orientación vertical; desactivada en horizontal).
+- 👆 **Navegación por gestos**: desliza el dedo entre las pestañas de Cursos, Agenda, Horario, Calificaciones y Perfil (en orientación vertical; desactivada en horizontal).
 - ⬅️ **Botón "atrás" del sistema** integrado con la navegación por gestos: nunca deja la pantalla en blanco al volver desde un detalle.
 - 🔄 **Actualizador interno**: la app te avisa de nuevas versiones, descarga el APK directamente desde GitHub y lo instala sin salir de la app (usa `FileProvider` + el instalador nativo de Android). Solo descarga de las *releases* del repositorio oficial y, si la descarga falla, te avisa sin cerrarse.
 - 📝 **Changelog en Markdown**: el diálogo de actualización renderiza el changelog del Release formateado (vía `Markwon`), igual que en GitHub.
@@ -56,16 +61,19 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 
 ---
 
-## 🆕 Novedades de la 2.6
+## 🆕 Novedades de la 2.7
 
-La versión **2.6** cierra la ronda de correcciones que salió de probar la app en un móvil real:
+La versión **2.7** añade las cinco funciones que faltaban para seguir el curso desde el móvil:
 
-- 📖 **Glosarios y wikis nativos**: leer, crear, editar y borrar entradas del glosario; leer, editar y crear páginas de una wiki (con el formato original intacto y sin el índice ni los enlaces «[Editar]» de la web de Moodle).
-- 🔄 **Girar el móvil ya no cierra el detalle**: la tarea, el foro o el curso abiertos siguen en pantalla, también en la pestaña **Cursos**.
-- 📅 **Agenda en horizontal**: las tarjetas vuelven a responder al toque y abren la tarea.
-- ✏️ **Editar una wiki funciona**: se envía `lockonly` como `0` (los booleanos de Moodle son `1`/`0`) y se omite `section`, así que Moodle ya no responde `invalidparameter`.
-- 🔗 **Enlaces en las tareas**: el enunciado conserva sus enlaces pulsables aunque el texto no sea la URL.
-- 🧪 **Trazas de red** solo en `debug`, acotadas a los *web services* de Moodle (`adb logcat -s iMoodleNet`), sin el `wstoken`.
+- 📊 **Notas del curso**: pantalla nueva con la nota total y una fila por actividad, agrupadas por unidad con cabeceras en verde y en el orden real del curso. Cada fila muestra el comentario de retroalimentación del profesor si lo hay. Las tareas se abren con un toque y la pantalla se actualiza con *pull-to-refresh*.
+- 🧑‍🏫 **Corrección de tareas**: el detalle de una tarea muestra el comentario del profesor y los archivos que adjunta a la corrección, listos para descargar.
+- ✅ **Finalización de actividades**: icono de estado en cada módulo del curso. Las actividades manuales se marcan o desmarcan con un toque; al abrir un módulo se avisa a Moodle para que cuenten las de finalización automática por «ver».
+- 📖 **Páginas y libros**: lectura nativa del contenido (HTML) de los módulos de tipo *Página* y *Libro* (capítulos incluidos).
+- 🌐 **Lecciones, consultas, H5P…**: se muestran en una pantalla informativa con el nombre y la descripción del módulo.
+- 🔒 **Módulos no accesibles**: se identifican con un candado gris para que se vean de un vistazo en el listado del curso.
+- 🚫 **SCORM**: sin soporte. Como el resto de módulos genéricos, solo se muestra su información.
+- ✍️ **Escribir en foros**: botón flotante para abrir un tema nuevo y para responder en una discusión. El texto se envía escapado y con los saltos de línea preservados.
+- 📊 **Calificaciones de iPasen**: pestaña nueva en la barra inferior con las convocatorias de evaluación como chips y las notas por asignatura. Incluye *pull-to-refresh* y un estado de error con botón para reintentar.
 
 ---
 
@@ -199,10 +207,10 @@ app/src/main/java/onion/gh0st/iMoodle/
 │   ├── update/       Releases de GitHub, descarga del APK e instalación con FileProvider
 │   └── web/          Traducción de la sesión viva a un modelo de dominio para el WebView
 ├── domain/           Contratos de negocio
-│   ├── model/        Modelos (auth/, course/, forum/, glossary/, wiki/, file/, session/, update/, web/…)
-│   ├── repository/   Contratos (file/, forum/, glossary/, wiki/, session/, update/, web/…)
+│   ├── model/        Modelos (auth/, course/, forum/, glossary/, grade/, pasen/, wiki/, file/, session/, update/, web/…)
+│   ├── repository/   Contratos (completion/, file/, forum/, glossary/, grade/, pasen/, wiki/, session/, update/, web/…)
 │   ├── rules/
-│   └── usecase/      Casos de uso (calendar/, course/, file/, forum/, glossary/, notification/, schedule/, session/, update/, web/, wiki/)
+│   └── usecase/      Casos de uso (calendar/, course/, file/, forum/, glossary/, grade/, pasen/, notification/, schedule/, session/, update/, web/, wiki/)
 ├── inyectores/       Módulos de Hilt
 ├── notifications/    Recordatorios con AlarmManager
 └── ui/               Pantallas, ViewModels y adapters
@@ -211,9 +219,11 @@ app/src/main/java/onion/gh0st/iMoodle/
     ├── files/        FileDownloadDialog (la descarga vive en data/)
     ├── forum/        list/ (discusiones) y discussion/ (posts)
     ├── glossary/     GlossaryFragment, GlossaryAdapter y GlossaryEntryDialog (alta y edición)
+    ├── grades/       GradesFragment, GradesViewModel y GradesAdapter (notas del curso)
     ├── login/        LoginViewModel sin Context: emite @StringRes
     ├── main/         MainActivity con ViewPager2 y OnBackPressedCallback;
     │                 MainViewModel como puerta única a la sesión
+    ├── pasengrades/  PasenGradesFragment, ViewModel y Adapter (notas de iPasen)
     ├── update/       UpdateDialogHelper y UpdateViewModel (el instalador vive en data/)
     ├── web/          MoodleWebViewActivity y MoodleWebViewModel
     └── wiki/         WikiFragment (páginas), WikiPageFragment (contenido) y diálogos de alta y edición

@@ -169,6 +169,22 @@ class PasenApiClient(
     }
 
     /**
+     * Descarga las convocatorias de evaluación con sus notas en bruto
+     * (JSON como cadena).
+     *
+     * @param token Token devuelto por [login].
+     * @param enrollment Identificador de la matrícula.
+     * @return El JSON de las convocatorias, sin interpretar.
+     * @throws PasenApiException si falla la red o el servidor responde
+     *   con error.
+     */
+    suspend fun getNotasConvocatorias(token: String, enrollment: String): String = guarded("get-notas-convocatorias") {
+        fetchBody(
+            authorizedGet(token, "/seguimiento/get-notas-convocatorias", enrollment),
+            operation = "get-notas-convocatorias",
+        )
+    }
+    /**
      * Construye una petición `GET` autenticada que lleva la matrícula
      * como parámetro.
      *

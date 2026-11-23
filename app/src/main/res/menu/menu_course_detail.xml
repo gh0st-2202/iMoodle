@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_course_grades"
+        android:icon="@drawable/ic_grade"
+        android:title="@string/menu_grades"
+        app:iconTint="@color/color_acento"
+        app:showAsAction="ifRoom" />
+</menu>

@@ -23,6 +23,23 @@ class FakeForumRepository : ForumRepository {
     /** Si es no-null, se lanza al invocar [getPosts]. */
     var postsError: Throwable? = null
 
+    /** Permiso devuelto por [canAddDiscussion]. */
+    var canCreateDiscussion: Boolean = true
+
+    /** Si es no-null, se lanza al invocar [addDiscussion]. */
+    var addDiscussionError: Throwable? = null
+
+    /** Si es no-null, se lanza al invocar [addReply]. */
+    var addReplyError: Throwable? = null
+
+    /** Última discusión publicada: `(forumId, subject, message)`. */
+    var lastDiscussion: Triple<Int, String, String>? = null
+        private set
+
+    /** Última respuesta publicada: `(parentPostId, subject, message)`. */
+    var lastReply: Triple<Int, String, String>? = null
+        private set
+
     /**
      * Devuelve [discussions] o lanza [discussionsError].
      *
@@ -45,5 +62,43 @@ class FakeForumRepository : ForumRepository {
     override suspend fun getPosts(discussionId: Int): List<ForumPost> {
         postsError?.let { throw it }
         return posts
+    }
+
+    /**
+     * Devuelve [canCreateDiscussion].
+     *
+     * @param forumId ID del foro (ignorado por el fake).
+     * @return El permiso configurado.
+     */
+    override suspend fun canAddDiscussion(forumId: Int): Boolean = canCreateDiscussion
+
+    /**
+     * Registra la discusión y devuelve un ID fijo.
+     *
+     * @param forumId ID del foro.
+     * @param subject Asunto.
+     * @param message Mensaje.
+     * @return ID ficticio de la discusión.
+     * @throws Throwable si [addDiscussionError] no es `null`.
+     */
+    override suspend fun addDiscussion(forumId: Int, subject: String, message: String): Int {
+        addDiscussionError?.let { throw it }
+        lastDiscussion = Triple(forumId, subject, message)
+        return 1
+    }
+
+    /**
+     * Registra la respuesta y devuelve un ID fijo.
+     *
+     * @param parentPostId ID del post padre.
+     * @param subject Asunto.
+     * @param message Mensaje.
+     * @return ID ficticio del post.
+     * @throws Throwable si [addReplyError] no es `null`.
+     */
+    override suspend fun addReply(parentPostId: Int, subject: String, message: String): Int {
+        addReplyError?.let { throw it }
+        lastReply = Triple(parentPostId, subject, message)
+        return 2
     }
 }

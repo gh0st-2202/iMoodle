@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.ui.forum.list
 
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
@@ -16,6 +17,7 @@ import onion.gh0st.iMoodle.databinding.FragmentForumBinding
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
+import onion.gh0st.iMoodle.ui.forum.ForumPostDialog
 import onion.gh0st.iMoodle.ui.forum.discussion.DiscussionFragment
 
 /**
@@ -58,6 +60,7 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         val binding = FragmentForumBinding.bind(view)
         setupToolbar(binding)
         binding.appBarForum.applySystemBarsInsets()
+        setupFab(binding)
         val adapter = buildAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
@@ -84,6 +87,25 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
      */
     private fun buildAdapter() = ForumAdapter { discussion ->
         openDiscussion(discussion.id, discussion.name)
+    }
+
+    /**
+     * Configura el botón flotante para abrir un tema nuevo.
+     *
+     * El botón solo se muestra si Moodle permite crear discusiones; esa
+     * decisión la toma el ViewModel y llega en el estado.
+     *
+     * @param binding Vistas de la pantalla.
+     */
+    private fun setupFab(binding: FragmentForumBinding) {
+        binding.fabNewDiscussion.setOnClickListener {
+            ForumPostDialog.show(
+                context = requireContext(),
+                titleRes = R.string.forum_new_discussion,
+                showSubject = true,
+                initialSubject = null,
+            ) { subject, message -> viewModel.createDiscussion(subject, message) }
+        }
     }
 
     /**
@@ -127,6 +149,7 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         viewModel.state.collect { state ->
             adapter.submitList(state.discussions)
             binding.swipeRefreshForum.isRefreshing = state.isLoading
+            binding.fabNewDiscussion.isVisible = state.canCreateDiscussion && !state.isPosting
         }
     }
 
@@ -137,6 +160,7 @@ class ForumFragment : Fragment(R.layout.fragment_forum) {
         viewModel.events.collect { event ->
             when (event) {
                 is ForumUiEvent.ShowError -> showToast(event.messageResId, event.arg)
+                ForumUiEvent.DiscussionCreated -> showToast(R.string.toast_forum_posted)
             }
         }
     }

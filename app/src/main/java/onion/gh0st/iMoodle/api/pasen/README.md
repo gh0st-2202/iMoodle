@@ -1032,7 +1032,9 @@ Lista de convocatorias de evaluación.
 | `dateFinish` | string | Fecha de fin `dd/MM/yyyy`. |
 | `isActive` | boolean | Si está activa ahora. |
 | `idCenter` | int | ID interno de la convocatoria. |
-| `subjects[]` | array | Asignaturas con notas. |
+| `subjects[]` | array | Asignaturas con notas. Su esquema **no está documentado oficialmente** por iPasen; la app los parsea de forma flexible (ver nota abajo). |
+
+> **Nota sobre `subjects[]`**: iPasen no publica el esquema de cada asignatura. La app asume que cada elemento es un objeto JSON y extrae el nombre de la asignatura probando las claves `subject`, `name`, `materia`, `D_MATERIA` y `asignatura`; la nota con `grade`, `nota`, `NOTA`, `mark`, `value`, `calificacion`; la media de la clase con `average`, `media`, `averageGrade`, `mediaClase`; y la anotación con `annotation`, `anotacion`, `observacion`, `comments`. El resto de claves se pintan tal cual como "clave: valor", para no perder información aunque los nombres reales difieran. Si se consigue una respuesta real del endpoint, conviene fijar el esquema y simplificar el parser.
 
 ---
 
@@ -1255,6 +1257,14 @@ data class PasenDataSection(
 ### Convocatorias
 
 ```kotlin
+data class PasenSubjectGrade(
+    val name: String,
+    val grade: String?,
+    val average: String?,
+    val annotation: String?,
+    val fields: List<Pair<String, String>>,
+)
+
 data class PasenConvocatoria(
     val course: String,
     val isFinished: Boolean,
@@ -1262,7 +1272,7 @@ data class PasenConvocatoria(
     val dateFinish: String,
     val isActive: Boolean,
     val idCenter: Int,
-    val subjects: List<Any>,
+    val subjects: List<PasenSubjectGrade>,
 )
 ```
 

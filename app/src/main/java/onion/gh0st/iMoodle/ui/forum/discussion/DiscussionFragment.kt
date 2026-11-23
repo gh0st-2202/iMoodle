@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.ui.forum.discussion
 
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -15,6 +16,7 @@ import onion.gh0st.iMoodle.databinding.FragmentDiscussionBinding
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
+import onion.gh0st.iMoodle.ui.forum.ForumPostDialog
 
 /**
  * Pantalla con los posts de una discusión de foro.
@@ -80,6 +82,7 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         val binding = FragmentDiscussionBinding.bind(view)
         setupToolbar(binding)
         binding.appBarDiscussion.applySystemBarsInsets()
+        setupFab(binding)
         val adapter = DiscussionAdapter()
         setupRecyclerView(binding, adapter)
         observeUi(binding, adapter)
@@ -92,6 +95,25 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         binding.toolbarDiscussion.title = discussionName
         binding.toolbarDiscussion.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
+        }
+    }
+
+    /**
+     * Configura el botón flotante para responder en la discusión.
+     *
+     * El asunto se rellena con "Re: …" a partir del título, pero el
+     * usuario puede cambiarlo.
+     *
+     * @param binding Vistas de la pantalla.
+     */
+    private fun setupFab(binding: FragmentDiscussionBinding) {
+        binding.fabReply.setOnClickListener {
+            ForumPostDialog.show(
+                context = requireContext(),
+                titleRes = R.string.forum_reply,
+                showSubject = true,
+                initialSubject = getString(R.string.forum_reply_prefix, discussionName),
+            ) { subject, message -> viewModel.reply(subject, message) }
         }
     }
 
@@ -129,6 +151,8 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         viewModel.state.collect { state ->
             adapter.submitList(state.posts)
             binding.swipeRefreshDiscussion.isRefreshing = state.isLoading
+            binding.fabReply.isVisible = state.posts.isNotEmpty()
+            binding.fabReply.isEnabled = !state.isPosting
         }
     }
 
@@ -139,6 +163,7 @@ class DiscussionFragment : Fragment(R.layout.fragment_discussion) {
         viewModel.events.collect { event ->
             when (event) {
                 is DiscussionUiEvent.ShowError -> showToast(event.messageResId, event.arg)
+                DiscussionUiEvent.ReplyPosted -> showToast(R.string.toast_forum_posted)
             }
         }
     }

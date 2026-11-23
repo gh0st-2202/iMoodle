@@ -87,4 +87,22 @@ class FakeCourseRepository : CourseRepository {
         instanceId: Int,
         forceRefresh: Boolean,
     ): String? = externalUrl
+
+    /** Contenido de página a devolver por [getPageContent]. */
+    var pageContent: onion.gh0st.iMoodle.domain.model.page.PageContent? = null
+
+    /** Contenido de libro a devolver por [getBookContent]. */
+    var bookContent: onion.gh0st.iMoodle.domain.model.book.BookContent? = null
+
+    override suspend fun getPageContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean,
+    ): onion.gh0st.iMoodle.domain.model.page.PageContent? = pageContent
+
+    override suspend fun getBookContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean,
+    ): onion.gh0st.iMoodle.domain.model.book.BookContent? = bookContent
 }

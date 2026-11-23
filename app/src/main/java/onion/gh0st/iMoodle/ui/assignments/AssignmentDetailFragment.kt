@@ -160,8 +160,6 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
             val margin = (COMMENT_SCROLL_MARGIN_DP * scroll.resources.displayMetrics.density).toInt()
             val scrollLocation = IntArray(2).also { scroll.getLocationInWindow(it) }
             val buttonLocation = IntArray(2).also { binding.btnPostComment.getLocationInWindow(it) }
-            // Fondo del área visible: el borde inferior del scroll menos
-            // el relleno del teclado.
             val visibleBottom = scrollLocation[1] + scroll.height - scroll.paddingBottom
             val buttonBottom = buttonLocation[1] + binding.btnPostComment.height + margin
             val pendingScroll = buttonBottom - visibleBottom
@@ -398,6 +396,8 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
             ?.let { dueDate -> getString(R.string.label_due_date, FormatUtils.formatDateTime(dueDate)) }
             ?: getString(R.string.label_no_due_date)
 
+        renderTeacherFeedback(binding, assignment)
+
         binding.txtSubmissionStatus.text = when {
             assignment.statusUnknown -> getString(R.string.status_unknown)
             assignment.isSubmitted -> getString(R.string.status_submitted)
@@ -422,6 +422,33 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
         binding.containerAttachments.removeAllViews()
         binding.layoutAttachments.isVisible = assignment.files.isNotEmpty()
         assignment.files.forEach { file -> addFileRow(binding.containerAttachments, file) }
+    }
+
+    /**
+     * Pinta el comentario del profesor y los archivos de la corrección.
+     *
+     * ## Qué se oculta
+     *
+     * Si no hay comentario, la sección entera desaparece en lugar de
+     * dejar un hueco con el título vacío. Lo mismo con los archivos.
+     *
+     * @param binding Vistas de la pantalla.
+     * @param assignment Detalle de la tarea.
+     */
+    private fun renderTeacherFeedback(
+        binding: FragmentAssignmentDetailBinding,
+        assignment: AssignmentDetail,
+    ) {
+        val feedback = assignment.feedbackComment
+        binding.layoutTeacherFeedback.isVisible = !feedback.isNullOrBlank()
+        if (!feedback.isNullOrBlank()) {
+            binding.txtTeacherFeedback.text = HtmlUtils.renderHtml(feedback)
+            binding.txtTeacherFeedback.movementMethod = LinkMovementMethod.getInstance()
+        }
+
+        binding.containerGradedFiles.removeAllViews()
+        binding.layoutGradedFiles.isVisible = assignment.gradedFiles.isNotEmpty()
+        assignment.gradedFiles.forEach { file -> addFileRow(binding.containerGradedFiles, file) }
     }
 
     /**

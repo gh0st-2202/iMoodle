@@ -14,13 +14,15 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
+import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.CourseSection
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.domain.usecase.course.GetCourseContents
 import onion.gh0st.iMoodle.domain.usecase.course.GetUrlExternalUrl
+import onion.gh0st.iMoodle.domain.usecase.course.ManageModuleCompletion
 import onion.gh0st.iMoodle.domain.usecase.file.DownloadCourseFile
-import javax.inject.Inject
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
+import javax.inject.Inject
 
 /**
  * Estado observable de la pantalla de detalle de un curso.
@@ -62,6 +64,12 @@ sealed interface CourseDetailUiEvent {
 
     /** No se pudo encolar la descarga (sin sesión o error del sistema). */
     data object DownloadFailed : CourseDetailUiEvent
+
+    /** La finalización de una actividad se ha actualizado en Moodle. */
+    data object CompletionUpdated : CourseDetailUiEvent
+
+    /** No se pudo actualizar la finalización de una actividad. */
+    data object CompletionFailed : CourseDetailUiEvent
 }
 
 /**
@@ -104,6 +112,8 @@ sealed interface CourseDetailUiEvent {
  *   módulos.
  * @param getUrlExternalUrl Caso de uso para resolver URLs externas.
  * @param downloadCourseFile Caso de uso para descargar un archivo.
+ * @param manageModuleCompletion Caso de uso para la finalización de
+ *   actividades.
  */
 @HiltViewModel
 class CourseDetailViewModel @Inject constructor(
@@ -111,6 +121,7 @@ class CourseDetailViewModel @Inject constructor(
     private val getCourseContents: GetCourseContents,
     private val getUrlExternalUrl: GetUrlExternalUrl,
     private val downloadCourseFile: DownloadCourseFile,
+    private val manageModuleCompletion: ManageModuleCompletion,
 ) : ViewModel() {
 
     /**
@@ -214,6 +225,103 @@ class CourseDetailViewModel @Inject constructor(
      */
     suspend fun getExternalUrl(instanceId: Int): String? =
         getUrlExternalUrl(courseId, instanceId)
+
+    /**
+     * Avisa a Moodle de que el alumno va a abrir un módulo.
+     *
+     * ## Cuándo se llama
+     *
+     * Justo antes de navegar a la pantalla del módulo. Así las
+     * actividades con finalización automática por "ver" cuentan.
+     *
+     * ## Manejo de errores
+     *
+     * El fallo se ignora a propósito: registrar el "visto" es
+     * secundario y no debe impedir abrir la actividad.
+     *
+     * @param module Módulo que se va a abrir.
+     */
+    fun markModuleViewed(module: CourseModule) {
+        viewModelScope.launch {
+            manageModuleCompletion.markViewed(module)
+                .onFailure { exception ->
+                    Logging.logError(TAG, "markModuleViewed(cmId=${module.id})", exception)
+                }
+        }
+    }
+
+    /**
+     * Marca o desmarca a mano la finalización de una actividad.
+     *
+     * ## Qué hace paso a paso
+     *
+     * 1. Invierte el estado actual del módulo.
+     * 2. Pide el cambio a Moodle.
+     * 3. Si va bien, actualiza la lista en memoria, avisa con
+     *    [CourseDetailUiEvent.CompletionUpdated] y recalienta la caché
+     *    en segundo plano para que la próxima apertura traiga el estado
+     *    real.
+     * 4. Si falla, avisa con [CourseDetailUiEvent.CompletionFailed] sin
+     *    tocar la lista.
+     *
+     * @param module Módulo tocado.
+     */
+    fun toggleCompletion(module: CourseModule) {
+        val completed = !module.isCompleted
+        viewModelScope.launch {
+            manageModuleCompletion.setCompleted(module.id, completed)
+                .onSuccess {
+                    applyCompletion(module.id, completed)
+                    _events.send(CourseDetailUiEvent.CompletionUpdated)
+                    warmContentsCache()
+                }
+                .onFailure { exception ->
+                    Logging.logError(TAG, "toggleCompletion(cmId=${module.id})", exception)
+                    _events.send(CourseDetailUiEvent.CompletionFailed)
+                }
+        }
+    }
+
+    /**
+     * Refresca en segundo plano la caché del repositorio.
+     *
+     * ## Por qué no se publica el resultado
+     *
+     * La lista ya se ha actualizado de forma optimista con el cambio
+     * que el alumno acaba de hacer. Volver a pintar la respuesta del
+     * servidor provocaría un parpadeo. Lo único que hace falta es que
+     * la próxima apertura del curso traiga el estado real, y de eso se
+     * encarga el repositorio al guardar la respuesta en su caché.
+     */
+    private fun warmContentsCache() {
+        viewModelScope.launch {
+            runCatchingCancellable { getCourseContents(courseId, forceRefresh = true) }
+        }
+    }
+
+    /**
+     * Aplica un nuevo estado de finalización a la lista en memoria.
+     *
+     * @param cmId Identificador del módulo.
+     * @param completed `true` si queda completado.
+     */
+    private fun applyCompletion(cmId: Int, completed: Boolean) {
+        allSections = allSections.map { section ->
+            section.copy(
+                modules = section.modules.map { moduleType ->
+                    if (moduleType.module.id != cmId) {
+                        moduleType
+                    } else {
+                        val newState = if (completed) COMPLETION_STATE_COMPLETE else COMPLETION_STATE_PENDING
+                        moduleType.withModule(moduleType.module.copy(completionState = newState))
+                    }
+                },
+            )
+        }
+        _state.update { currentState ->
+            currentState.copy(items = buildItems(allSections, currentState.selectedSection))
+        }
+    }
 
     // --- Métodos internos ---
 
@@ -321,9 +429,9 @@ class CourseDetailViewModel @Inject constructor(
      *
      * ## Qué pasa si el filtro está activo
      *
-     * Solo se muestra la sección filtrada, y **no** se inserta su
-     * cabecera (no tiene sentido mostrar una cabecera cuando solo
-     * hay una sección).
+     * Solo se muestra la sección filtrada. Su cabecera se sigue
+     * mostrando (en verde) para que quede claro a qué unidad
+     * pertenecen los módulos, igual que en la vista "Todos".
      *
      * @param courseSections Secciones completas.
      * @param filter Nombre de la sección a mostrar, o `null` para
@@ -337,7 +445,7 @@ class CourseDetailViewModel @Inject constructor(
         val items = mutableListOf<CourseDetailItem>()
         courseSections.forEach { section ->
             if (!shouldShow(section, filter)) return@forEach
-            if (filter == null && section.name.isNotBlank()) {
+            if (section.name.isNotBlank()) {
                 items.add(CourseDetailItem.SectionHeader(section.name))
             }
             section.modules.forEach { moduleType -> items.add(itemFor(moduleType)) }
@@ -412,5 +520,11 @@ class CourseDetailViewModel @Inject constructor(
 
     private companion object {
         const val TAG = "CourseDetailViewModel"
+
+        /** Estado de Moodle de una actividad completada. */
+        const val COMPLETION_STATE_COMPLETE = 1
+
+        /** Estado de Moodle de una actividad pendiente. */
+        const val COMPLETION_STATE_PENDING = 0
     }
 }

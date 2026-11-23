@@ -8,6 +8,7 @@ import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.domain.model.forum.ForumDiscussion
 import onion.gh0st.iMoodle.domain.usecase.forum.GetForumDiscussions
+import onion.gh0st.iMoodle.domain.usecase.forum.ManageForumPosts
 import onion.gh0st.iMoodle.fakes.FakeForumRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -31,6 +32,7 @@ class ForumViewModelTest {
         return ForumViewModel(
             savedStateHandle = savedState,
             getForumDiscussions = GetForumDiscussions(fakeRepo),
+            manageForumPosts = ManageForumPosts(fakeRepo),
         )
     }
 
@@ -62,6 +64,39 @@ class ForumViewModelTest {
             assertEquals(R.string.error_unexpected, event.messageResId)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `permission to create discussions comes from Moodle`() = runTest {
+        fakeRepo.canCreateDiscussion = false
+
+        val vm = createViewModel()
+
+        assertFalse(vm.state.value.canCreateDiscussion)
+    }
+
+    @Test
+    fun `createDiscussion sends the post and reloads`() = runTest {
+        fakeRepo.discussions = listOf(discussion(1, "Duda A"))
+        val vm = createViewModel()
+
+        vm.events.test {
+            vm.createDiscussion("Duda B", "¿Cómo se hace?")
+            assertEquals(ForumUiEvent.DiscussionCreated, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(Triple(1, "Duda B", "¿Cómo se hace?"), fakeRepo.lastDiscussion)
+        assertFalse(vm.state.value.isPosting)
+    }
+
+    @Test
+    fun `createDiscussion with blank fields does nothing`() = runTest {
+        val vm = createViewModel()
+
+        vm.createDiscussion(" ", "")
+
+        assertEquals(null, fakeRepo.lastDiscussion)
     }
 
     private fun discussion(id: Int, name: String) = ForumDiscussion(

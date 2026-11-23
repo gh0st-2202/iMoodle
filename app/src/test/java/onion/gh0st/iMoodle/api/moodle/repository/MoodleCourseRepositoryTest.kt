@@ -134,6 +134,38 @@ class MoodleCourseRepositoryTest {
         assertNull(url)
     }
 
+    @Test
+    fun `getPageContent returns the page html`() = runTest {
+        server.enqueue(jsonResponse(PAGES_JSON))
+        val page = repo.getPageContent(courseId = 1, instanceId = 200)
+        assertEquals("Página 1", page?.name)
+        assertEquals("<p>Hola</p>", page?.content)
+    }
+
+    @Test
+    fun `getPageContent returns null for unknown instance`() = runTest {
+        server.enqueue(jsonResponse(PAGES_JSON))
+        val page = repo.getPageContent(courseId = 1, instanceId = 999)
+        assertNull(page)
+    }
+
+    @Test
+    fun `getBookContent returns chapters`() = runTest {
+        server.enqueue(jsonResponse(BOOKS_JSON))
+        val book = repo.getBookContent(courseId = 1, instanceId = 200)
+        assertEquals("Libro 1", book?.name)
+        assertEquals("<p>Intro</p>", book?.intro)
+        assertEquals(2, book?.chapters?.size)
+        assertEquals("Capítulo 1", book?.chapters?.get(0)?.title)
+    }
+
+    @Test
+    fun `getBookContent returns null for unknown instance`() = runTest {
+        server.enqueue(jsonResponse(BOOKS_JSON))
+        val book = repo.getBookContent(courseId = 1, instanceId = 999)
+        assertNull(book)
+    }
+
     // --- Seguridad del token ---
 
     @Test
@@ -258,6 +290,34 @@ class MoodleCourseRepositoryTest {
               "urls": [
                 { "id": 100, "externalurl": "https://example.com/other" },
                 { "id": 200, "externalurl": "https://example.com/target" }
+              ]
+            }
+        """
+
+        const val PAGES_JSON = """
+            {
+              "pages": [
+                { "id": 100, "coursemodule": 100, "name": "Otra", "content": "<p>Otro</p>" },
+                { "id": 200, "coursemodule": 200, "name": "Página 1", "content": "<p>Hola</p>" }
+              ]
+            }
+        """
+
+        const val BOOKS_JSON = """
+            {
+              "books": [
+                {
+                  "id": 100, "coursemodule": 100, "name": "Otro",
+                  "intro": "<p>X</p>", "chapters": []
+                },
+                {
+                  "id": 200, "coursemodule": 200, "name": "Libro 1",
+                  "intro": "<p>Intro</p>",
+                  "chapters": [
+                    { "title": "Capítulo 1", "content": "<p>C1</p>" },
+                    { "title": "Capítulo 2", "content": "<p>C2</p>" }
+                  ]
+                }
               ]
             }
         """

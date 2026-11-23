@@ -55,6 +55,13 @@ package onion.gh0st.iMoodle.domain.model.course
  * @property description Descripción en HTML, o `null` si no tiene.
  * @property files Archivos adjuntos del módulo (recursos, carpetas,
  *   adjuntos de tareas, etc.). Puede estar vacía.
+ * @property completionMode Modo de finalización que ha configurado el
+ *   profesor: `0` = desactivada, `1` = manual (el alumno la marca),
+ *   `2` = automática (Moodle la marca al cumplir la condición).
+ * @property completionState Estado de finalización del alumno:
+ *   `0` = pendiente, `1` = completada, `2` = completada con éxito,
+ *   `3` = completada sin éxito. Solo tiene sentido si
+ *   [completionMode] no es `0`.
  */
 data class CourseModule(
     val id: Int,
@@ -64,4 +71,38 @@ data class CourseModule(
     val url: String?,
     val description: String?,
     val files: List<CourseFile> = emptyList(),
-)
+    val completionMode: Int = 0,
+    val completionState: Int = 0,
+) {
+
+    /** `true` si el profesor ha activado el seguimiento de finalización. */
+    val tracksCompletion: Boolean
+        get() = completionMode != COMPLETION_MODE_NONE
+
+    /** `true` si el alumno ya ha completado la actividad. */
+    val isCompleted: Boolean
+        get() = completionState == COMPLETION_STATE_COMPLETE ||
+            completionState == COMPLETION_STATE_COMPLETE_PASS ||
+            completionState == COMPLETION_STATE_COMPLETE_FAIL
+
+    /** `true` si el alumno puede marcar o desmarcar la actividad a mano. */
+    val canToggleCompletion: Boolean
+        get() = completionMode == COMPLETION_MODE_MANUAL
+
+    private companion object {
+        /** Moodle no hace seguimiento de la finalización. */
+        const val COMPLETION_MODE_NONE = 0
+
+        /** El alumno marca la actividad como completada a mano. */
+        const val COMPLETION_MODE_MANUAL = 1
+
+        /** Actividad pendiente. */
+        const val COMPLETION_STATE_COMPLETE = 1
+
+        /** Actividad completada con éxito. */
+        const val COMPLETION_STATE_COMPLETE_PASS = 2
+
+        /** Actividad completada sin éxito. */
+        const val COMPLETION_STATE_COMPLETE_FAIL = 3
+    }
+}

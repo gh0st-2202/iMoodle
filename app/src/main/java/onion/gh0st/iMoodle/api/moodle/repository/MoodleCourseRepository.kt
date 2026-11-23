@@ -14,10 +14,13 @@ import onion.gh0st.iMoodle.data.local.dao.CourseDao
 import onion.gh0st.iMoodle.data.local.entity.AssignmentEntity
 import onion.gh0st.iMoodle.data.local.entity.CourseEntity
 import onion.gh0st.iMoodle.data.local.relation.CourseWithAssignments
+import onion.gh0st.iMoodle.domain.model.book.BookChapter
+import onion.gh0st.iMoodle.domain.model.book.BookContent
 import onion.gh0st.iMoodle.domain.model.course.Course
 import onion.gh0st.iMoodle.domain.model.course.CourseContent
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
+import onion.gh0st.iMoodle.domain.model.page.PageContent
 import onion.gh0st.iMoodle.domain.repository.course.CourseRepository
 import org.json.JSONArray
 import org.json.JSONObject
@@ -289,6 +292,67 @@ class MoodleCourseRepository @Inject constructor(
      * Actualmente no se llama desde ningún sitio. Se deja por simetría
      * con otros repositorios y para un futuro "borrar caché" manual.
      */
+    override suspend fun getPageContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean,
+    ): PageContent? = runCatchingCancellable {
+        val requestParams = MoodleParams().apply {
+            putArray("courseids", listOf(courseId))
+        }
+        val responseJson = JSONObject(callRest("mod_page_get_pages_by_courses", requestParams))
+        findPage(responseJson.optJSONArray("pages"), instanceId)
+    }.getOrNull()
+
+    override suspend fun getBookContent(
+        courseId: Int,
+        instanceId: Int,
+        forceRefresh: Boolean,
+    ): BookContent? = runCatchingCancellable {
+        val requestParams = MoodleParams().apply {
+            putArray("courseids", listOf(courseId))
+        }
+        val responseJson = JSONObject(callRest("mod_book_get_books_by_courses", requestParams))
+        findBook(responseJson.optJSONArray("books"), instanceId)
+    }.getOrNull()
+
+    private fun findPage(pages: org.json.JSONArray?, instanceId: Int): PageContent? {
+        if (pages == null) return null
+        for (index in 0 until pages.length()) {
+            val pageJson = pages.optJSONObject(index) ?: continue
+            val pageId = pageJson.optInt("id", 0)
+            val courseModule = pageJson.optInt("coursemodule", 0)
+            if (pageId != instanceId && courseModule != instanceId) continue
+            return PageContent(
+                name = pageJson.optString("name"),
+                content = pageJson.optString("content"),
+            )
+        }
+        return null
+    }
+
+    private fun findBook(books: org.json.JSONArray?, instanceId: Int): BookContent? {
+        if (books == null) return null
+        for (index in 0 until books.length()) {
+            val bookJson = books.optJSONObject(index) ?: continue
+            val bookId = bookJson.optInt("id", 0)
+            val courseModule = bookJson.optInt("coursemodule", 0)
+            if (bookId != instanceId && courseModule != instanceId) continue
+            val chapters = bookJson.optJSONArray("chapters").objects().map { chapterJson ->
+                BookChapter(
+                    title = chapterJson.optString("title"),
+                    content = chapterJson.optString("content"),
+                )
+            }
+            return BookContent(
+                name = bookJson.optString("name"),
+                intro = bookJson.optString("intro").takeIf { it.isNotBlank() },
+                chapters = chapters,
+            )
+        }
+        return null
+    }
+
     override fun clearCache() {
         courseContentsCache.evictAll()
     }
@@ -485,6 +549,8 @@ class MoodleCourseRepository @Inject constructor(
         url = moduleJson.optString("url").takeIf { it.isNotEmpty() },
         description = moduleJson.optString("description").takeIf { it.isNotEmpty() },
         files = parseModuleFiles(moduleJson.optJSONArray("contents")),
+        completionMode = moduleJson.optInt("completion", 0),
+        completionState = moduleJson.optJSONObject("completiondata")?.optInt("state", 0) ?: 0,
     )
 
     /**

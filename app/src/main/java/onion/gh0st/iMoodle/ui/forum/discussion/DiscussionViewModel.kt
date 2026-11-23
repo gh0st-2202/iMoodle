@@ -15,8 +15,10 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.core.runCatchingCancellable
+import onion.gh0st.iMoodle.domain.model.auth.AuthException
 import onion.gh0st.iMoodle.domain.model.forum.ForumPost
 import onion.gh0st.iMoodle.domain.usecase.forum.GetDiscussionPosts
+import onion.gh0st.iMoodle.domain.usecase.forum.ManageForumPosts
 import javax.inject.Inject
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 
@@ -25,10 +27,12 @@ import onion.gh0st.iMoodle.ui.common.FragmentArgs
  *
  * @property isLoading `true` mientras se cargan los posts.
  * @property posts Lista de posts cargados.
+ * @property isPosting `true` mientras se publica una respuesta.
  */
 data class DiscussionUiState(
     val isLoading: Boolean = true,
     val posts: List<ForumPost> = emptyList(),
+    val isPosting: Boolean = false,
 )
 
 /**
@@ -46,6 +50,9 @@ sealed interface DiscussionUiEvent {
         @param:StringRes val messageResId: Int,
         val arg: String? = null,
     ) : DiscussionUiEvent
+
+    /** La respuesta se ha publicado correctamente. */
+    data object ReplyPosted : DiscussionUiEvent
 }
 
 /**
@@ -66,15 +73,18 @@ sealed interface DiscussionUiEvent {
  *
  * ## Dependencias
  *
- * Solo depende del caso de uso `GetDiscussionPosts`.
+ * Depende de `GetDiscussionPosts` para leer y `ManageForumPosts` para
+ * responder.
  *
  * @param savedStateHandle Handle con `DISCUSSION_ID`.
  * @param getDiscussionPosts Caso de uso de posts.
+ * @param manageForumPosts Caso de uso de escritura en foros.
  */
 @HiltViewModel
 class DiscussionViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getDiscussionPosts: GetDiscussionPosts,
+    private val manageForumPosts: ManageForumPosts,
 ) : ViewModel() {
 
     /** ID de la discusión, extraído de los argumentos. */
@@ -105,6 +115,54 @@ class DiscussionViewModel @Inject constructor(
      * - Desde el pull-to-refresh del Fragment.
      */
     fun refresh() = loadPosts()
+
+    /**
+     * Responde al mensaje inicial de la discusión.
+     *
+     * ## Cómo elige el destinatario
+     *
+     * Moodle pide el ID del post al que se responde. La app usa el
+     * primer post (el mensaje inicial), de modo que las respuestas
+     * quedan al mismo nivel en lugar de anidarse.
+     *
+     * Se ignora si no hay posts, si el asunto o el mensaje están
+     * vacíos, o si ya hay una respuesta en curso.
+     *
+     * @param subject Asunto de la respuesta.
+     * @param message Cuerpo de la respuesta.
+     */
+    fun reply(subject: String, message: String) {
+        if (subject.isBlank() || message.isBlank() || _state.value.isPosting) return
+        val parentPostId = _state.value.posts.firstOrNull()?.id ?: return
+
+        viewModelScope.launch {
+            _state.update { currentState -> currentState.copy(isPosting = true) }
+            runCatchingCancellable { manageForumPosts.addReply(parentPostId, subject, message) }
+                .onSuccess {
+                    _state.update { currentState -> currentState.copy(isPosting = false) }
+                    _events.send(DiscussionUiEvent.ReplyPosted)
+                    loadPosts()
+                }
+                .onFailure { exception ->
+                    Logging.logError(TAG, "addReply(parentPostId=$parentPostId)", exception)
+                    _state.update { currentState -> currentState.copy(isPosting = false) }
+                    _events.send(exception.toErrorEvent())
+                }
+        }
+    }
+
+    /**
+     * Traduce un fallo en el mensaje que se enseña al usuario.
+     *
+     * @receiver Fallo ocurrido.
+     * @return Evento de error listo para emitir.
+     */
+    private fun Throwable.toErrorEvent(): DiscussionUiEvent.ShowError = when {
+        this is AuthException.Network -> DiscussionUiEvent.ShowError(R.string.error_network)
+        this is IllegalStateException && !message.isNullOrBlank() ->
+            DiscussionUiEvent.ShowError(R.string.error_forum_operation, message)
+        else -> DiscussionUiEvent.ShowError(R.string.error_unexpected)
+    }
 
     /**
      * Lanza la carga de posts en `viewModelScope`.

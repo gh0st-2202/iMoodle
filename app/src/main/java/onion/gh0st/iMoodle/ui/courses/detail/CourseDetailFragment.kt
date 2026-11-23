@@ -22,7 +22,9 @@ import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.ui.assignments.AssignmentDetailFragment
+import onion.gh0st.iMoodle.ui.book.BookFragment
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
+import onion.gh0st.iMoodle.ui.page.PageFragment
 import onion.gh0st.iMoodle.ui.common.WebUrls
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
@@ -30,6 +32,7 @@ import onion.gh0st.iMoodle.ui.files.CourseFilesFragment
 import onion.gh0st.iMoodle.ui.files.FileDownloadDialog
 import onion.gh0st.iMoodle.ui.forum.list.ForumFragment
 import onion.gh0st.iMoodle.ui.glossary.GlossaryFragment
+import onion.gh0st.iMoodle.ui.grades.GradesFragment
 import onion.gh0st.iMoodle.ui.wiki.WikiFragment
 
 /**
@@ -92,6 +95,31 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
         binding.toolbarDetail.setNavigationOnClickListener {
             parentFragmentManager.popBackStack()
         }
+        binding.toolbarDetail.inflateMenu(R.menu.menu_course_detail)
+        binding.toolbarDetail.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.action_course_grades -> {
+                    openGrades()
+                    true
+                }
+
+                else -> false
+            }
+        }
+    }
+
+    /**
+     * Navega a la pantalla de notas del curso usando `detail_container`.
+     */
+    private fun openGrades() {
+        val courseId = arguments?.getInt(FragmentArgs.COURSE_ID) ?: 0
+        parentFragmentManager.commit {
+            replace(
+                R.id.detail_container,
+                GradesFragment.newInstance(courseId, courseName),
+            )
+            addToBackStack(null)
+        }
     }
 
     /**
@@ -100,7 +128,10 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
      *
      * @return El adaptador de la lista.
      */
-    private fun buildAdapter() = CourseDetailAdapter { moduleType -> routeModule(moduleType) }
+    private fun buildAdapter() = CourseDetailAdapter(
+        onModuleClick = { moduleType -> routeModule(moduleType) },
+        onCompletionClick = { module -> viewModel.toggleCompletion(module) },
+    )
 
     /**
      * Configura la lista de módulos y el gesto de arrastrar para refrescar.
@@ -153,6 +184,10 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
                                 showToast(R.string.toast_downloading, event.fileName)
                             CourseDetailUiEvent.DownloadFailed ->
                                 showToast(R.string.toast_download_error)
+                            CourseDetailUiEvent.CompletionUpdated ->
+                                showToast(R.string.toast_completion_updated)
+                            CourseDetailUiEvent.CompletionFailed ->
+                                showToast(R.string.error_completion_update)
                         }
                     }
                 }
@@ -211,18 +246,29 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
      * recurso, carpeta, enlace, foro, glosario, wiki o genérico. Las
      * etiquetas no hacen nada.
      *
+     * Antes de navegar avisa a Moodle de que el módulo se ha abierto,
+     * para que cuenten las actividades con finalización automática por
+     * "ver".
+     *
      * @param moduleType Módulo tocado, ya clasificado por tipo.
      */
-    private fun routeModule(moduleType: ModuleType) = when (moduleType) {
-        is ModuleType.Assignment -> openAssignment(moduleType.module)
-        is ModuleType.Resource -> openResource(moduleType.module)
-        is ModuleType.Folder -> openFolder(moduleType.module)
-        is ModuleType.Url -> openUrl(moduleType.module)
-        is ModuleType.Forum -> openForum(moduleType.module)
-        is ModuleType.Glossary -> openGlossary(moduleType.module)
-        is ModuleType.Wiki -> openWiki(moduleType.module)
-        is ModuleType.Label -> Unit
-        is ModuleType.Other -> openGeneric(moduleType.module)
+    private fun routeModule(moduleType: ModuleType) {
+        if (moduleType !is ModuleType.Label) {
+            viewModel.markModuleViewed(moduleType.module)
+        }
+        when (moduleType) {
+            is ModuleType.Assignment -> openAssignment(moduleType.module)
+            is ModuleType.Resource -> openResource(moduleType.module)
+            is ModuleType.Folder -> openFolder(moduleType.module)
+            is ModuleType.Url -> openUrl(moduleType.module)
+            is ModuleType.Page -> openPage(moduleType.module)
+            is ModuleType.Book -> openBook(moduleType.module)
+            is ModuleType.Forum -> openForum(moduleType.module)
+            is ModuleType.Glossary -> openGlossary(moduleType.module)
+            is ModuleType.Wiki -> openWiki(moduleType.module)
+            is ModuleType.Label -> Unit
+            is ModuleType.Other -> openGeneric(moduleType.module)
+        }
     }
 
     /**
@@ -332,6 +378,38 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
             replace(
                 R.id.detail_container,
                 WikiFragment.newInstance(module.instance, module.name),
+            )
+            addToBackStack(null)
+        }
+    }
+
+    /**
+     * Navega a la pantalla de una página usando `detail_container`.
+     *
+     * @param module Módulo de tipo página.
+     */
+    private fun openPage(module: CourseModule) {
+        val courseId = arguments?.getInt(FragmentArgs.COURSE_ID) ?: 0
+        parentFragmentManager.commit {
+            replace(
+                R.id.detail_container,
+                PageFragment.newInstance(courseId, module.instance, module.name),
+            )
+            addToBackStack(null)
+        }
+    }
+
+    /**
+     * Navega a la pantalla de un libro usando `detail_container`.
+     *
+     * @param module Módulo de tipo libro.
+     */
+    private fun openBook(module: CourseModule) {
+        val courseId = arguments?.getInt(FragmentArgs.COURSE_ID) ?: 0
+        parentFragmentManager.commit {
+            replace(
+                R.id.detail_container,
+                BookFragment.newInstance(courseId, module.instance, module.name),
             )
             addToBackStack(null)
         }

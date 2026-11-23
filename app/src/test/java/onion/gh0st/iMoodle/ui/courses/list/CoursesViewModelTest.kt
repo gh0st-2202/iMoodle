@@ -265,5 +265,17 @@ class CoursesViewModelTest {
             instanceId: Int,
             forceRefresh: Boolean,
         ): String? = null
+
+        override suspend fun getPageContent(
+            courseId: Int,
+            instanceId: Int,
+            forceRefresh: Boolean,
+        ) = null
+
+        override suspend fun getBookContent(
+            courseId: Int,
+            instanceId: Int,
+            forceRefresh: Boolean,
+        ) = null
     }
 }

@@ -21,6 +21,9 @@ internal object FragmentArgs {
     /** Identificador del curso. */
     const val COURSE_ID = "COURSE_ID"
 
+    /** Identificador de instancia de un módulo (page, book…). */
+    const val MODULE_INSTANCE_ID = "MODULE_INSTANCE_ID"
+
     /** Nombre del curso (se muestra en la barra superior). */
     const val COURSE_NAME = "COURSE_NAME"
 

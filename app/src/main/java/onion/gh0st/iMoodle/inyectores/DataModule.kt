@@ -10,12 +10,15 @@ import onion.gh0st.iMoodle.api.moodle.auth.SessionApiProvider
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleAssignmentRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleAssignmentSubmissionRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCalendarRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleCompletionRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleCourseRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleForumRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleGlossaryRepository
+import onion.gh0st.iMoodle.api.moodle.repository.MoodleGradeRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleSubmissionCommentsRepository
 import onion.gh0st.iMoodle.api.moodle.repository.MoodleWikiRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenScheduleRepository
+import onion.gh0st.iMoodle.api.pasen.repository.PasenGradeRepository as ApiPasenGradeRepository
 import onion.gh0st.iMoodle.api.pasen.repository.PasenUserProfileRepository
 import onion.gh0st.iMoodle.data.auth.EncryptedCredentialsStore
 import onion.gh0st.iMoodle.data.auth.EncryptedTokenStore
@@ -29,11 +32,14 @@ import onion.gh0st.iMoodle.domain.repository.assignment.AssignmentRepository
 import onion.gh0st.iMoodle.domain.repository.assignment.AssignmentSubmissionRepository
 import onion.gh0st.iMoodle.domain.repository.assignment.SubmissionCommentsRepository
 import onion.gh0st.iMoodle.domain.repository.calendar.CalendarRepository
+import onion.gh0st.iMoodle.domain.repository.completion.CompletionRepository
 import onion.gh0st.iMoodle.domain.repository.course.CourseRepository
 import onion.gh0st.iMoodle.domain.repository.course.FavouritesRepository
 import onion.gh0st.iMoodle.domain.repository.file.FileDownloader
 import onion.gh0st.iMoodle.domain.repository.forum.ForumRepository
 import onion.gh0st.iMoodle.domain.repository.glossary.GlossaryRepository
+import onion.gh0st.iMoodle.domain.repository.grade.GradeRepository
+import onion.gh0st.iMoodle.domain.repository.pasen.PasenGradeRepository as DomainPasenGradeRepository
 import onion.gh0st.iMoodle.domain.repository.notification.NotificationScheduler
 import onion.gh0st.iMoodle.domain.repository.schedule.ScheduleRepository
 import onion.gh0st.iMoodle.domain.repository.session.AuthRepository
@@ -229,4 +235,25 @@ abstract class DataModule {
     abstract fun bindSubmissionCommentsRepository(
         impl: MoodleSubmissionCommentsRepository,
     ): SubmissionCommentsRepository
+
+    /**
+     * Vincula el contrato [GradeRepository] con su implementación real,
+     * [MoodleGradeRepository]. Hilt inyecta esta última cada vez que se pide la interfaz.
+     */
+    @Binds @Singleton
+    abstract fun bindGradeRepository(impl: MoodleGradeRepository): GradeRepository
+
+    /**
+     * Vincula el contrato [CompletionRepository] con su implementación real,
+     * [MoodleCompletionRepository]. Hilt inyecta esta última cada vez que se pide la interfaz.
+     */
+    @Binds @Singleton
+    abstract fun bindCompletionRepository(impl: MoodleCompletionRepository): CompletionRepository
+
+    /**
+     * Vincula el contrato [DomainPasenGradeRepository] con su implementación real,
+     * [ApiPasenGradeRepository]. Hilt inyecta esta última cada vez que se pide la interfaz.
+     */
+    @Binds @Singleton
+    abstract fun bindPasenGradeRepository(impl: ApiPasenGradeRepository): DomainPasenGradeRepository
 }

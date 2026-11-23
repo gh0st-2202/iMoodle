@@ -33,6 +33,10 @@ import onion.gh0st.iMoodle.domain.model.course.CourseFile
  * @property submissionId El número interno de tu entrega. Es vital para poder leer o escribir comentarios en ella. Si no has entregado nada, es `null`.
  * @property files Lista de archivos que el profesor ha adjuntado a las instrucciones (PDFs, plantillas...).
  * @property submissionFiles Lista de archivos que TÚ has entregado.
+ * @property feedbackComment Comentario que ha dejado el profesor al
+ *   corregir, en HTML, o `null` si no hay.
+ * @property gradedFiles Archivos que el profesor adjunta a la
+ *   corrección (por ejemplo, la tarea corregida), o lista vacía.
  * @property enabledSubmissionPlugins Una lista de las cosas que el profesor permite entregar (ej: solo archivos, o archivos y texto).
  * @property statusUnknown Si hubo un error de red y no se pudo comprobar el estado real de la tarea, esto se pone en `true`. Así la pantalla no miente al usuario.
  */
@@ -56,6 +60,8 @@ data class AssignmentDetail(
     val submissionId: Int? = null,
     val files: List<CourseFile> = emptyList(),
     val submissionFiles: List<CourseFile> = emptyList(),
+    val feedbackComment: String? = null,
+    val gradedFiles: List<CourseFile> = emptyList(),
     val enabledSubmissionPlugins: Set<String> = emptySet(),
     val statusUnknown: Boolean = false,
 ) {
