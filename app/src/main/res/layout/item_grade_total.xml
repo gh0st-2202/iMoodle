@@ -48,7 +48,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:textColor="@color/color_acento"
+            android:textColor="?attr/appAccent"
             android:textSize="28sp"
             android:textStyle="bold"
             tools:text="7,5" />

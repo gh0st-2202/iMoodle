@@ -124,6 +124,22 @@
     <string name="profile_gender">Sexo</string>
     <string name="profile_no_info">No se pudieron cargar los datos de PASEN.</string>
 
+    <!-- Apariencia -->
+    <string name="profile_theme">Tema</string>
+    <string name="profile_theme_summary">Elige la paleta de color de la app.</string>
+    <string name="profile_theme_dialog_title">Elige un tema</string>
+
+    <string name="theme_palette_verde_junta">Verde</string>
+    <string name="theme_palette_azul">Azul</string>
+    <string name="theme_palette_morado">Morado</string>
+    <string name="theme_palette_naranja">Naranja</string>
+    <string name="theme_palette_rojo">Rojo</string>
+    <string name="theme_palette_teal">Teal</string>
+    <string name="theme_palette_rosa">Rosa</string>
+    <string name="theme_palette_indigo">Índigo</string>
+    <string name="theme_palette_ambar">Ámbar</string>
+    <string name="theme_palette_cian">Cian</string>
+
     <!-- Actualizaciones -->
     <string name="update_dialog_title">Nueva versión disponible (v%1$s)</string>
     <string name="update_action_download">Actualizar</string>

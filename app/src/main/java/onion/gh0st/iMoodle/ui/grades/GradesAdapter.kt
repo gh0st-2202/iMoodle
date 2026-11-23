@@ -12,6 +12,7 @@ import onion.gh0st.iMoodle.databinding.ItemGradeBinding
 import onion.gh0st.iMoodle.databinding.ItemGradeTotalBinding
 import onion.gh0st.iMoodle.domain.model.grade.GradeItem
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.common.resolveColorAttr
 
 /**
  * Adapter de la lista de notas de un curso.
@@ -103,7 +104,7 @@ class GradesAdapter(
             android.widget.TextView(parent.context).apply {
                 textSize = 18f
                 setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(parent.context.getColor(R.color.color_acento))
+                setTextColor(parent.context.resolveColorAttr(R.attr.appAccent))
                 val res = resources
                 setPadding(
                     res.getDimensionPixelSize(R.dimen.list_header_horizontal_padding),
@@ -167,11 +168,6 @@ class GradesAdapter(
          */
         fun bind(item: GradeItem, onClick: (GradeItem) -> Unit) = with(binding) {
             txtGradeName.text = item.name
-            val feedback = item.feedback
-            txtGradeFeedback.isVisible = !feedback.isNullOrBlank()
-            if (!feedback.isNullOrBlank()) {
-                txtGradeFeedback.text = HtmlUtils.stripHtmlPreservingLines(feedback)
-            }
             txtGradeValue.text = item.displayValue()
 
             root.isClickable = item.itemModule == "assign"

@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import dagger.hilt.android.AndroidEntryPoint
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ActivityWebBinding
+import onion.gh0st.iMoodle.ui.common.ThemedActivity
 import onion.gh0st.iMoodle.domain.model.web.WebCookie
 
 /**
@@ -64,7 +65,7 @@ import onion.gh0st.iMoodle.domain.model.web.WebCookie
  *   (típicamente `Lax` en Chromium). Es un compromiso consciente.
  */
 @AndroidEntryPoint
-class MoodleWebViewActivity : AppCompatActivity() {
+class MoodleWebViewActivity : ThemedActivity() {
 
     /**
      * ViewModel que expone la sesión web como modelo de dominio.

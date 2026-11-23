@@ -10,7 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +34,8 @@ import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.DeepLinkExtras
 import onion.gh0st.iMoodle.domain.model.update.AppUpdate
 import onion.gh0st.iMoodle.ui.assignments.AssignmentDetailFragment
+import onion.gh0st.iMoodle.ui.common.ThemedActivity
+import onion.gh0st.iMoodle.ui.common.showCustomToast
 import onion.gh0st.iMoodle.ui.login.LoginActivity
 import onion.gh0st.iMoodle.ui.update.UpdateDialogHelper
 import onion.gh0st.iMoodle.ui.update.UpdateEvent
@@ -76,7 +77,7 @@ import onion.gh0st.iMoodle.ui.update.UpdateViewModel
  *   descarga termina (ver [UpdateViewModel]).
  */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity() {
+class MainActivity : ThemedActivity() {
 
     private val mainViewModel: MainViewModel by viewModels()
     private val updateViewModel: UpdateViewModel by viewModels()
@@ -132,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (!granted) {
-            Toast.makeText(this, R.string.toast_no_notifications_permission, Toast.LENGTH_LONG).show()
+            showCustomToast(getString(R.string.toast_no_notifications_permission), longDuration = true)
         }
     }
 
@@ -189,7 +190,34 @@ class MainActivity : AppCompatActivity() {
 
         updateViewModel.check()
         observeUpdates()
+
+        showPendingWelcomeMessage()
     }
+
+    /**
+     * Muestra el saludo de bienvenida traído desde `LoginActivity`.
+     *
+     * El mensaje viaja como extra del intent para que avisar y navegar
+     * sean dos pasos independientes: un fallo al dibujar el Snackbar
+     * no puede dejar la navegación a medias. El extra se elimina
+     * justo después de leerlo, para no repetir el saludo al rotar la
+     * pantalla.
+     */
+    private fun showPendingWelcomeMessage() {
+        intent.getStringExtra(LoginActivity.EXTRA_WELCOME_MESSAGE)?.let { welcome ->
+            intent.removeExtra(LoginActivity.EXTRA_WELCOME_MESSAGE)
+            runCatching { showCustomToast(welcome, longDuration = true) }
+        }
+    }
+
+    /**
+     * Devuelve la sección (pestaña) actualmente visible en el pager.
+     *
+     * Se usa para preservar la pestaña activa al reiniciar la Activity
+     * (por ejemplo, al cambiar el tema).
+     */
+    fun getCurrentSection(): Int =
+        if (::viewPager.isInitialized) viewPager.currentItem else 0
 
     /** Cierra el diálogo de actualización para no filtrar su ventana. */
     override fun onDestroy() {
@@ -301,6 +329,9 @@ class MainActivity : AppCompatActivity() {
 
         if (savedInstanceState != null) {
             viewPager.setCurrentItem(savedInstanceState.getInt(STATE_CURRENT_SECTION, 0), false)
+        } else if (intent.hasExtra(STATE_CURRENT_SECTION)) {
+            viewPager.setCurrentItem(intent.getIntExtra(STATE_CURRENT_SECTION, 0), false)
+            handleIntent(intent)
         } else {
             handleIntent(intent)
         }
@@ -515,13 +546,13 @@ class MainActivity : AppCompatActivity() {
     private fun handleUpdateEvent(event: UpdateEvent) {
         when (event) {
             UpdateEvent.DownloadStarted ->
-                Toast.makeText(this, R.string.update_downloading, Toast.LENGTH_SHORT).show()
+                showCustomToast(getString(R.string.update_downloading))
 
             UpdateEvent.InstallFailed ->
-                Toast.makeText(this, R.string.update_install_failed, Toast.LENGTH_LONG).show()
+                showCustomToast(getString(R.string.update_install_failed), longDuration = true)
 
             UpdateEvent.DownloadFailed ->
-                Toast.makeText(this, R.string.update_download_failed, Toast.LENGTH_LONG).show()
+                showCustomToast(getString(R.string.update_download_failed), longDuration = true)
         }
     }
 
@@ -553,7 +584,7 @@ class MainActivity : AppCompatActivity() {
         }
         runCatching { exactAlarmSettingsLauncher.launch(settingsIntent) }
             .onFailure {
-                Toast.makeText(this, R.string.toast_exact_alarm_settings, Toast.LENGTH_LONG).show()
+                showCustomToast(getString(R.string.toast_exact_alarm_settings), longDuration = true)
             }
     }
 
@@ -600,7 +631,7 @@ class MainActivity : AppCompatActivity() {
     private fun isLandscape(): Boolean =
         resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    private companion object {
+    companion object {
         const val STATE_CURRENT_SECTION = "STATE_CURRENT_SECTION"
     }
 }

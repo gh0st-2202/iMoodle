@@ -3,5 +3,5 @@
     <!-- Deshabilitado: gris atenuado (el mismo tono que usa Material para disabled) -->
     <item android:alpha="0.38" android:color="@color/texto_principal" android:state_enabled="false" />
     <!-- Habilitado: verde corporativo -->
-    <item android:color="@color/color_acento" />
+    <item android:color="?attr/appAccent" />
 </selector>

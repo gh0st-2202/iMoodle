@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="1871dp"
+    android:height="840dp"
+    android:viewportWidth="1871"
+    android:viewportHeight="840">
+
+    <!-- Fondo casi negro con un brillo verde muy sutil en la zona inferior derecha. -->
+    <path
+        android:pathData="M0,0 H1871 V840 H0 Z"
+        android:fillColor="?attr/colorSurface" />
+
+    <path
+        android:pathData="M0,0 H1871 V840 H0 Z"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="1871"
+                android:centerY="784"
+                android:gradientRadius="620"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="#00000000" />
+        </aapt:attr>
+    </path>
+
+    <!-- Curva verde principal, esquina superior izquierda. -->
+    <path
+        android:pathData="M0,0 H340
+            C318,62 274,112 212,148
+            C154,182 82,202 0,212 Z"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="6"
+                android:endX="245"
+                android:endY="195"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="6"
+                android:endX="245"
+                android:endY="195"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+    </path>
+
+    <!-- Banda verde intermedia superior. -->
+    <path
+        android:pathData="M340,0 H585
+            C515,62 425,108 320,148
+            C215,188 108,205 0,212
+            C110,174 198,132 262,82
+            C302,50 326,22 340,0 Z"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="490"
+                android:startY="0"
+                android:endX="95"
+                android:endY="202"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="490"
+                android:startY="0"
+                android:endX="95"
+                android:endY="202"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+    </path>
+
+    <!-- Brillo y curva exterior de la esquina inferior derecha. -->
+    <path
+        android:pathData="M1871,622
+            C1720,636 1595,668 1485,712
+            C1385,752 1300,794 1225,840
+            H1871 Z"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="1815"
+                android:startY="628"
+                android:endX="1325"
+                android:endY="836"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="1815"
+                android:startY="628"
+                android:endX="1325"
+                android:endY="836"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+    </path>
+
+    <!-- Banda verde oscura inferior, visible bajo la curva brillante. -->
+    <path
+        android:pathData="M1871,682
+            C1685,688 1525,715 1385,758
+            C1260,796 1155,818 1055,840
+            H1871 Z"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="1840"
+                android:startY="688"
+                android:endX="1165"
+                android:endY="838"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="1840"
+                android:startY="688"
+                android:endX="1165"
+                android:endY="838"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+    </path>
+
+    <!-- Curva verde intensa del borde inferior derecho. -->
+    <path
+        android:pathData="M1871,698
+            C1710,698 1580,715 1465,744
+            C1355,772 1268,804 1195,840
+            H1871 Z"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="1785"
+                android:startY="702"
+                android:endX="1310"
+                android:endY="838"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="1785"
+                android:startY="702"
+                android:endX="1310"
+                android:endY="838"
+                android:startColor="?attr/colorPrimaryVariant"
+                android:centerColor="?attr/colorPrimaryVariant"
+                android:endColor="?attr/colorPrimaryVariant" />
+        </aapt:attr>
+    </path>
+
+</vector>

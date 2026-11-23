@@ -16,6 +16,7 @@ import onion.gh0st.iMoodle.databinding.ItemModuleBinding
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
 import onion.gh0st.iMoodle.domain.model.course.ModuleType
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.common.resolveColorAttr
 
 /**
  * Item del adapter de detalle de curso.
@@ -235,7 +236,7 @@ class CourseDetailAdapter(
             titleTextView.text = title
             titleTextView.textSize = 18f
             titleTextView.setTypeface(null, Typeface.BOLD)
-            titleTextView.setTextColor(titleTextView.context.getColor(R.color.color_acento))
+            titleTextView.setTextColor(titleTextView.context.resolveColorAttr(R.attr.appAccent))
             titleTextView.setPadding(
                 resources.getDimensionPixelSize(R.dimen.list_header_horizontal_padding),
                 resources.getDimensionPixelSize(R.dimen.list_header_top_padding),
@@ -309,9 +310,11 @@ class CourseDetailAdapter(
             bindDescription(module.description)
             imgModuleIcon.setImageResource(iconFor(type))
             imgModuleIcon.imageTintList = ColorStateList.valueOf(
-                imgModuleIcon.context.getColor(
-                    if (type is ModuleType.Other) R.color.texto_hint else R.color.color_acento,
-                ),
+                if (type is ModuleType.Other) {
+                    imgModuleIcon.context.getColor(R.color.texto_hint)
+                } else {
+                    imgModuleIcon.context.resolveColorAttr(R.attr.appAccent)
+                },
             )
             bindCompletion(module, onCompletionClick)
             root.setOnClickListener { onClick(type) }
@@ -344,9 +347,8 @@ class CourseDetailAdapter(
                 if (module.isCompleted) R.drawable.ic_check_circle else R.drawable.ic_circle_outline,
             )
             setColorFilter(
-                context.getColor(
-                    if (module.isCompleted) R.color.color_acento else R.color.texto_hint,
-                ),
+                if (module.isCompleted) context.resolveColorAttr(R.attr.appAccent)
+                else context.getColor(R.color.texto_hint),
             )
             isClickable = module.canToggleCompletion
             contentDescription = context.getString(

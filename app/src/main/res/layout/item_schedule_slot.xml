@@ -35,7 +35,7 @@
                 android:id="@+id/txtTimeRange"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/color_acento"
+                android:textColor="?attr/appAccent"
                 android:textSize="13sp"
                 android:textStyle="bold"
                 tools:text="08:30 - 09:30" />

@@ -13,7 +13,7 @@
         android:layout_height="?attr/actionBarSize"
         android:background="@color/fondo_app"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/color_acento"
+        app:navigationIconTint="?attr/appAccent"
         app:titleTextColor="@color/texto_principal" />
 
     <WebView

@@ -43,7 +43,7 @@
                 android:contentDescription="@string/glossary_edit_entry"
                 android:padding="8dp"
                 android:src="@drawable/ic_edit"
-                app:tint="@color/color_acento" />
+                app:tint="?attr/appAccent" />
 
             <ImageButton
                 android:id="@+id/btn_delete_entry"
@@ -64,7 +64,7 @@
             android:autoLink="web"
             android:lineSpacingExtra="3dp"
             android:textColor="@color/texto_principal"
-            android:textColorLink="@color/color_acento"
+            android:textColorLink="?attr/appAccent"
             android:textSize="15sp"
             tools:text="Un espacio de memoria con nombre que guarda un valor." />
 

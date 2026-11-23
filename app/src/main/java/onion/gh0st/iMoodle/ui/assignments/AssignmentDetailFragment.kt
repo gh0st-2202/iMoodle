@@ -34,6 +34,7 @@ import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
 import onion.gh0st.iMoodle.ui.common.applyImeBottomInset
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.resolveColorAttr
 import onion.gh0st.iMoodle.ui.common.showToast
 import onion.gh0st.iMoodle.ui.files.FileDownloadDialog
 
@@ -329,7 +330,7 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
         val context = requireContext()
 
         if (enabled) {
-            val accent = ContextCompat.getColor(context, R.color.color_acento)
+            val accent = context.resolveColorAttr(R.attr.appAccent)
             val white = ContextCompat.getColor(context, R.color.texto_boton)
             val foregroundColor = if (isOutlined) accent else white
             val backgroundColor = if (isOutlined) Color.TRANSPARENT else accent

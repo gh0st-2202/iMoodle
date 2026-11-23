@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="320dp"
+    android:height="320dp"
+    android:viewportWidth="520"
+    android:viewportHeight="520">
+
+    <!-- Resplandor ambiental inferior derecho -->
+    <path android:pathData="M0,0 H520 V520 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="520"
+                android:centerY="520"
+                android:gradientRadius="500"
+                android:startColor="?attr/loginGlowStrong"
+                android:centerColor="?attr/loginGlowSoft"
+                android:endColor="?attr/loginTransparent" />
+        </aapt:attr>
+    </path>
+
+    <!-- Línea fina decorativa paralela inferior -->
+    <path
+        android:pathData="M520,94 C415,121 332,171 258,244 C192,309 138,391 95,520"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:fillColor="?attr/loginTransparent">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="520"
+                android:startY="94"
+                android:endX="95"
+                android:endY="520"
+                android:startColor="?attr/loginTransparent"
+                android:centerColor="?attr/loginLineAccent"
+                android:endColor="?attr/loginRimEnd" />
+        </aapt:attr>
+    </path>
+
+    <!-- Banda exterior oscura inferior -->
+    <path
+        android:pathData="M520,134
+            C425,159 352,204 286,269
+            C228,327 178,399 136,520
+            H520 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="490"
+                android:startY="144"
+                android:endX="200"
+                android:endY="520"
+                android:startColor="?attr/loginAccentMidDark"
+                android:centerColor="?attr/loginAccentDark"
+                android:endColor="?attr/loginAccentDeep" />
+        </aapt:attr>
+    </path>
+
+    <!-- Banda intermedia inferior -->
+    <path
+        android:pathData="M520,197
+            C415,211 330,247 254,307
+            C184,362 126,431 72,520
+            H520 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="500"
+                android:startY="209"
+                android:endX="145"
+                android:endY="520"
+                android:startColor="?attr/loginAccentMidLight"
+                android:centerColor="?attr/loginAccentMid"
+                android:endColor="?attr/loginAccentDark" />
+        </aapt:attr>
+    </path>
+
+    <!-- Sombra proyectada bajo la curva brillante inferior -->
+    <path
+        android:pathData="M520,241
+            C422,241 346,259 282,292
+            C214,327 163,380 130,443
+            C105,490 96,510 92,520
+            H520 Z"
+        android:fillColor="?attr/loginShadow" />
+
+    <!-- Curva brillante principal inferior derecha -->
+    <path
+        android:pathData="M520,253
+            C427,252 354,268 292,299
+            C226,332 177,383 146,444
+            C122,490 113,510 109,520
+            H520 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="475"
+                android:startY="254"
+                android:endX="210"
+                android:endY="520"
+                android:startColor="?attr/loginAccentHighlight"
+                android:centerColor="?attr/loginAccentPrimary"
+                android:endColor="?attr/loginAccentMid" />
+        </aapt:attr>
+    </path>
+
+    <!-- Filo de luz (Rim Light) -->
+    <path
+        android:pathData="M520,253 C427,252 354,268 292,299 C226,332 177,383 146,444 C122,490 113,510 109,520"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:fillColor="?attr/loginTransparent">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="520"
+                android:startY="253"
+                android:endX="109"
+                android:endY="520"
+                android:startColor="?attr/loginRimStart"
+                android:centerColor="?attr/loginRimCenter"
+                android:endColor="?attr/loginRimEnd" />
+        </aapt:attr>
+    </path>
+
+</vector>

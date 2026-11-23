@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.domain.model.calendar.CalendarEvent
 import onion.gh0st.iMoodle.databinding.ItemCalendarEventBinding
+import onion.gh0st.iMoodle.ui.common.resolveColorAttr
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -235,7 +236,7 @@ class CalendarAdapter(
             titleTextView.text = resolveHeaderText(header)
             titleTextView.textSize = 16f
             titleTextView.setTypeface(null, android.graphics.Typeface.BOLD)
-            titleTextView.setTextColor(titleTextView.context.getColor(R.color.color_acento))
+            titleTextView.setTextColor(titleTextView.context.resolveColorAttr(R.attr.appAccent))
             titleTextView.setPadding(
                 resources.getDimensionPixelSize(R.dimen.list_header_horizontal_padding),
                 resources.getDimensionPixelSize(R.dimen.list_header_top_padding),

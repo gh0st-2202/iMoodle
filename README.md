@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blueviolet?logo=kotlin)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-API%2028%2B-green?logo=android)](https://developer.android.com)
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.7-blue)](./app/build.gradle.kts)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.8-blue)](./app/build.gradle.kts)
 [![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)]()
 
 ---
@@ -33,7 +33,7 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 📝 Detalle de tarea con fechas, estado de entrega, nota y adjuntos.
 - 💬 Foros con discusiones y mensajes en HTML (enlaces clicables).
 - ✍️ **Escribir en foros**: abre temas nuevos y responde en las discusiones. El botón de nuevo tema solo aparece si Moodle permite publicar en ese foro.
-- 📊 **Notas del curso**: la nota total y la de cada actividad calificable, agrupadas por unidad en el mismo orden que el curso y con acceso directo al detalle de las tareas, desde el menú del detalle del curso.
+- 📊 **Notas del curso**: la nota total y la de cada actividad calificable, agrupadas por unidad en el mismo orden que el curso y con acceso directo al detalle de las tareas, desde el menú del detalle del curso. La fila muestra solo el nombre y la nota: se retiró el feedback para que la lista quede limpia.
 - 🧑‍🏫 **Corrección de tareas**: el detalle muestra el comentario del profesor y los archivos corregidos, descargables como cualquier otro adjunto.
 - ✅ **Finalización de actividades**: cada módulo indica si está completado. Las actividades con finalización manual se marcan o desmarcan con un toque; las automáticas se registran al abrirlas.
 - 📖 **Glosarios**: consulta las entradas de un glosario y crea, edita o borra las tuyas. Si Moodle rechaza el cambio (por ejemplo, por permisos), se muestra su motivo.
@@ -45,7 +45,7 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 ### iPasen
 - 🗓️ **Horario semanal** con colores únicos por asignatura y filtro por día.
 - 👤 **Perfil del alumno** enriquecido con datos personales (centro, fecha de nacimiento, edad, sexo), con *pull-to-refresh* que vuelve a consultar iPasen.
-- 📊 **Calificaciones**: pestaña "Calificaciones" en la barra inferior con las convocatorias de evaluación y las notas por asignatura (iPasen).
+- 📊 **Calificaciones**: pestaña "Calificaciones" en la barra inferior con las convocatorias de evaluación y las notas por asignatura (iPasen). Se cachean por usuario como el horario: solo se consulta iPasen la primera vez o al hacer *pull-to-refresh*.
 
 ### General
 - 👆 **Navegación por gestos**: desliza el dedo entre las pestañas de Cursos, Agenda, Horario, Calificaciones y Perfil (en orientación vertical; desactivada en horizontal).
@@ -56,16 +56,30 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 📥 **Descargas**: los archivos van a `Descargas` en Android 10 o superior. En Android 9 se guardan en el almacenamiento propio de la app para que la descarga funcione sin pedir permisos de escritura adicionales.
 - 🔄 **Refresco silencioso de tokens**: la sesión se renueva sin pedir la contraseña. Un corte de red o una caída del servidor de la Junta **no** cierran la sesión.
 - 💾 **Offline-first**: cursos, tareas y calendario se cachean en local.
-- ⚡ **Caché por usuario** de horario y perfil: solo se llama a Pasen la primera vez o al hacer *pull-to-refresh*.
-- 🌓 **Tema claro/oscuro** (Material Components DayNight).
+- ⚡ **Caché por usuario** de horario, perfil y calificaciones: solo se llama a Pasen la primera vez o al hacer *pull-to-refresh*.
+- 🌓 **Tema claro/oscuro** (Material Components DayNight) con **10 paletas de color** seleccionables en Perfil: Verde, Azul, Morado, Naranja, Rojo, Teal, Rosa, Índigo, Ámbar y Cian. El cambio es instantáneo, sin parpadeo y conserva la pestaña activa.
+- 🖼️ **Icono del launcher por tema**: el color del icono en el escritorio sigue la paleta elegida. En Ajustes › Información de la app se muestra siempre un icono neutro en blanco y negro, porque Android no permite cambiar la identidad global del paquete en tiempo de ejecución.
+- 🔔 **Avisos con Snackbar**: los mensajes ya no son `Toast` del sistema, sino tarjetas con el logo y el color de acento de la paleta activa. Se muestran dentro de la pantalla y respetan el tema.
 
 ---
 
-## 🆕 Novedades de la 2.7
+## 🆕 Novedades de la 2.8
+
+La versión **2.8** transforma la apariencia de la app y renueva los avisos:
+
+- 🎨 **10 paletas de color**: Verde, Azul, Morado, Naranja, Rojo, Teal, Rosa, Índigo, Ámbar y Cian. Se eligen en Perfil › Tema. Los colores se aplican a toda la interfaz mediante atributos del tema (`?attr/`), así que funcionan igual en modo claro y en modo oscuro.
+- ⚡ **Cambio sin parpadeo**: se recrea la Activity con transición vacía y se reserva el inset de la barra de estado de forma síncrona. La pestaña en la que estabas se conserva.
+- 🔓 **Fondo de login vectorial**: se eliminan los PNG del fondo. Ahora son dos vectores (esquinas superior e inferior) y un `layer-list`, sin distorsiones, con sombras y colores que siguen la paleta activa. Hay versión horizontal.
+- 🖼️ **Icono adaptativo por paleta**: 10 alias del launcher, uno activo a la vez, con los colores exactos facilitados para cada tema. El cambio se aplica al salir al escritorio para no cerrar la app delante del usuario. Ajustes › Información de la app muestra un icono monocromático fijo (`#121212` + logo blanco).
+- 🔔 **Snackbar en lugar de Toast**: avisos redondeados con logo y borde del color de acento, respetando el tema. El saludo de bienvenida se muestra **ya dentro** del Main, de modo que un fallo al dibujarlo no puede impedir la navegación.
+- 💾 **Caché de calificaciones de iPasen**: como la del horario, indexada por usuario y con *pull-to-refresh*.
+- 🧹 **Notas del curso sin feedback**: la lista de notas muestra solo el nombre y la nota; la corrección del profesor sigue disponible en el detalle de la tarea.
+
+### 🆕 Novedades de la 2.7
 
 La versión **2.7** añade las cinco funciones que faltaban para seguir el curso desde el móvil:
 
-- 📊 **Notas del curso**: pantalla nueva con la nota total y una fila por actividad, agrupadas por unidad con cabeceras en verde y en el orden real del curso. Cada fila muestra el comentario de retroalimentación del profesor si lo hay. Las tareas se abren con un toque y la pantalla se actualiza con *pull-to-refresh*.
+- 📊 **Notas del curso**: pantalla nueva con la nota total y una fila por actividad, agrupadas por unidad con cabeceras en verde y en el orden real del curso. Las tareas se abren con un toque y la pantalla se actualiza con *pull-to-refresh*. (En la 2.8 se retiró el feedback de cada fila; el detalle de la tarea sigue mostrando la corrección.)
 - 🧑‍🏫 **Corrección de tareas**: el detalle de una tarea muestra el comentario del profesor y los archivos que adjunta a la corrección, listos para descargar.
 - ✅ **Finalización de actividades**: icono de estado en cada módulo del curso. Las actividades manuales se marcan o desmarcan con un toque; al abrir un módulo se avisa a Moodle para que cuenten las de finalización automática por «ver».
 - 📖 **Páginas y libros**: lectura nativa del contenido (HTML) de los módulos de tipo *Página* y *Libro* (capítulos incluidos).
@@ -89,9 +103,9 @@ El proyecto sigue **Clean Architecture** con **MVVM** en la capa de UI.
 
 ```mermaid
 flowchart TD
-    UI["<b>UI (Android)</b><br/>Fragments · Activities · ViewModels · Adapters"]
+    UI["<b>UI (Android)</b><br/>Fragments · Activities · ViewModels · Adapters · themes · Snackbar"]
     DOMAIN["<b>domain/</b><br/>model · repository (contratos) · usecase · rules"]
-    DATA["<b>data/</b><br/>Room · caches · sesión · favoritos · descargas · web · update"]
+    DATA["<b>data/</b><br/>Room · cachés (horario, perfil, notas) · sesión · favoritos · descargas · web · update"]
     API["<b>api/</b><br/>CAS · Moodle · Pasen"]
 
     UI -->|"contratos de domain"| DOMAIN
@@ -105,14 +119,15 @@ flowchart TD
 - **`ui/`**: pantallas, ViewModels, adapters y utilidades de vista. Solo importa `domain/`; nunca `data/` ni `api/`.
 - **`inyectores/`**: módulos de Hilt.
 - **`notifications/`**: programación de recordatorios con `AlarmManager`.
-- **`core/`**: utilidades transversales.
+- **`core/`**: utilidades transversales. Aquí viven `ThemePreferences` (paleta y cambio de icono pendiente) y `AppIconManager` (alias del launcher).
+- **`ui/common/`**: `ThemedActivity` (aplica la paleta antes de inflar), `ThemePalettes` (catálogo de las 10 paletas), `SnackbarExtensions` (avisos con estilo de la app) y utilidades de vista compartidas.
 
 Reglas que se respetan en todo el proyecto:
 
 - **`ui/` → `domain/`**: los ViewModels dependen de casos de uso, no de repositorios, y no tienen `Context`; emiten eventos con `@StringRes` y la vista resuelve el texto.
 - **`domain/` aislado**: sin `android.*`, `api.*`, `data.*` ni `ui.*` (solo tipos JVM como `java.io.File`).
 - **`data/` y `api/`**: implementan contratos de `domain/` y nunca importan `ui/`.
-- **Plataforma en su capa**: `DownloadManager`, `FileProvider`, `Intent`, `CookieManager` y `AlarmManager` viven en `data/` o `notifications/`; diálogos, toasts y `WebView`, en `ui/`.
+- **Plataforma en su capa**: `DownloadManager`, `FileProvider`, `Intent`, `CookieManager` y `AlarmManager` viven en `data/` o `notifications/`; diálogos, avisos Snackbar y `WebView`, en `ui/`.
 
 ---
 
@@ -161,6 +176,8 @@ cd iMoodle
 
 También puedes abrir el proyecto en Android Studio y usar **Run ▶︎** como con cualquier proyecto Android.
 
+> **Importante al ejecutar desde Android Studio**: el icono de la app se cambia con `<activity-alias>` (uno por paleta) y solo el alias de la paleta guardada está activo. Android Studio intenta lanzar el primer alias del manifest (`LauncherGreen`), que puede estar desactivado, y falla con `Activity class ... LauncherGreen does not exist`. Antes de darle a **Run**, ve a **Run > Edit Configurations… > app > Launch Options**, marca **Specified Activity** y elige `onion.gh0st.iMoodle.ui.login.LoginActivity`. Esto no afecta al APK instalado: el icono sigue cambiando con el tema.
+
 > **Depurar la red de Moodle**: en compilaciones `debug`, `MoodleApiClient` escribe en Logcat (etiqueta `iMoodleNet`) la función de *web service*, sus parámetros y el JSON de respuesta o error. Filtra con `adb logcat -s iMoodleNet`. El `wstoken` no se registra y los parámetros sensibles se redactan; el tráfico del CAS y del login no pasa por ahí.
 
 > La app no se publica en Play Store. El APK generado es para uso personal.
@@ -175,7 +192,7 @@ La app maneja datos sensibles, así que conviene explicar cómo se tratan:
 
 - **Credenciales de la Junta**: se guardan **cifradas** en el dispositivo con **AES-256-GCM**, con una clave que vive dentro del **Android Keystore** y nunca sale de él (`KeystoreCipher`). Se borran al hacer logout o si la Junta las rechaza (un error 5xx de la Junta **no** cuenta como rechazo).
 - **Tokens de Moodle**: se guardan cifrados del mismo modo. Son revocables y de corta duración. Al subir archivos, el token viaja en el cuerpo de la petición, nunca en la URL; al cargar el avatar, solo se añade si la imagen está alojada en el propio servidor de Moodle, nunca en un CDN externo.
-- **Cachés de horario y perfil**: se indexan por `username` de la Junta, en `SharedPreferences`. No contienen credenciales, pero sí datos personales (centro, fecha de nacimiento…), por eso **se borran al cerrar sesión**.
+- **Cachés de horario, perfil y calificaciones**: se indexan por `username` de la Junta, en `SharedPreferences`. No contienen credenciales, pero sí datos personales (centro, fecha de nacimiento, notas…), por eso **se borran al cerrar sesión**. La preferencia de tema y el icono pendiente se guardan en un fichero aparte (`app_settings`) y no contienen datos personales.
 - **Cursos favoritos**: se guardan **solo en el dispositivo** (`SharedPreferences`), sin enviar datos a ningún servidor externo.
 - **Datos de cursos, tareas y calendario**: se guardan en Room y se borran al hacer logout.
 - **Actualizaciones**: el APK descargado se guarda temporalmente en `cache/updates/` y se instala mediante `FileProvider` + el instalador nativo de Android. Solo se descarga si la URL pertenece a las *releases* del repositorio oficial de GitHub del proyecto, y Android rechaza instalar un APK firmado con otra clave.
@@ -196,12 +213,14 @@ app/src/main/java/onion/gh0st/iMoodle/
 │   ├── cas/
 │   ├── moodle/       network/ (REST y subidas), auth/, config/ y repository/
 │   └── pasen/
-├── core/             Utilidades transversales (logging, await, defaults, FileNames…)
+├── core/             Utilidades transversales (logging, await, defaults, FileNames,
+│                     ThemePreferences, AppIconManager…)
 ├── data/             Implementaciones de los contratos de dominio
 │   ├── auth/         Cifrado con Keystore y almacenes de tokens y credenciales
 │   ├── favourites/   Almacenamiento local de cursos favoritos (SharedPreferences)
 │   ├── files/        Descargas con DownloadManager (AndroidFileDownloader)
 │   ├── local/        Room (DAOs, entidades, migraciones)
+│   ├── pasen/        Caché de calificaciones de iPasen por usuario
 │   ├── schedule/     Caché de horario por usuario
 │   ├── session/      Sesión, caché de usuario y perfil (el limpiador de logout está en local/)
 │   ├── update/       Releases de GitHub, descarga del APK e instalación con FileProvider
@@ -215,6 +234,7 @@ app/src/main/java/onion/gh0st/iMoodle/
 ├── notifications/    Recordatorios con AlarmManager
 └── ui/               Pantallas, ViewModels y adapters
     ├── calendar/     CalendarViewModel (programa alarmas, sin permisos)
+    ├── common/       ThemedActivity, ThemePalettes, SnackbarExtensions, ViewExtensions
     ├── courses/list/ CourseAdapter con estrella y CoursesViewModel con favoritos
     ├── files/        FileDownloadDialog (la descarga vive en data/)
     ├── forum/        list/ (discusiones) y discussion/ (posts)
@@ -224,6 +244,7 @@ app/src/main/java/onion/gh0st/iMoodle/
     ├── main/         MainActivity con ViewPager2 y OnBackPressedCallback;
     │                 MainViewModel como puerta única a la sesión
     ├── pasengrades/  PasenGradesFragment, ViewModel y Adapter (notas de iPasen)
+    ├── profile/      ProfileFragment: selector de paleta y cambio de icono diferido
     ├── update/       UpdateDialogHelper y UpdateViewModel (el instalador vive en data/)
     ├── web/          MoodleWebViewActivity y MoodleWebViewModel
     └── wiki/         WikiFragment (páginas), WikiPageFragment (contenido) y diálogos de alta y edición

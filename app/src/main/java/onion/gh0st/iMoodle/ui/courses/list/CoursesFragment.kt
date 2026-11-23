@@ -3,7 +3,6 @@ package onion.gh0st.iMoodle.ui.courses.list
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
@@ -17,6 +16,7 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentCoursesBinding
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 import onion.gh0st.iMoodle.ui.courses.detail.CourseDetailFragment
 
 /**
@@ -152,15 +152,13 @@ class CoursesFragment : Fragment(R.layout.fragment_courses) {
     }
 
     /**
-     * Muestra un mensaje flotante (Toast) cuando hay un error.
+     * Muestra un aviso flotante cuando hay un error.
      */
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
-                is CoursesUiEvent.ShowError -> {
-                    val message = event.arg?.let { getString(event.messageResId, it) } ?: getString(event.messageResId)
-                    Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
-                }
+                is CoursesUiEvent.ShowError ->
+                    showToast(event.messageResId, event.arg, longDuration = true)
             }
         }
     }

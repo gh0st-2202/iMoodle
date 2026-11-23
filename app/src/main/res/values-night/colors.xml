@@ -47,4 +47,41 @@
     <color name="schedule_color_21">#1565C0</color>
     <color name="schedule_color_22">#2E7D32</color>
     <color name="schedule_color_23">#6A1B9A</color>
+
+    <!-- PALETAS DE COLOR (MODO OSCURO) -->
+    <color name="palette_azul">#42A5F5</color>
+    <color name="palette_azul_pressed">#1E88E5</color>
+    <color name="palette_azul_soft">#1A237E</color>
+
+    <color name="palette_morado">#AB47BC</color>
+    <color name="palette_morado_pressed">#8E24AA</color>
+    <color name="palette_morado_soft">#4A148C</color>
+
+    <color name="palette_naranja">#FFA726</color>
+    <color name="palette_naranja_pressed">#FB8C00</color>
+    <color name="palette_naranja_soft">#E65100</color>
+
+    <color name="palette_rojo">#EF5350</color>
+    <color name="palette_rojo_pressed">#E53935</color>
+    <color name="palette_rojo_soft">#B71C1C</color>
+
+    <color name="palette_teal">#26A69A</color>
+    <color name="palette_teal_pressed">#00897B</color>
+    <color name="palette_teal_soft">#004D40</color>
+
+    <color name="palette_rosa">#EC407A</color>
+    <color name="palette_rosa_pressed">#D81B60</color>
+    <color name="palette_rosa_soft">#880E4F</color>
+
+    <color name="palette_indigo">#5C6BC0</color>
+    <color name="palette_indigo_pressed">#3F51B5</color>
+    <color name="palette_indigo_soft">#1A237E</color>
+
+    <color name="palette_ambar">#FFCA28</color>
+    <color name="palette_ambar_pressed">#FFC107</color>
+    <color name="palette_ambar_soft">#FF6F00</color>
+
+    <color name="palette_cian">#26C6DA</color>
+    <color name="palette_cian_pressed">#00ACC1</color>
+    <color name="palette_cian_soft">#006064</color>
 </resources>

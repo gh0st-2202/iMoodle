@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Contenido de los avisos: logo teñido con el acento de la paleta y
+     texto sobre la pastilla oscura de bg_snackbar_pill. Lo infla
+     SnackbarExtensions dentro del layout del Snackbar. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center_horizontal"
+    android:background="@drawable/bg_snackbar_pill"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="10dp">
+
+    <ImageView
+        android:id="@+id/ivSnackbarLogo"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="10dp"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_logo"
+        app:tint="?attr/loginAccentPrimary" />
+
+    <TextView
+        android:id="@+id/tvSnackbarMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        tools:text="Mensaje" />
+
+</LinearLayout>

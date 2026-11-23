@@ -47,7 +47,7 @@
             android:background="@drawable/bg_badge_tasks"
             android:paddingHorizontal="10dp"
             android:paddingVertical="4dp"
-            android:textColor="@color/color_acento"
+            android:textColor="?attr/appAccent"
             android:textSize="12sp"
             android:textStyle="bold"
             tools:text="3 respuestas" />

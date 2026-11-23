@@ -3,6 +3,7 @@ package onion.gh0st.iMoodle.ui.courses.list
 import android.content.res.Configuration
 import android.view.LayoutInflater
 import android.view.ViewGroup
+import android.graphics.drawable.ColorDrawable
 import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -15,6 +16,7 @@ import coil3.svg.SvgDecoder
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ItemCourseBinding
 import onion.gh0st.iMoodle.ui.common.MoodleGeoPattern
+import onion.gh0st.iMoodle.ui.common.resolveColorAttr
 
 /**
  * Adaptador de la lista de cursos.
@@ -89,8 +91,8 @@ class CourseAdapter(
         private fun bindRealImage(course: CourseUi) = with(binding) {
             imgCourseBanner?.scaleType = ImageView.ScaleType.CENTER_CROP
             imgCourseBanner?.load(course.imageUrl) {
-                placeholder(R.color.verde_junta_suave)
-                error(R.color.verde_junta_suave)
+                placeholder(ColorDrawable(binding.root.context.resolveColorAttr(R.attr.appAccentSoft)))
+                error(ColorDrawable(binding.root.context.resolveColorAttr(R.attr.appAccentSoft)))
                 crossfade(true)
                 memoryCacheKey("course_img_${course.id}")
                 diskCacheKey("course_img_${course.id}")
@@ -115,7 +117,7 @@ class CourseAdapter(
                 size(1000, 500)
                 memoryCacheKey("geo_${course.id}")
                 diskCacheKey("geo_${course.id}")
-                placeholder(R.color.verde_junta_suave)
+                placeholder(ColorDrawable(binding.root.context.resolveColorAttr(R.attr.appAccentSoft)))
                 crossfade(true)
             }
         }

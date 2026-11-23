@@ -4,7 +4,7 @@
     android:id="@+id/lyt_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_login_horizontal"
+    android:background="@drawable/bg_login"
     android:orientation="horizontal"
     android:baselineAligned="false"
     android:weightSum="2">
@@ -29,7 +29,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/logo_i"
-                android:textColor="@color/color_acento"
+                android:textColor="?attr/appAccent"
                 android:textSize="56sp"
                 android:textStyle="bold"
                 android:fontFamily="sans-serif-medium" />

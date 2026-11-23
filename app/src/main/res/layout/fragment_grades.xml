@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/color_acento"
+            app:navigationIconTint="?attr/appAccent"
             app:title="@string/title_grades"
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>

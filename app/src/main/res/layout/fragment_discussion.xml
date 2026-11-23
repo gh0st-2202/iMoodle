@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/color_acento"
+            app:navigationIconTint="?attr/appAccent"
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -45,6 +45,6 @@
         android:contentDescription="@string/forum_reply"
         android:src="@drawable/ic_edit"
         android:visibility="gone"
-        app:backgroundTint="@color/color_acento"
+        app:backgroundTint="?attr/appAccent"
         app:tint="@color/texto_boton" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -15,9 +15,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
+import onion.gh0st.iMoodle.core.ThemePreferences
 import onion.gh0st.iMoodle.databinding.FragmentProfileBinding
 import onion.gh0st.iMoodle.domain.model.session.User
+import onion.gh0st.iMoodle.ui.common.ThemePalette
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.main.MainActivity
 import onion.gh0st.iMoodle.ui.login.LoginActivity
 
 /**
@@ -49,16 +52,52 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
     /**
      * Ciclo de vida de la vista.
      *
+     * El inset superior se aplica de forma síncrona antes del helper
+     * habitual para que la toolbar no parpadee al recrear la Activity
+     * con un tema nuevo (§7.105).
+     *
      * @param view Vista raíz.
      * @param savedInstanceState Estado previo.
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val binding = FragmentProfileBinding.bind(view)
+        applyToolbarTopInsetSynchronously(binding)
         binding.appBarProfile.applySystemBarsInsets()
         binding.swipeRefreshProfile.setOnRefreshListener { viewModel.refresh() }
         observeUiState(binding)
         observeEvents()
         setupLogoutButton(binding)
+        setupThemeButton(binding)
+    }
+
+    /**
+     * Reserva el alto de la barra de estado en la toolbar sin esperar a
+     * los `WindowInsets`.
+     *
+     * Al recrear la Activity para cambiar de tema, esperar a que Android
+     * despache los insets deja un fotograma con la toolbar pegada arriba:
+     * el clásico parpadeo. El recurso del sistema `status_bar_height`
+     * está disponible de inmediato, así que se lee y se aplica como
+     * padding superior antes de que se dibuje la vista. Si el recurso no
+     * existe, se deja el padding como estaba.
+     *
+     * @param binding Binding de la vista.
+     */
+    private fun applyToolbarTopInsetSynchronously(binding: FragmentProfileBinding) {
+        val statusBarHeight = try {
+            val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+            if (resourceId > 0) resources.getDimensionPixelSize(resourceId) else 0
+        } catch (e: Exception) {
+            0
+        }
+        if (statusBarHeight > 0) {
+            binding.appBarProfile.setPadding(
+                binding.appBarProfile.paddingLeft,
+                statusBarHeight,
+                binding.appBarProfile.paddingRight,
+                binding.appBarProfile.paddingBottom,
+            )
+        }
     }
 
     /**
@@ -228,5 +267,66 @@ class ProfileFragment : Fragment(R.layout.fragment_profile) {
                 .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
+    }
+
+    /**
+     * Configura el selector de paleta de color.
+     *
+     * Muestra un diálogo de selección única con las paletas disponibles.
+     * Al elegir una, se persiste y se recrea la Activity para aplicar
+     * el nuevo tema; el icono del launcher se deja pendiente y se aplica
+     * cuando la app pasa a segundo plano.
+     *
+     * ## Por qué el reinicio es manual
+     *
+     * Se usa `finish()` + `startActivity()` con transición vacía en vez
+     * de `recreate()`: así no hay parpadeo de la toolbar y se puede
+     * conservar la pestaña activa mediante
+     * [MainActivity.STATE_CURRENT_SECTION]. Cambiar el alias del launcher
+     * aquí cerraría la app al instante en algunos fabricantes, por eso
+     * ese paso se retrasa hasta el segundo plano (§7.106).
+     *
+     * @param binding Binding de la vista.
+     */
+    private fun setupThemeButton(binding: FragmentProfileBinding) {
+        renderCurrentTheme(binding)
+        val openDialog = {
+            val palettes = ThemePalette.entries
+            val names = palettes.map { getString(it.displayNameRes) }.toTypedArray()
+            val currentId = ThemePreferences.getPaletteId(requireContext())
+            val currentIndex = palettes.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.profile_theme_dialog_title)
+                .setSingleChoiceItems(names, currentIndex) { dialog, which ->
+                    val selected = palettes[which]
+                    ThemePreferences.setPaletteId(requireContext(), selected.id)
+                    ThemePreferences.setPendingPaletteId(requireContext(), selected.id)
+                    dialog.dismiss()
+                    val activity = requireActivity()
+                    val intent = activity.intent
+                    if (activity is MainActivity) {
+                        intent.putExtra(MainActivity.STATE_CURRENT_SECTION, activity.getCurrentSection())
+                    }
+                    activity.finish()
+                    activity.overridePendingTransition(0, 0)
+                    startActivity(intent)
+                    activity.overridePendingTransition(0, 0)
+                }
+                .setNegativeButton(R.string.action_cancel, null)
+                .show()
+        }
+        binding.cardTheme.setOnClickListener { openDialog() }
+        binding.txtProfileTheme.setOnClickListener { openDialog() }
+    }
+
+    /**
+     * Pinta el nombre de la paleta actualmente seleccionada.
+     *
+     * @param binding Binding de la vista.
+     */
+    private fun renderCurrentTheme(binding: FragmentProfileBinding) {
+        val currentId = ThemePreferences.getPaletteId(requireContext())
+        val palette = ThemePalette.fromId(currentId)
+        binding.txtProfileTheme.text = getString(palette.displayNameRes)
     }
 }

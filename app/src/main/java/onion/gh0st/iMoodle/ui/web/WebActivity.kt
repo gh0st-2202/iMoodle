@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import onion.gh0st.iMoodle.R
+import onion.gh0st.iMoodle.ui.common.ThemedActivity
 import onion.gh0st.iMoodle.databinding.ActivityWebBinding
 import onion.gh0st.iMoodle.ui.common.WebUrls
 
@@ -42,7 +43,7 @@ import onion.gh0st.iMoodle.ui.common.WebUrls
  * profesores) se prefiere `CourseDetailFragment.openUrl`, que los abre
  * en el navegador del sistema.
  */
-class WebActivity : AppCompatActivity() {
+class WebActivity : ThemedActivity() {
 
     /** Binding de la vista. */
     private lateinit var binding: ActivityWebBinding

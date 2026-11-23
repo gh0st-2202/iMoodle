@@ -4,6 +4,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import onion.gh0st.iMoodle.data.pasen.PasenGradeCache
 import onion.gh0st.iMoodle.data.schedule.ScheduleCache
 import onion.gh0st.iMoodle.data.session.UserProfileCache
 import org.junit.Assert.assertEquals
@@ -23,6 +24,7 @@ import org.junit.Test
 class AppLocalDataCleanerTest {
 
     private val scheduleCache = mockk<ScheduleCache>(relaxed = true)
+    private val pasenGradeCache = mockk<PasenGradeCache>(relaxed = true)
     private val userProfileCache = mockk<UserProfileCache>(relaxed = true)
 
     @Test
@@ -31,6 +33,7 @@ class AppLocalDataCleanerTest {
         val cleaner = AppLocalDataCleaner(
             databaseCleaner = { databaseCleared = true },
             scheduleCache = scheduleCache,
+            pasenGradeCache = pasenGradeCache,
             userProfileCache = userProfileCache,
         )
 
@@ -46,6 +49,7 @@ class AppLocalDataCleanerTest {
         val cleaner = AppLocalDataCleaner(
             databaseCleaner = { throw IllegalStateException("disco lleno") },
             scheduleCache = scheduleCache,
+            pasenGradeCache = pasenGradeCache,
             userProfileCache = userProfileCache,
         )
 
@@ -63,6 +67,7 @@ class AppLocalDataCleanerTest {
         val cleaner = AppLocalDataCleaner(
             databaseCleaner = { },
             scheduleCache = scheduleCache,
+            pasenGradeCache = pasenGradeCache,
             userProfileCache = userProfileCache,
         )
 

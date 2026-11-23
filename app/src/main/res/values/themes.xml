@@ -12,6 +12,15 @@
         <item name="colorSecondaryVariant">@color/color_acento_presionado</item>
         <item name="colorOnSecondary">@color/texto_boton</item>
 
+        <!-- Atributos de paleta (permiten cambiar el acento en runtime) -->
+        <item name="appAccent">@color/color_acento</item>
+        <item name="appAccentPressed">@color/color_acento_presionado</item>
+        <item name="appAccentSoft">@color/verde_junta_suave</item>
+
+        <!-- Contenedores (para fondos decorativos como el del login) -->
+        <item name="colorPrimaryContainer">@color/verde_junta_suave</item>
+        <item name="colorSecondaryContainer">@color/verde_junta_suave</item>
+
         <!-- Fondo general -->
         <item name="android:windowBackground">@color/fondo_app</item>
 
@@ -24,8 +33,289 @@
         <item name="chipStrokeColor">@color/color_acento</item>
         <item name="chipStrokeWidth">1dp</item>
         <item name="chipIconTint">@color/color_acento</item>
-    </style>
+        <!-- Colores del fondo de login (paleta Verde) -->
+        <item name="loginBgEdge">@color/login_green_bg_edge</item>
+        <item name="loginBgCenter">@color/login_green_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_green_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_green_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_green_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_green_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_green_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_green_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_green_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_green_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_green_glow_soft</item>
+        <item name="loginRimStart">@color/login_rim_start</item>
+        <item name="loginRimCenter">@color/login_green_rim_center</item>
+        <item name="loginRimEnd">@color/login_green_rim_end</item>
+        <item name="loginLineAccent">@color/login_green_line_accent</item>
+        <item name="loginShadow">@color/login_shadow</item>
+        <item name="loginTransparent">@color/login_transparent</item>
+</style>
 
     <dimen name="update_dialog_corner_radius">20dp</dimen>
+
+    <!-- Overlays de paleta (solo override el acento). -->
+    <style name="ThemeOverlay.MiMoodleAndalucia.Azul" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_azul</item>
+        <item name="appAccentPressed">@color/palette_azul_pressed</item>
+        <item name="appAccentSoft">@color/palette_azul_soft</item>
+        <item name="colorPrimary">@color/palette_azul</item>
+        <item name="colorPrimaryVariant">@color/palette_azul_pressed</item>
+        <item name="colorSecondary">@color/palette_azul</item>
+        <item name="colorSecondaryVariant">@color/palette_azul_pressed</item>
+        <item name="chipStrokeColor">@color/palette_azul</item>
+        <item name="chipIconTint">@color/palette_azul</item>
+        <item name="chipBackgroundColor">@color/palette_azul_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_azul_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_azul_soft</item>
+        <!-- Fondo de login: paleta Azul -->
+        <item name="loginBgEdge">@color/login_blue_bg_edge</item>
+        <item name="loginBgCenter">@color/login_blue_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_blue_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_blue_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_blue_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_blue_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_blue_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_blue_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_blue_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_blue_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_blue_glow_soft</item>
+        <item name="loginRimCenter">@color/login_blue_rim_center</item>
+        <item name="loginRimEnd">@color/login_blue_rim_end</item>
+        <item name="loginLineAccent">@color/login_blue_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Morado" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_morado</item>
+        <item name="appAccentPressed">@color/palette_morado_pressed</item>
+        <item name="appAccentSoft">@color/palette_morado_soft</item>
+        <item name="colorPrimary">@color/palette_morado</item>
+        <item name="colorPrimaryVariant">@color/palette_morado_pressed</item>
+        <item name="colorSecondary">@color/palette_morado</item>
+        <item name="colorSecondaryVariant">@color/palette_morado_pressed</item>
+        <item name="chipStrokeColor">@color/palette_morado</item>
+        <item name="chipIconTint">@color/palette_morado</item>
+        <item name="chipBackgroundColor">@color/palette_morado_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_morado_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_morado_soft</item>
+        <!-- Fondo de login: paleta Morado -->
+        <item name="loginBgEdge">@color/login_purple_bg_edge</item>
+        <item name="loginBgCenter">@color/login_purple_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_purple_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_purple_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_purple_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_purple_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_purple_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_purple_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_purple_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_purple_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_purple_glow_soft</item>
+        <item name="loginRimCenter">@color/login_purple_rim_center</item>
+        <item name="loginRimEnd">@color/login_purple_rim_end</item>
+        <item name="loginLineAccent">@color/login_purple_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Naranja" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_naranja</item>
+        <item name="appAccentPressed">@color/palette_naranja_pressed</item>
+        <item name="appAccentSoft">@color/palette_naranja_soft</item>
+        <item name="colorPrimary">@color/palette_naranja</item>
+        <item name="colorPrimaryVariant">@color/palette_naranja_pressed</item>
+        <item name="colorSecondary">@color/palette_naranja</item>
+        <item name="colorSecondaryVariant">@color/palette_naranja_pressed</item>
+        <item name="chipStrokeColor">@color/palette_naranja</item>
+        <item name="chipIconTint">@color/palette_naranja</item>
+        <item name="chipBackgroundColor">@color/palette_naranja_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_naranja_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_naranja_soft</item>
+        <!-- Fondo de login: paleta Naranja -->
+        <item name="loginBgEdge">@color/login_orange_bg_edge</item>
+        <item name="loginBgCenter">@color/login_orange_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_orange_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_orange_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_orange_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_orange_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_orange_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_orange_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_orange_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_orange_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_orange_glow_soft</item>
+        <item name="loginRimCenter">@color/login_orange_rim_center</item>
+        <item name="loginRimEnd">@color/login_orange_rim_end</item>
+        <item name="loginLineAccent">@color/login_orange_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Rojo" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_rojo</item>
+        <item name="appAccentPressed">@color/palette_rojo_pressed</item>
+        <item name="appAccentSoft">@color/palette_rojo_soft</item>
+        <item name="colorPrimary">@color/palette_rojo</item>
+        <item name="colorPrimaryVariant">@color/palette_rojo_pressed</item>
+        <item name="colorSecondary">@color/palette_rojo</item>
+        <item name="colorSecondaryVariant">@color/palette_rojo_pressed</item>
+        <item name="chipStrokeColor">@color/palette_rojo</item>
+        <item name="chipIconTint">@color/palette_rojo</item>
+        <item name="chipBackgroundColor">@color/palette_rojo_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_rojo_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_rojo_soft</item>
+        <!-- Fondo de login: paleta Rojo -->
+        <item name="loginBgEdge">@color/login_red_bg_edge</item>
+        <item name="loginBgCenter">@color/login_red_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_red_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_red_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_red_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_red_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_red_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_red_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_red_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_red_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_red_glow_soft</item>
+        <item name="loginRimCenter">@color/login_red_rim_center</item>
+        <item name="loginRimEnd">@color/login_red_rim_end</item>
+        <item name="loginLineAccent">@color/login_red_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Teal" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_teal</item>
+        <item name="appAccentPressed">@color/palette_teal_pressed</item>
+        <item name="appAccentSoft">@color/palette_teal_soft</item>
+        <item name="colorPrimary">@color/palette_teal</item>
+        <item name="colorPrimaryVariant">@color/palette_teal_pressed</item>
+        <item name="colorSecondary">@color/palette_teal</item>
+        <item name="colorSecondaryVariant">@color/palette_teal_pressed</item>
+        <item name="chipStrokeColor">@color/palette_teal</item>
+        <item name="chipIconTint">@color/palette_teal</item>
+        <item name="chipBackgroundColor">@color/palette_teal_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_teal_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_teal_soft</item>
+        <!-- Fondo de login: paleta Teal -->
+        <item name="loginBgEdge">@color/login_teal_bg_edge</item>
+        <item name="loginBgCenter">@color/login_teal_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_teal_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_teal_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_teal_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_teal_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_teal_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_teal_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_teal_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_teal_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_teal_glow_soft</item>
+        <item name="loginRimCenter">@color/login_teal_rim_center</item>
+        <item name="loginRimEnd">@color/login_teal_rim_end</item>
+        <item name="loginLineAccent">@color/login_teal_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Rosa" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_rosa</item>
+        <item name="appAccentPressed">@color/palette_rosa_pressed</item>
+        <item name="appAccentSoft">@color/palette_rosa_soft</item>
+        <item name="colorPrimary">@color/palette_rosa</item>
+        <item name="colorPrimaryVariant">@color/palette_rosa_pressed</item>
+        <item name="colorSecondary">@color/palette_rosa</item>
+        <item name="colorSecondaryVariant">@color/palette_rosa_pressed</item>
+        <item name="chipStrokeColor">@color/palette_rosa</item>
+        <item name="chipIconTint">@color/palette_rosa</item>
+        <item name="chipBackgroundColor">@color/palette_rosa_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_rosa_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_rosa_soft</item>
+        <!-- Fondo de login: paleta Rosa -->
+        <item name="loginBgEdge">@color/login_pink_bg_edge</item>
+        <item name="loginBgCenter">@color/login_pink_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_pink_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_pink_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_pink_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_pink_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_pink_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_pink_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_pink_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_pink_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_pink_glow_soft</item>
+        <item name="loginRimCenter">@color/login_pink_rim_center</item>
+        <item name="loginRimEnd">@color/login_pink_rim_end</item>
+        <item name="loginLineAccent">@color/login_pink_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Indigo" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_indigo</item>
+        <item name="appAccentPressed">@color/palette_indigo_pressed</item>
+        <item name="appAccentSoft">@color/palette_indigo_soft</item>
+        <item name="colorPrimary">@color/palette_indigo</item>
+        <item name="colorPrimaryVariant">@color/palette_indigo_pressed</item>
+        <item name="colorSecondary">@color/palette_indigo</item>
+        <item name="colorSecondaryVariant">@color/palette_indigo_pressed</item>
+        <item name="chipStrokeColor">@color/palette_indigo</item>
+        <item name="chipIconTint">@color/palette_indigo</item>
+        <item name="chipBackgroundColor">@color/palette_indigo_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_indigo_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_indigo_soft</item>
+        <!-- Fondo de login: paleta Indigo -->
+        <item name="loginBgEdge">@color/login_indigo_bg_edge</item>
+        <item name="loginBgCenter">@color/login_indigo_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_indigo_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_indigo_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_indigo_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_indigo_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_indigo_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_indigo_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_indigo_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_indigo_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_indigo_glow_soft</item>
+        <item name="loginRimCenter">@color/login_indigo_rim_center</item>
+        <item name="loginRimEnd">@color/login_indigo_rim_end</item>
+        <item name="loginLineAccent">@color/login_indigo_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Ambar" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_ambar</item>
+        <item name="appAccentPressed">@color/palette_ambar_pressed</item>
+        <item name="appAccentSoft">@color/palette_ambar_soft</item>
+        <item name="colorPrimary">@color/palette_ambar</item>
+        <item name="colorPrimaryVariant">@color/palette_ambar_pressed</item>
+        <item name="colorSecondary">@color/palette_ambar</item>
+        <item name="colorSecondaryVariant">@color/palette_ambar_pressed</item>
+        <item name="chipStrokeColor">@color/palette_ambar</item>
+        <item name="chipIconTint">@color/palette_ambar</item>
+        <item name="chipBackgroundColor">@color/palette_ambar_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_ambar_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_ambar_soft</item>
+        <!-- Fondo de login: paleta Ambar -->
+        <item name="loginBgEdge">@color/login_amber_bg_edge</item>
+        <item name="loginBgCenter">@color/login_amber_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_amber_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_amber_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_amber_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_amber_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_amber_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_amber_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_amber_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_amber_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_amber_glow_soft</item>
+        <item name="loginRimCenter">@color/login_amber_rim_center</item>
+        <item name="loginRimEnd">@color/login_amber_rim_end</item>
+        <item name="loginLineAccent">@color/login_amber_line_accent</item>
+</style>
+    <style name="ThemeOverlay.MiMoodleAndalucia.Cian" parent="Theme.MiMoodleAndalucia">
+        <item name="appAccent">@color/palette_cian</item>
+        <item name="appAccentPressed">@color/palette_cian_pressed</item>
+        <item name="appAccentSoft">@color/palette_cian_soft</item>
+        <item name="colorPrimary">@color/palette_cian</item>
+        <item name="colorPrimaryVariant">@color/palette_cian_pressed</item>
+        <item name="colorSecondary">@color/palette_cian</item>
+        <item name="colorSecondaryVariant">@color/palette_cian_pressed</item>
+        <item name="chipStrokeColor">@color/palette_cian</item>
+        <item name="chipIconTint">@color/palette_cian</item>
+        <item name="chipBackgroundColor">@color/palette_cian_soft</item>
+        <item name="colorPrimaryContainer">@color/palette_cian_soft</item>
+        <item name="colorSecondaryContainer">@color/palette_cian_soft</item>
+        <!-- Fondo de login: paleta Cian -->
+        <item name="loginBgEdge">@color/login_cyan_bg_edge</item>
+        <item name="loginBgCenter">@color/login_cyan_bg_center</item>
+        <item name="loginAccentHighlight">@color/login_cyan_accent_highlight</item>
+        <item name="loginAccentPrimary">@color/login_cyan_accent_primary</item>
+        <item name="loginAccentMidLight">@color/login_cyan_accent_mid_light</item>
+        <item name="loginAccentMid">@color/login_cyan_accent_mid</item>
+        <item name="loginAccentMidDark">@color/login_cyan_accent_mid_dark</item>
+        <item name="loginAccentDark">@color/login_cyan_accent_dark</item>
+        <item name="loginAccentDeep">@color/login_cyan_accent_deep</item>
+        <item name="loginGlowStrong">@color/login_cyan_glow_strong</item>
+        <item name="loginGlowSoft">@color/login_cyan_glow_soft</item>
+        <item name="loginRimCenter">@color/login_cyan_rim_center</item>
+        <item name="loginRimEnd">@color/login_cyan_rim_end</item>
+        <item name="loginLineAccent">@color/login_cyan_line_accent</item>
+</style>
 
 </resources>

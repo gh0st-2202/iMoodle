@@ -17,6 +17,7 @@ import onion.gh0st.iMoodle.data.local.TransactionRunner
 import onion.gh0st.iMoodle.data.local.dao.AssignmentDao
 import onion.gh0st.iMoodle.data.local.dao.CalendarDao
 import onion.gh0st.iMoodle.data.local.dao.CourseDao
+import onion.gh0st.iMoodle.data.pasen.PasenGradeCache
 import onion.gh0st.iMoodle.data.schedule.ScheduleCache
 import onion.gh0st.iMoodle.data.session.UserProfileCache
 import javax.inject.Singleton
@@ -188,10 +189,12 @@ object DatabaseModule {
     fun provideLocalDataCleaner(
         database: AppDatabase,
         scheduleCache: ScheduleCache,
+        pasenGradeCache: PasenGradeCache,
         userProfileCache: UserProfileCache,
     ): LocalDataCleaner = AppLocalDataCleaner(
         databaseCleaner = RoomLocalDataCleaner(database),
         scheduleCache = scheduleCache,
+        pasenGradeCache = pasenGradeCache,
         userProfileCache = userProfileCache,
     )
 }

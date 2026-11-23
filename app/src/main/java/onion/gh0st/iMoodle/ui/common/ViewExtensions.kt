@@ -1,7 +1,9 @@
 package onion.gh0st.iMoodle.ui.common
 
+import android.content.Context
+import android.content.res.Resources
+import android.util.TypedValue
 import android.view.View
-import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -126,22 +128,55 @@ private fun View.imeOverlap(imeBottom: Int): Int {
 }
 
 /**
- * Muestra un mensaje breve (`Toast`) a partir de un recurso de texto,
- * con un argumento opcional para los textos con `%1$s`.
+ * Muestra un aviso breve a partir de un recurso de texto, con un
+ * argumento opcional para los textos con `%1$s`.
  *
  * Sustituye a las copias privadas de `showToast` que había en cada
- * fragmento.
+ * fragmento. El nombre se conserva por compatibilidad con las pantallas
+ * existentes; internamente se dibuja un `Snackbar` personalizado.
  *
  * @receiver Fragmento desde el que se muestra el mensaje.
  * @param messageResId Recurso del texto.
  * @param formatArg Valor que sustituye a `%1$s`, si el texto lo usa.
- * @param duration `Toast.LENGTH_SHORT` (por defecto) o `Toast.LENGTH_LONG`.
+ * @param longDuration Si es `true` permanece más tiempo en pantalla.
  */
 internal fun Fragment.showToast(
     @StringRes messageResId: Int,
     formatArg: String? = null,
-    duration: Int = Toast.LENGTH_SHORT,
+    longDuration: Boolean = false,
 ) {
-    val message = if (formatArg != null) getString(messageResId, formatArg) else getString(messageResId)
-    Toast.makeText(requireContext(), message, duration).show()
+    showCustomToast(messageResId, formatArg, longDuration)
+}
+
+/**
+ * Resuelve un atributo de color del tema actual a un color concreto.
+ *
+ * ## Por qué hace falta
+ *
+ * Las paletas de color se aplican mediante atributos de tema
+ * (`?attr/appAccent` y similares). Cuando el código Kotlin necesita el
+ * valor entero del color (por ejemplo, para teñir un texto), no puede
+ * usar `ContextCompat.getColor(..., R.color.xxx)` porque el recurso de
+ * color fijo no cambia con la paleta. Esta función resuelve el atributo
+ * contra el tema activo y devuelve el color.
+ *
+ * @receiver Contexto con el tema aplicado.
+ * @param attr Atributo de tema (por ejemplo, `R.attr.appAccent`).
+ * @return Color resuelto, o `0` si no se pudo resolver.
+ */
+fun Context.resolveColorAttr(attr: Int): Int {
+    val typedValue = TypedValue()
+    return if (theme.resolveAttribute(attr, typedValue, true)) {
+        if (typedValue.resourceId != 0) {
+            try {
+                getColor(typedValue.resourceId)
+            } catch (exception: Resources.NotFoundException) {
+                typedValue.data
+            }
+        } else {
+            typedValue.data
+        }
+    } else {
+        0
+    }
 }

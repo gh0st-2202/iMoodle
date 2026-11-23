@@ -5,7 +5,11 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import io.mockk.coEvery
+import io.mockk.mockk
+import org.junit.Before
 import onion.gh0st.iMoodle.api.pasen.network.PasenApiClient
+import onion.gh0st.iMoodle.data.pasen.PasenGradeCache
 import onion.gh0st.iMoodle.domain.model.session.Enrollment
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.fakes.FakeCredentialsStore
@@ -27,6 +31,12 @@ class PasenGradeRepositoryTest {
     private val credentials = JuntaCredentials("usuario", "contraseña")
     private val credentialsStore = FakeCredentialsStore()
     private val apiClient = mockk<PasenApiClient>()
+    private val gradeCache = mockk<PasenGradeCache>(relaxed = true)
+
+    @Before
+    fun setup() {
+        coEvery { gradeCache.get(any()) } returns null
+    }
 
     @Test
     fun `parses convocatorias and subjects`() = runTest {
@@ -35,7 +45,7 @@ class PasenGradeRepositoryTest {
         coEvery { apiClient.getSessionInfo("token") } returns Enrollment("123", "41000000", "Centro")
         coEvery { apiClient.getNotasConvocatorias("token", "123") } returns VALID_JSON
 
-        val convocatorias = PasenGradeRepository(apiClient, credentialsStore).getGrades()
+        val convocatorias = PasenGradeRepository(apiClient, credentialsStore, gradeCache).getGrades()
 
         assertEquals(1, convocatorias.size)
         with(convocatorias.single()) {
@@ -70,7 +80,7 @@ class PasenGradeRepositoryTest {
         coEvery { apiClient.getNotasConvocatorias("token", "123") } returns
             """{"success":false,"message":"Token expirado"}"""
 
-        val convocatorias = PasenGradeRepository(apiClient, credentialsStore).getGrades()
+        val convocatorias = PasenGradeRepository(apiClient, credentialsStore, gradeCache).getGrades()
 
         assertTrue(convocatorias.isEmpty())
     }
@@ -82,7 +92,7 @@ class PasenGradeRepositoryTest {
         coEvery { apiClient.getSessionInfo("token") } returns Enrollment("123", "41000000", "Centro")
         coEvery { apiClient.getNotasConvocatorias("token", "123") } returns """{"success":true}"""
 
-        val convocatorias = PasenGradeRepository(apiClient, credentialsStore).getGrades()
+        val convocatorias = PasenGradeRepository(apiClient, credentialsStore, gradeCache).getGrades()
 
         assertTrue(convocatorias.isEmpty())
     }
@@ -90,7 +100,7 @@ class PasenGradeRepositoryTest {
     @Test
     fun `fails when there are no stored credentials`() = runTest {
         val result = runCatching {
-            PasenGradeRepository(apiClient, credentialsStore).getGrades()
+            PasenGradeRepository(apiClient, credentialsStore, gradeCache).getGrades()
         }
 
         assertTrue(result.exceptionOrNull() is IllegalStateException)

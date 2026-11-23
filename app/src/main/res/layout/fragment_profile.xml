@@ -43,10 +43,10 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="96dp"
                 android:layout_height="96dp"
-                app:cardBackgroundColor="@color/verde_junta_suave"
+                app:cardBackgroundColor="?attr/appAccentSoft"
                 app:cardCornerRadius="48dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/color_acento"
+                app:strokeColor="?attr/appAccent"
                 app:strokeWidth="2dp">
 
                 <FrameLayout
@@ -58,7 +58,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:textColor="@color/color_acento"
+                        android:textColor="?attr/appAccent"
                         android:textSize="32sp"
                         android:textStyle="bold"
                         tools:text="JP" />
@@ -115,7 +115,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/profile_info_title"
-                        android:textColor="@color/color_acento"
+                        android:textColor="?attr/appAccent"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -222,6 +222,74 @@
                             tools:text="Hombre" />
                     </LinearLayout>
 
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Selector de tema -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_theme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@color/fondo_input"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:rippleColor="?attr/appAccent"
+                app:strokeColor="@color/borde_input"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <!-- Vista previa del color actual -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginEnd="16dp"
+                        app:cardBackgroundColor="?attr/appAccent"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/borde_input"
+                        app:strokeWidth="1dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/profile_theme"
+                            android:textColor="@color/texto_principal"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/txt_profile_theme"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:textColor="?attr/appAccent"
+                            android:textSize="14sp"
+                            tools:text="Verde Junta" />
+                    </LinearLayout>
+
+                    <!-- Flecha -->
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@null"
+                        android:rotation="180"
+                        android:src="@drawable/ic_arrow_back"
+                        app:tint="@color/texto_hint" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

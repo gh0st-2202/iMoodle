@@ -45,4 +45,221 @@
     <color name="schedule_color_21">#1565C0</color>
     <color name="schedule_color_22">#2E7D32</color>
     <color name="schedule_color_23">#6A1B9A</color>
+
+    <!-- PALETAS DE COLOR (MODO CLARO) -->
+    <color name="palette_azul">#1565C0</color>
+    <color name="palette_azul_pressed">#0D47A1</color>
+    <color name="palette_azul_soft">#BBDEFB</color>
+
+    <color name="palette_morado">#6A1B9A</color>
+    <color name="palette_morado_pressed">#4A148C</color>
+    <color name="palette_morado_soft">#E1BEE7</color>
+
+    <color name="palette_naranja">#EF6C00</color>
+    <color name="palette_naranja_pressed">#E65100</color>
+    <color name="palette_naranja_soft">#FFE0B2</color>
+
+    <color name="palette_rojo">#C62828</color>
+    <color name="palette_rojo_pressed">#B71C1C</color>
+    <color name="palette_rojo_soft">#FFCDD2</color>
+
+    <color name="palette_teal">#00695C</color>
+    <color name="palette_teal_pressed">#004D40</color>
+    <color name="palette_teal_soft">#B2DFDB</color>
+
+    <color name="palette_rosa">#AD1457</color>
+    <color name="palette_rosa_pressed">#880E4F</color>
+    <color name="palette_rosa_soft">#F8BBD0</color>
+
+    <color name="palette_indigo">#283593</color>
+    <color name="palette_indigo_pressed">#1A237E</color>
+    <color name="palette_indigo_soft">#C5CAE9</color>
+
+    <color name="palette_ambar">#FF8F00</color>
+    <color name="palette_ambar_pressed">#FF6F00</color>
+    <color name="palette_ambar_soft">#FFECB3</color>
+
+    <color name="palette_cian">#00838F</color>
+    <color name="palette_cian_pressed">#006064</color>
+    <color name="palette_cian_soft">#B2EBF2</color>
+    <!-- ========================================== -->
+    <!-- PALETAS EXACTAS DEL FONDO DE LOGIN (MODO CLARO) -->
+    <!-- ========================================== -->
+
+    <!-- COMUNES A TODOS LOS TEMAS (MODO CLARO) -->
+    <color name="login_shadow">#1A000000</color>
+    <color name="login_transparent">#00000000</color>
+    <color name="login_rim_start">#E6FFFFFF</color>
+
+    <!-- 1. VERDE (MODO CLARO) -->
+    <color name="login_green_bg_edge">#F2FBF5</color>
+    <color name="login_green_bg_center">#FAFFFC</color>
+    <color name="login_green_accent_highlight">#2EE86C</color>
+    <color name="login_green_accent_primary">#00B83D</color>
+    <color name="login_green_accent_mid_light">#5CE68A</color>
+    <color name="login_green_accent_mid">#8AF0AC</color>
+    <color name="login_green_accent_mid_dark">#B8F7CD</color>
+    <color name="login_green_accent_dark">#D6FBE2</color>
+    <color name="login_green_accent_deep">#E8FDF0</color>
+    <color name="login_green_glow_strong">#2600C843</color>
+    <color name="login_green_glow_soft">#0D00C843</color>
+    <color name="login_green_rim_center">#CCFFFFFF</color>
+    <color name="login_green_rim_end">#4D00B83D</color>
+    <color name="login_green_line_accent">#4000B83D</color>
+
+    <!-- 2. AZUL (MODO CLARO) -->
+    <color name="login_blue_bg_edge">#F2F7FF</color>
+    <color name="login_blue_bg_center">#FAFCFF</color>
+    <color name="login_blue_accent_highlight">#3B99FF</color>
+    <color name="login_blue_accent_primary">#006CE0</color>
+    <color name="login_blue_accent_mid_light">#6BB3FF</color>
+    <color name="login_blue_accent_mid">#99CCFF</color>
+    <color name="login_blue_accent_mid_dark">#C2E0FF</color>
+    <color name="login_blue_accent_dark">#DBEDFF</color>
+    <color name="login_blue_accent_deep">#EBF5FF</color>
+    <color name="login_blue_glow_strong">#26006CE0</color>
+    <color name="login_blue_glow_soft">#0D006CE0</color>
+    <color name="login_blue_rim_center">#CCFFFFFF</color>
+    <color name="login_blue_rim_end">#4D006CE0</color>
+    <color name="login_blue_line_accent">#40006CE0</color>
+
+    <!-- 3. MORADO (MODO CLARO) -->
+    <color name="login_purple_bg_edge">#F8F2FF</color>
+    <color name="login_purple_bg_center">#FDFAFF</color>
+    <color name="login_purple_accent_highlight">#B35CFF</color>
+    <color name="login_purple_accent_primary">#8800E0</color>
+    <color name="login_purple_accent_mid_light">#C480FF</color>
+    <color name="login_purple_accent_mid">#D9ADFF</color>
+    <color name="login_purple_accent_mid_dark">#E8CFFF</color>
+    <color name="login_purple_accent_dark">#F1E3FF</color>
+    <color name="login_purple_accent_deep">#F7F0FF</color>
+    <color name="login_purple_glow_strong">#268800E0</color>
+    <color name="login_purple_glow_soft">#0D8800E0</color>
+    <color name="login_purple_rim_center">#CCFFFFFF</color>
+    <color name="login_purple_rim_end">#4D8800E0</color>
+    <color name="login_purple_line_accent">#408800E0</color>
+
+    <!-- 4. NARANJA (MODO CLARO) -->
+    <color name="login_orange_bg_edge">#FFF6F0</color>
+    <color name="login_orange_bg_center">#FFFCFA</color>
+    <color name="login_orange_accent_highlight">#FF8533</color>
+    <color name="login_orange_accent_primary">#E65100</color>
+    <color name="login_orange_accent_mid_light">#FFA366</color>
+    <color name="login_orange_accent_mid">#FFC299</color>
+    <color name="login_orange_accent_mid_dark">#FFD9BF</color>
+    <color name="login_orange_accent_dark">#FFE8D9</color>
+    <color name="login_orange_accent_deep">#FFF2E8</color>
+    <color name="login_orange_glow_strong">#26E65100</color>
+    <color name="login_orange_glow_soft">#0DE65100</color>
+    <color name="login_orange_rim_center">#CCFFFFFF</color>
+    <color name="login_orange_rim_end">#4DE65100</color>
+    <color name="login_orange_line_accent">#40E65100</color>
+
+    <!-- 5. ROJO (MODO CLARO) -->
+    <color name="login_red_bg_edge">#FFF2F4</color>
+    <color name="login_red_bg_center">#FFFAFB</color>
+    <color name="login_red_accent_highlight">#FF475A</color>
+    <color name="login_red_accent_primary">#DC0018</color>
+    <color name="login_red_accent_mid_light">#FF7583</color>
+    <color name="login_red_accent_mid">#FFA3AC</color>
+    <color name="login_red_accent_mid_dark">#FFC7CD</color>
+    <color name="login_red_accent_dark">#FFE0E3</color>
+    <color name="login_red_accent_deep">#FFEDF0</color>
+    <color name="login_red_glow_strong">#26DC0018</color>
+    <color name="login_red_glow_soft">#0DDC0018</color>
+    <color name="login_red_rim_center">#CCFFFFFF</color>
+    <color name="login_red_rim_end">#4DDC0018</color>
+    <color name="login_red_line_accent">#40DC0018</color>
+
+    <!-- 6. TEAL / VERDE AZULADO (MODO CLARO) -->
+    <color name="login_teal_bg_edge">#F0FBF9</color>
+    <color name="login_teal_bg_center">#F9FFFE</color>
+    <color name="login_teal_accent_highlight">#26E6CC</color>
+    <color name="login_teal_accent_primary">#00A892</color>
+    <color name="login_teal_accent_mid_light">#5CE6D4</color>
+    <color name="login_teal_accent_mid">#8FF0E3</color>
+    <color name="login_teal_accent_mid_dark">#BAF7EE</color>
+    <color name="login_teal_accent_dark">#D6FBF5</color>
+    <color name="login_teal_accent_deep">#E8FDF9</color>
+    <color name="login_teal_glow_strong">#2600A892</color>
+    <color name="login_teal_glow_soft">#0D00A892</color>
+    <color name="login_teal_rim_center">#CCFFFFFF</color>
+    <color name="login_teal_rim_end">#4D00A892</color>
+    <color name="login_teal_line_accent">#4000A892</color>
+
+    <!-- 7. ROSA (MODO CLARO) -->
+    <color name="login_pink_bg_edge">#FFF2F9</color>
+    <color name="login_pink_bg_center">#FFFAFD</color>
+    <color name="login_pink_accent_highlight">#FF4DA8</color>
+    <color name="login_pink_accent_primary">#DC0073</color>
+    <color name="login_pink_accent_mid_light">#FF7AC0</color>
+    <color name="login_pink_accent_mid">#FFA8D5</color>
+    <color name="login_pink_accent_mid_dark">#FFCCE6</color>
+    <color name="login_pink_accent_dark">#FFE0F0</color>
+    <color name="login_pink_accent_deep">#FFEDF7</color>
+    <color name="login_pink_glow_strong">#26DC0073</color>
+    <color name="login_pink_glow_soft">#0DDC0073</color>
+    <color name="login_pink_rim_center">#CCFFFFFF</color>
+    <color name="login_pink_rim_end">#4DDC0073</color>
+    <color name="login_pink_line_accent">#40DC0073</color>
+
+    <!-- 8. INDIGO (MODO CLARO) -->
+    <color name="login_indigo_bg_edge">#F3F4FF</color>
+    <color name="login_indigo_bg_center">#FAFAFF</color>
+    <color name="login_indigo_accent_highlight">#6B78FF</color>
+    <color name="login_indigo_accent_primary">#3644E0</color>
+    <color name="login_indigo_accent_mid_light">#8F99FF</color>
+    <color name="login_indigo_accent_mid">#B8BFFF</color>
+    <color name="login_indigo_accent_mid_dark">#D4D8FF</color>
+    <color name="login_indigo_accent_dark">#E6E8FF</color>
+    <color name="login_indigo_accent_deep">#F0F2FF</color>
+    <color name="login_indigo_glow_strong">#263644E0</color>
+    <color name="login_indigo_glow_soft">#0D3644E0</color>
+    <color name="login_indigo_rim_center">#CCFFFFFF</color>
+    <color name="login_indigo_rim_end">#4D3644E0</color>
+    <color name="login_indigo_line_accent">#403644E0</color>
+
+    <!-- 9. AMBAR (MODO CLARO) -->
+    <color name="login_amber_bg_edge">#FFF9ED</color>
+    <color name="login_amber_bg_center">#FFFDF7</color>
+    <color name="login_amber_accent_highlight">#FFC42E</color>
+    <color name="login_amber_accent_primary">#E09600</color>
+    <color name="login_amber_accent_mid_light">#FFD261</color>
+    <color name="login_amber_accent_mid">#FFE094</color>
+    <color name="login_amber_accent_mid_dark">#FFECB8</color>
+    <color name="login_amber_accent_dark">#FFF4D4</color>
+    <color name="login_amber_accent_deep">#FFF9E6</color>
+    <color name="login_amber_glow_strong">#26E09600</color>
+    <color name="login_amber_glow_soft">#0DE09600</color>
+    <color name="login_amber_rim_center">#CCFFFFFF</color>
+    <color name="login_amber_rim_end">#4DE09600</color>
+    <color name="login_amber_line_accent">#40E09600</color>
+
+    <!-- 10. CIAN (MODO CLARO) -->
+    <color name="login_cyan_bg_edge">#F0FAFF</color>
+    <color name="login_cyan_bg_center">#F9FDFF</color>
+    <color name="login_cyan_accent_highlight">#33D6FF</color>
+    <color name="login_cyan_accent_primary">#009FC7</color>
+    <color name="login_cyan_accent_mid_light">#66E0FF</color>
+    <color name="login_cyan_accent_mid">#99EBFF</color>
+    <color name="login_cyan_accent_mid_dark">#C2F3FF</color>
+    <color name="login_cyan_accent_dark">#DBF8FF</color>
+    <color name="login_cyan_accent_deep">#EBFCFF</color>
+    <color name="login_cyan_glow_strong">#26009FC7</color>
+    <color name="login_cyan_glow_soft">#0D009FC7</color>
+    <color name="login_cyan_rim_center">#CCFFFFFF</color>
+    <color name="login_cyan_rim_end">#4D009FC7</color>
+    <color name="login_cyan_line_accent">#40009FC7</color>
+
+    <!-- Fondos del icono de launcher por paleta -->
+    <color name="launcher_bg_green">#007D3A</color>
+    <color name="launcher_bg_blue">#0052A3</color>
+    <color name="launcher_bg_purple">#6A1B9A</color>
+    <color name="launcher_bg_orange">#C64300</color>
+    <color name="launcher_bg_red">#B71C1C</color>
+    <color name="launcher_bg_teal">#00796B</color>
+    <color name="launcher_bg_pink">#AD1457</color>
+    <color name="launcher_bg_indigo">#283593</color>
+    <color name="launcher_bg_amber">#B26A00</color>
+    <color name="launcher_bg_cyan">#007C91</color>
 </resources>

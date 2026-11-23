@@ -4,6 +4,6 @@
     <solid android:color="@color/fondo_input" />
     <stroke
         android:width="2dp"
-        android:color="@color/color_acento" />
+        android:color="?attr/appAccent" />
     <corners android:radius="12dp" />
 </shape>

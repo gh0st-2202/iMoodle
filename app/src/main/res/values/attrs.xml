@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Atributos de tema para el color de acento de la app.
+         Permiten cambiar la paleta en tiempo de ejecución sin tocar
+         los colores base de la Junta. -->
+    <attr name="appAccent" format="color" />
+    <attr name="appAccentPressed" format="color" />
+    <attr name="appAccentSoft" format="color" />
+    <!-- Colores del fondo de login, uno por paleta -->
+    <attr name="loginBgEdge" format="color" />
+    <attr name="loginBgCenter" format="color" />
+    <attr name="loginAccentHighlight" format="color" />
+    <attr name="loginAccentPrimary" format="color" />
+    <attr name="loginAccentMidLight" format="color" />
+    <attr name="loginAccentMid" format="color" />
+    <attr name="loginAccentMidDark" format="color" />
+    <attr name="loginAccentDark" format="color" />
+    <attr name="loginAccentDeep" format="color" />
+    <attr name="loginGlowStrong" format="color" />
+    <attr name="loginGlowSoft" format="color" />
+    <attr name="loginRimStart" format="color" />
+    <attr name="loginRimCenter" format="color" />
+    <attr name="loginRimEnd" format="color" />
+    <attr name="loginLineAccent" format="color" />
+    <attr name="loginShadow" format="color" />
+    <attr name="loginTransparent" format="color" />
+</resources>

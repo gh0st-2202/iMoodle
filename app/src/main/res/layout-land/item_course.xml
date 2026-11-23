@@ -28,7 +28,7 @@
             android:layout_weight="5"
             android:contentDescription="@null"
             android:scaleType="centerCrop"
-            android:background="@color/verde_junta_suave"
+            android:background="?attr/appAccentSoft"
             tools:srcCompat="@tools:sample/backgrounds/scenic" />
 
         <!-- Contenido abajo (50% del alto) -->

@@ -2,8 +2,10 @@ package onion.gh0st.iMoodle.api.pasen.repository
 
 import onion.gh0st.iMoodle.api.pasen.network.PasenApiClient
 import onion.gh0st.iMoodle.api.pasen.network.PasenApiException
+import onion.gh0st.iMoodle.data.pasen.PasenGradeCache
 import onion.gh0st.iMoodle.domain.model.pasen.PasenConvocatoria
 import onion.gh0st.iMoodle.domain.model.pasen.PasenSubjectGrade
+import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.repository.pasen.PasenGradeRepository
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
 import org.json.JSONArray
@@ -12,31 +14,31 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementación real de [PasenGradeRepository] sobre la API de iPasen.
- *
- * ## Qué hace
- *
- * Hace login a iPasen, pide la matrícula y descarga las convocatorias
- * de evaluación. El JSON se parsea en [parseConvocatorias].
- *
- * ## Por qué no hay caché
- *
- * Las notas cambian cuando el centro las publica. Se piden frescas
- * cada vez que se abre la pantalla.
+ * Implementación real de [PasenGradeRepository] sobre la API de iPasen,
+ * con caché por usuario.
  *
  * @param apiClient Cliente HTTP de iPasen.
  * @param credentialsStore Almacén cifrado de credenciales de la Junta.
+ * @param gradeCache Caché por usuario de las calificaciones.
  */
 @Singleton
 class PasenGradeRepository @Inject constructor(
     private val apiClient: PasenApiClient,
     private val credentialsStore: CredentialsStore,
+    private val gradeCache: PasenGradeCache,
 ) : PasenGradeRepository {
 
     /**
      * Devuelve las convocatorias de evaluación.
      *
-     * @param forceRefresh Ignorado (siempre se consulta a iPasen).
+     * ## Estrategia cache-first
+     *
+     * - Si `forceRefresh = false` y hay caché para el usuario actual, se
+     *   devuelve la caché sin tocar la red.
+     * - Si no hay caché, o `forceRefresh = true`, se va a iPasen, se
+     *   parsea y se guarda en caché.
+     *
+     * @param forceRefresh Si `true`, ignora la caché y va a la red.
      * @return Lista de convocatorias.
      * @throws IllegalStateException si no hay credenciales guardadas.
      * @throws PasenApiException si falla la red o el parseo.
@@ -44,6 +46,26 @@ class PasenGradeRepository @Inject constructor(
     override suspend fun getGrades(forceRefresh: Boolean): List<PasenConvocatoria> {
         val credentials = credentialsStore.load()
             ?: throw IllegalStateException("No hay credenciales guardadas para iPasen")
+
+        if (!forceRefresh) {
+            gradeCache.get(credentials.username)?.let { cachedGrades ->
+                return cachedGrades
+            }
+        }
+
+        val freshGrades = fetchFromPasen(credentials)
+        gradeCache.put(credentials.username, freshGrades)
+        return freshGrades
+    }
+
+    /**
+     * Descarga las calificaciones desde iPasen con un login nuevo.
+     *
+     * @param credentials Credenciales de la Junta guardadas.
+     * @return Las convocatorias ya interpretadas.
+     * @throws PasenApiException si falla cualquier paso contra iPasen.
+     */
+    private suspend fun fetchFromPasen(credentials: JuntaCredentials): List<PasenConvocatoria> {
         val token = apiClient.login(credentials)
         val sessionInfo = apiClient.getSessionInfo(token)
         val rawJson = apiClient.getNotasConvocatorias(token, sessionInfo.id)
@@ -124,6 +146,13 @@ class PasenGradeRepository @Inject constructor(
             .mapNotNull { key -> json.optString(key).takeIf { text -> text.isNotBlank() } }
             .firstOrNull()
 
+    /**
+     * Convierte un array JSON en objetos, descartando los elementos que
+     * no son objetos.
+     *
+     * @receiver Array leído de iPasen, o `null`.
+     * @return Lista de objetos JSON válidos.
+     */
     private fun JSONArray?.objects(): List<JSONObject> {
         if (this == null) return emptyList()
         return (0 until length()).mapNotNull { index -> optJSONObject(index) }

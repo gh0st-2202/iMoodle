@@ -2,8 +2,6 @@ package onion.gh0st.iMoodle.ui.files
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -19,6 +17,7 @@ import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
+import onion.gh0st.iMoodle.ui.common.showToast
 
 /**
  * Pantalla con la lista de archivos de un módulo de curso.
@@ -213,10 +212,12 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
-                is CourseFilesUiEvent.ShowError -> showToast(event.messageResId, event.arg)
+                is CourseFilesUiEvent.ShowError ->
+                    showToast(event.messageResId, event.arg, longDuration = true)
                 is CourseFilesUiEvent.DownloadStarted ->
-                    showToast(R.string.toast_downloading, event.fileName)
-                CourseFilesUiEvent.DownloadFailed -> showToast(R.string.toast_download_error)
+                    showToast(R.string.toast_downloading, event.fileName, longDuration = true)
+                CourseFilesUiEvent.DownloadFailed ->
+                    showToast(R.string.toast_download_error, longDuration = true)
             }
         }
     }
@@ -234,17 +235,5 @@ class CourseFilesFragment : Fragment(R.layout.fragment_course_files) {
         FileDownloadDialog.show(requireContext(), file.fileName) {
             viewModel.downloadFile(file)
         }
-    }
-
-    /**
-     * Muestra un toast largo.
-     *
-     * @param messageResId ID del recurso de string.
-     * @param arg Argumento opcional para formatear.
-     */
-    private fun showToast(@StringRes messageResId: Int, arg: String? = null) {
-        val message = arg?.let { formatArg -> getString(messageResId, formatArg) }
-            ?: getString(messageResId)
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
     }
 }

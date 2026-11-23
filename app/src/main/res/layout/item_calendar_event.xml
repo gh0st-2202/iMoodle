@@ -27,7 +27,7 @@
             android:layout_width="48dp"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:textColor="@color/color_acento"
+            android:textColor="?attr/appAccent"
             android:textSize="14sp"
             android:textStyle="bold"
             tools:text="18:30" />

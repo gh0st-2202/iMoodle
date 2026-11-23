@@ -2,6 +2,7 @@ package onion.gh0st.iMoodle.data.local
 
 import onion.gh0st.iMoodle.core.Logging
 import onion.gh0st.iMoodle.core.runCatchingCancellable
+import onion.gh0st.iMoodle.data.pasen.PasenGradeCache
 import onion.gh0st.iMoodle.data.schedule.ScheduleCache
 import onion.gh0st.iMoodle.data.session.UserProfileCache
 
@@ -33,11 +34,13 @@ import onion.gh0st.iMoodle.data.session.UserProfileCache
  *
  * @param databaseCleaner Limpiador de la base de datos (normalmente [RoomLocalDataCleaner]).
  * @param scheduleCache Caché del horario de iPasen.
+ * @param pasenGradeCache Caché de las calificaciones de iPasen.
  * @param userProfileCache Caché del perfil ampliado del alumno.
  */
 class AppLocalDataCleaner(
     private val databaseCleaner: LocalDataCleaner,
     private val scheduleCache: ScheduleCache,
+    private val pasenGradeCache: PasenGradeCache,
     private val userProfileCache: UserProfileCache,
 ) : LocalDataCleaner {
 
@@ -60,6 +63,8 @@ class AppLocalDataCleaner(
             .onFailure { failure -> recordFailure("database", failure) }
         runCatchingCancellable { scheduleCache.clearAll() }
             .onFailure { failure -> recordFailure("scheduleCache", failure) }
+        runCatchingCancellable { pasenGradeCache.clearAll() }
+            .onFailure { failure -> recordFailure("pasenGradeCache", failure) }
         runCatchingCancellable { userProfileCache.clearAll() }
             .onFailure { failure -> recordFailure("userProfileCache", failure) }
 

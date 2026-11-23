@@ -14,7 +14,6 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +28,8 @@ import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.core.DeepLinkExtras
 import onion.gh0st.iMoodle.domain.model.session.Provincia
+import onion.gh0st.iMoodle.ui.common.ThemedActivity
+import onion.gh0st.iMoodle.ui.common.showCustomToast
 import onion.gh0st.iMoodle.ui.main.MainActivity
 
 /**
@@ -66,7 +67,7 @@ import onion.gh0st.iMoodle.ui.main.MainActivity
  * para que se abra la tarea correcta.
  */
 @AndroidEntryPoint
-class LoginActivity : AppCompatActivity() {
+class LoginActivity : ThemedActivity() {
 
     /** Campo de texto donde se escribe el usuario. */
     private lateinit var inpUser: EditText
@@ -85,6 +86,15 @@ class LoginActivity : AppCompatActivity() {
 
     /** ViewModel que contiene la lógica real del login. */
     private val viewModel: LoginViewModel by viewModels()
+
+    /**
+     * Texto de bienvenida pendiente de mostrar en `MainActivity`.
+     *
+     * Se guarda aquí en lugar de dibujarse en esta pantalla: el aviso
+     * de bienvenida debe aparecer **ya dentro** del Main, y así el
+     * Snackbar no puede retrasar ni impedir la navegación.
+     */
+    private var pendingWelcomeMessage: String? = null
 
     /**
      * Recuerda si la contraseña está visible o no.
@@ -191,11 +201,7 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.setOnClickListener {
             val selectedPosition = spinnerCentro.selectedItemPosition
             if (selectedPosition == 0) {
-                Toast.makeText(
-                    this,
-                    getString(R.string.hint_select_province),
-                    Toast.LENGTH_SHORT,
-                ).show()
+                showCustomToast(getString(R.string.hint_select_province))
                 return@setOnClickListener
             }
             val provincia = Provincia.entries[selectedPosition - 1]
@@ -368,13 +374,19 @@ class LoginActivity : AppCompatActivity() {
     /**
      * Reacciona a los avisos del ViewModel.
      *
-     * - **"Muestra este mensaje"**: lanza un toast con el texto.
+     * - **"Muestra este mensaje"**: lanza un aviso con el texto.
      * - **"El login ha ido bien"**: navega a la pantalla principal.
+     *
+     * ## Por qué el aviso va protegido
+     *
+     * Un fallo al inflar el Snackbar no debe cortar la corrutina: si
+     * eso pasara, el siguiente evento (`NavigateToMain`) nunca se
+     * consumiría y la app se quedaría en la pantalla de bienvenida.
      */
     private suspend fun observeEvents() {
         viewModel.events.collect { event ->
             when (event) {
-                is LoginEvent.ShowToast -> showToast(event)
+                is LoginEvent.ShowToast -> runCatching { showToast(event) }
                 LoginEvent.NavigateToMain -> navigateToMain()
             }
         }
@@ -390,6 +402,10 @@ class LoginActivity : AppCompatActivity() {
      * `getString`, que es lo que sí puede hacer la capa de
      * presentación.
      *
+     * El saludo de bienvenida es la excepción: se guarda en
+     * [pendingWelcomeMessage] y se muestra ya dentro del Main, para
+     * que avisar y navegar sean dos pasos independientes.
+     *
      * @param event Evento con el recurso y su argumento opcional.
      */
     private fun showToast(event: LoginEvent.ShowToast) {
@@ -398,7 +414,11 @@ class LoginActivity : AppCompatActivity() {
         } else {
             getString(event.messageRes, event.formatArg)
         }
-        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+        if (event.messageRes == R.string.toast_welcome_back) {
+            pendingWelcomeMessage = text
+        } else {
+            showCustomToast(text, longDuration = true)
+        }
     }
 
     /**
@@ -414,6 +434,11 @@ class LoginActivity : AppCompatActivity() {
      * El parámetro se llama `destination` (no `to`) para no chocar
      * con una palabra especial de Kotlin (ver explicación en
      * `DeepLinkExtras.copy`).
+     *
+     * ## Sobre el saludo de bienvenida
+     * Si [showToast] guardó un mensaje de bienvenida, se adjunta al
+     * intent como [EXTRA_WELCOME_MESSAGE] para que `MainActivity` lo
+     * dibuje al entrar, sin haber tenido que mostrarlo sobre el login.
      */
     private fun navigateToMain() {
         val mainIntent = Intent(this, MainActivity::class.java)
@@ -421,8 +446,17 @@ class LoginActivity : AppCompatActivity() {
             from = intent,
             destination = mainIntent,
         )
+        pendingWelcomeMessage?.let { welcome ->
+            mainIntent.putExtra(EXTRA_WELCOME_MESSAGE, welcome)
+            pendingWelcomeMessage = null
+        }
         startActivity(mainIntent)
         finish()
+    }
+
+    companion object {
+        /** Extra con el mensaje de bienvenida que debe mostrar `MainActivity`. */
+        const val EXTRA_WELCOME_MESSAGE = "onion.gh0st.iMoodle.extra.WELCOME_MESSAGE"
     }
 
     /**

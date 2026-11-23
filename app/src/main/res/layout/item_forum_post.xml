@@ -23,7 +23,7 @@
             android:id="@+id/txt_post_author"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/color_acento"
+            android:textColor="?attr/appAccent"
             android:textSize="14sp"
             android:textStyle="bold"
             tools:text="Juan Pérez" />
@@ -45,7 +45,7 @@
             android:autoLink="web"
             android:lineSpacingExtra="4dp"
             android:textColor="@color/texto_principal"
-            android:textColorLink="@color/color_acento"
+            android:textColorLink="?attr/appAccent"
             android:textSize="15sp"
             tools:text="Este es el contenido del mensaje..." />
 

@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/color_acento"
+            app:navigationIconTint="?attr/appAccent"
             app:title="Detalle de la Tarea"
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -92,7 +92,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:textColor="@color/color_acento"
+                        android:textColor="?attr/appAccent"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:visibility="gone"
@@ -202,7 +202,7 @@
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:visibility="visible"
-                app:backgroundTint="@color/color_acento"
+                app:backgroundTint="?attr/appAccent"
                 app:cornerRadius="12dp"
                 app:icon="@drawable/ic_attach_file"
                 app:iconGravity="textStart"

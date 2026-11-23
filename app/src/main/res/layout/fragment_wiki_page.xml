@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="@color/color_acento"
+            app:navigationIconTint="?attr/appAccent"
             app:titleTextColor="@color/texto_principal" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -68,7 +68,7 @@
                     android:autoLink="web"
                     android:lineSpacingExtra="4dp"
                     android:textColor="@color/texto_principal"
-                    android:textColorLink="@color/color_acento"
+                    android:textColorLink="?attr/appAccent"
                     android:textSize="16sp"
                     tools:text="Contenido de la página" />
 
