@@ -55,6 +55,16 @@
 
     <dimen name="update_dialog_corner_radius">20dp</dimen>
 
+    <!--
+      Subtítulo de las toolbars de navegador integrado (la URL actual).
+      Más pequeño que el título y en color secundario; el Toolbar ya lo
+      recorta a una sola línea con puntos suspensivos.
+    -->
+    <style name="TextAppearance.MiMoodle.ToolbarSubtitle" parent="TextAppearance.AppCompat.Widget.ActionBar.Subtitle">
+        <item name="android:textColor">@color/texto_secundario</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
     <!-- Overlays de paleta (solo override el acento). -->
     <style name="ThemeOverlay.MiMoodleAndalucia.Azul" parent="Theme.MiMoodleAndalucia">
         <item name="appAccent">@color/palette_azul</item>

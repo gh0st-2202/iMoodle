@@ -3,6 +3,7 @@ package onion.gh0st.iMoodle.api.moodle.auth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
+import onion.gh0st.iMoodle.api.moodle.auth.AuthCookieHandover
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
 import onion.gh0st.iMoodle.domain.model.session.StoredSession
@@ -45,6 +46,7 @@ class MoodleAuthRepositoryTest {
             tokenStore = tokenStore,
             credentialsStore = credentialsStore,
             httpClient = client,
+            cookieHandover = AuthCookieHandover(),
         )
 
     /**

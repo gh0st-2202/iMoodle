@@ -36,6 +36,12 @@ internal object FragmentArgs {
     /** Descripción del módulo (HTML). */
     const val MODULE_DESCRIPTION = "MODULE_DESCRIPTION"
 
+    /** URL del módulo (para cuestionarios y otros enlaces). */
+    const val MODULE_URL = "MODULE_URL"
+
+    /** Identificador de un intento de cuestionario. */
+    const val ATTEMPT_ID = "ATTEMPT_ID"
+
     /** Identificador del foro. */
     const val FORUM_ID = "FORUM_ID"
 

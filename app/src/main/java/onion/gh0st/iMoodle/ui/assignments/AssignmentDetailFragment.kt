@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.text.method.LinkMovementMethod
+
 import android.text.util.Linkify
 import android.view.LayoutInflater
 import android.view.View
@@ -32,6 +32,7 @@ import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.ui.common.FormatUtils
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.web.WebLinks
 import onion.gh0st.iMoodle.ui.common.applyImeBottomInset
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.resolveColorAttr
@@ -391,7 +392,7 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
             binding.txtAssignDescription.text = getString(R.string.label_no_description)
         } else {
             binding.txtAssignDescription.text = HtmlUtils.renderHtml(assignment.description)
-            binding.txtAssignDescription.movementMethod = LinkMovementMethod.getInstance()
+            binding.txtAssignDescription.movementMethod = WebLinks.movementMethod
         }
         binding.txtAssignDates.text = assignment.dueDate
             ?.let { dueDate -> getString(R.string.label_due_date, FormatUtils.formatDateTime(dueDate)) }
@@ -444,7 +445,7 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
         binding.layoutTeacherFeedback.isVisible = !feedback.isNullOrBlank()
         if (!feedback.isNullOrBlank()) {
             binding.txtTeacherFeedback.text = HtmlUtils.renderHtml(feedback)
-            binding.txtTeacherFeedback.movementMethod = LinkMovementMethod.getInstance()
+            binding.txtTeacherFeedback.movementMethod = WebLinks.movementMethod
         }
 
         binding.containerGradedFiles.removeAllViews()
@@ -504,7 +505,7 @@ class AssignmentDetailFragment : Fragment(R.layout.fragment_assignment_detail) {
                 getString(R.string.label_unknown_date)
             }
             row.txtCommentContent.text = HtmlUtils.renderHtml(comment.content)
-            row.txtCommentContent.movementMethod = LinkMovementMethod.getInstance()
+            row.txtCommentContent.movementMethod = WebLinks.movementMethod
             LinkifyCompat.addLinks(row.txtCommentContent, Linkify.WEB_URLS)
 
             row.btnDeleteComment.isVisible = isOwnComment(comment, currentUserId)

@@ -10,15 +10,55 @@
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar_web"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="wrap_content"
         android:background="@color/fondo_app"
+        android:minHeight="?attr/actionBarSize"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="?attr/appAccent"
+        app:subtitleTextAppearance="@style/TextAppearance.MiMoodle.ToolbarSubtitle"
+        app:subtitleTextColor="@color/texto_secundario"
         app:titleTextColor="@color/texto_principal" />
 
-    <WebView
-        android:id="@+id/webview"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <WebView
+            android:id="@+id/webview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <!--
+            Estado de error solo para el WebView autenticado de Moodle.
+            Evita mostrar la pantalla de login de Moodle cuando no se
+            han podido renovar las cookies.
+        -->
+        <LinearLayout
+            android:id="@+id/webAuthError"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/webAuthErrorMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/web_auth_error"
+                android:textColor="@color/texto_principal"
+                android:textSize="16sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/webAuthRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/web_auth_retry" />
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

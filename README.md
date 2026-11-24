@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blueviolet?logo=kotlin)](https://kotlinlang.org)
 [![Android](https://img.shields.io/badge/Android-API%2028%2B-green?logo=android)](https://developer.android.com)
-[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.8-blue)](./app/build.gradle.kts)
+[![Versión](https://img.shields.io/badge/versi%C3%B3n-2.9-blue)](./app/build.gradle.kts)
 [![Estado](https://img.shields.io/badge/estado-funcional-brightgreen)]()
 
 ---
@@ -41,6 +41,9 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 📅 Agenda de los próximos 30 días con eventos del calendario.
 - 📤 **Entrega de tareas**: texto en línea y archivos del teléfono, conservando o quitando los ya entregados, con confirmación antes de sustituir una entrega y opción de borrarla. Si Moodle rechaza la entrega (por ejemplo, plazo cerrado) se muestra el motivo.
 - 💭 **Comentarios de la entrega**: lee, escribe y borra tus comentarios en el hilo de la tarea.
+- 🧩 **Cuestionarios**: se muestran como un módulo genérico (nombre y descripción), igual que una lección o una consulta. No hay pantalla propia ni realización de intentos dentro de la app.
+- 🔗 **Enlaces de Moodle, dentro de la app**: los enlaces de descripciones, páginas, libros, wikis, foros, glosarios y tareas se abren en un WebView integrado con la sesión ya iniciada. Los enlaces externos se abren en otro WebView y el botón de la toolbar permite abrirlos en el navegador del sistema previa confirmación. Los enlaces que el usuario pulsa dentro de Moodle o de un SCORM (`target="_blank"` incluido) se abren también en ese WebView genérico; al pulsar Atrás se vuelve al punto exacto del contenido. Las redirecciones automáticas a otros hosts siguen bloqueándose.
+- 🎬 **SCORM**: se abre en el WebView autenticado de Moodle y entra directamente en el paquete. La cabecera y el interruptor del índice se ocultan para dejar más espacio al contenido, sin borrar elementos del DOM (los scripts del reproductor los necesitan).
 
 ### iPasen
 - 🗓️ **Horario semanal** con colores únicos por asignatura y filtro por día.
@@ -62,6 +65,20 @@ Una sola sesión de la Junta de Andalucía (IdEA / CAS) autentica contra ambos s
 - 🔔 **Avisos con Snackbar**: los mensajes ya no son `Toast` del sistema, sino tarjetas con el logo y el color de acento de la paleta activa. Se muestran dentro de la pantalla y respetan el tema.
 
 ---
+
+## 🆕 Novedades de la 2.9
+
+La versión **2.9** termina de integrar Moodle en la app: los enlaces y los paquetes SCORM dejan de abrirse en el navegador y los cuestionarios se muestran como módulo genérico. Es la versión `2.9` (`versionCode 29`).
+
+- 🧩 **Cuestionarios como módulo genérico**: se probó una integración con las funciones oficiales `mod_quiz_*` (detalle, nota, feedback y revisión nativos; intento en el WebView), pero se descartó: los cuestionarios pasan a comportarse como cualquier otro módulo sin pantalla propia. Se muestran nombre y descripción con el icono de módulo no navegable, igual que `lesson` o `choice`.
+- 🔗 **Enrutado central de enlaces**: las URLs del host de Moodle se abren en un WebView **autenticado** dentro de la app; las demás, en un WebView genérico. Solo se aceptan `http`/`https`; `mailto:` y `tel:` siguen delegándose al sistema. Si se pulsa un enlace externo dentro de Moodle o de un SCORM, se abre el WebView genérico encima (con `target="_blank"` incluido) y Atrás vuelve al punto exacto; las redirecciones automáticas no sacan de la página.
+- 🌐 **Toolbar integrada**: el WebView de Moodle ya no muestra la URL en el subtítulo, para que parezca una pantalla más de la app. El WebView de enlaces externos sí la muestra y ofrece un botón para abrir en el navegador, con confirmación previa.
+- 🎬 **SCORM sin salir de la app**: al abrir un paquete se pulsa automáticamente el botón «Entrar» del formulario `view.php` de Moodle (una sola vez por pantalla, para no crear un bucle al volver atrás). El reproductor se limpia con CSS —no borrando elementos— para no romper los scripts que dimensionan el `iframe`. Se retiró el selector alternativo por `action` del formulario porque no estaba terminado.
+- ⚡ **Sesión web precargada**: al entrar en la app se renuevan las cookies web en segundo plano y se reutilizan durante 15 minutos. Si Moodle redirige al login, se fuerza un único reintento antes de mostrar un error con botón de reintento: no aparece la pantalla de acceso de Moodle.
+- 🔁 **Rotación sin recarga**: girar el móvil ya no recarga el WebView; los márgenes laterales respetan la zona del *notch*.
+- 🌓 **Modo claro/oscuro del WebView**: se usa el oscurecimiento algorítmico de `androidx.webkit` cuando está disponible. El contenido del SCORM conserva sus colores originales: se descartó inyectar la paleta de la app en el paquete.
+
+> La 2.9 compila, pasa los 391 tests unitarios y Lint (0 errores / 55 avisos), genera el APK y **funciona verificada en dispositivo real** (enlaces, entrada directa al SCORM y sesión web sin pantalla de login). Tras la verificación se retiraron las piezas no terminadas: el intento nativo del quiz, el selector alternativo del formulario SCORM y, finalmente, la integración de cuestionarios, que ahora se abren como módulo genérico. El enrutado de enlaces externos pulsados dentro del WebView está pendiente de una comprobación rápida en dispositivo.
 
 ## 🆕 Novedades de la 2.8
 
@@ -85,7 +102,7 @@ La versión **2.7** añade las cinco funciones que faltaban para seguir el curso
 - 📖 **Páginas y libros**: lectura nativa del contenido (HTML) de los módulos de tipo *Página* y *Libro* (capítulos incluidos).
 - 🌐 **Lecciones, consultas, H5P…**: se muestran en una pantalla informativa con el nombre y la descripción del módulo.
 - 🔒 **Módulos no accesibles**: se identifican con un candado gris para que se vean de un vistazo en el listado del curso.
-- 🚫 **SCORM**: sin soporte. Como el resto de módulos genéricos, solo se muestra su información.
+- 🚫 **SCORM**: sin soporte en la 2.7 (solo se mostraba su información). **En la 2.9 se abre dentro de la app**, con la sesión de Moodle ya autenticada.
 - ✍️ **Escribir en foros**: botón flotante para abrir un tema nuevo y para responder en una discusión. El texto se envía escapado y con los saltos de línea preservados.
 - 📊 **Calificaciones de iPasen**: pestaña nueva en la barra inferior con las convocatorias de evaluación como chips y las notas por asignatura. Incluye *pull-to-refresh* y un estado de error con botón para reintentar.
 
@@ -144,6 +161,7 @@ Reglas que se respetan en todo el proyecto:
 | Concurrencia | Coroutines + Flow |
 | Imágenes | Coil 3 (con `SvgDecoder` para patrones generados) |
 | Markdown | Markwon (changelog de actualizaciones) |
+| WebView | `android.webkit` + `androidx.webkit` 1.12.1 (oscurecimiento algorítmico) |
 | Actualizaciones | API de GitHub · FileProvider · Package Installer (`Intent.ACTION_VIEW`) |
 | Seguridad | Android Keystore directo (AES-256-GCM); sin `security-crypto`, que está deprecada |
 | Tests | JUnit 4 · MockK · Turbine |
@@ -225,6 +243,7 @@ app/src/main/java/onion/gh0st/iMoodle/
 │   ├── session/      Sesión, caché de usuario y perfil (el limpiador de logout está en local/)
 │   ├── update/       Releases de GitHub, descarga del APK e instalación con FileProvider
 │   └── web/          Traducción de la sesión viva a un modelo de dominio para el WebView
+│                     y renovación de cookies CAS con TTL (DefaultWebCookieRefresher)
 ├── domain/           Contratos de negocio
 │   ├── model/        Modelos (auth/, course/, forum/, glossary/, grade/, pasen/, wiki/, file/, session/, update/, web/…)
 │   ├── repository/   Contratos (completion/, file/, forum/, glossary/, grade/, pasen/, wiki/, session/, update/, web/…)
@@ -246,7 +265,8 @@ app/src/main/java/onion/gh0st/iMoodle/
     ├── pasengrades/  PasenGradesFragment, ViewModel y Adapter (notas de iPasen)
     ├── profile/      ProfileFragment: selector de paleta y cambio de icono diferido
     ├── update/       UpdateDialogHelper y UpdateViewModel (el instalador vive en data/)
-    ├── web/          MoodleWebViewActivity y MoodleWebViewModel
+    ├── web/          WebLinks, WebToolbarHelper, WebActivity, MoodleWebViewActivity
+    │                 (cookies, entrada y limpieza del reproductor SCORM) y MoodleWebViewModel
     └── wiki/         WikiFragment (páginas), WikiPageFragment (contenido) y diálogos de alta y edición
 ```
 

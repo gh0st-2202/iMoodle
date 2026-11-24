@@ -4,10 +4,10 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.ViewGroup
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import onion.gh0st.iMoodle.R
@@ -18,35 +18,30 @@ import onion.gh0st.iMoodle.ui.common.WebUrls
 /**
  * WebView genérico para abrir enlaces externos dentro de la app.
  *
- * ## Qué es un WebView
- *
- * Es un componente de Android que permite mostrar páginas web dentro
- * de la app, como si fuera un mini-navegador. Se usa para cargar
- * contenido externo sin salir de la app.
- *
  * ## Qué hace esta Activity
  *
  * 1. Carga la URL indicada en un `WebView`.
- * 2. Muestra un toolbar con el título y botón atrás.
- * 3. Actualiza el subtítulo del toolbar con la URL cargada.
+ * 2. Muestra un toolbar con el título, la URL actual como subtítulo
+ *    y un botón atrás.
+ * 3. Permite abrir el enlace en el navegador del sistema tras una
+ *    confirmación.
  * 4. Gestiona el botón atrás: si el WebView puede retroceder, va
  *    atrás; si no, cierra la Activity.
  *
- * ## Nota de seguridad
+ * ## Seguridad
  *
  * Solo carga URLs `http://` o `https://` ([WebUrls.isSafeWebUrl]); con
  * cualquier otro esquema (`file://`, `javascript:`…) se cierra sin
- * cargar nada. No está exportada, así que solo la propia app puede
- * lanzarla. Sin embargo **no sobrescribe** `shouldOverrideUrlLoading`:
- * una vez cargada la primera página, la navegación continúa por
- * cualquier enlace. Para enlaces no confiables (por ejemplo, de
- * profesores) se prefiere `CourseDetailFragment.openUrl`, que los abre
- * en el navegador del sistema.
+ * cargar nada. La navegación dentro del WebView se limita también a
+ * enlaces web seguros; los demás se bloquean.
  */
 class WebActivity : ThemedActivity() {
 
     /** Binding de la vista. */
     private lateinit var binding: ActivityWebBinding
+
+    /** URL con la que se abrió la pantalla; respaldo si la carga falla. */
+    private var initialUrl: String? = null
 
     /** Callback de "atrás", habilitado solo si el `WebView` puede retroceder. */
     private var backCallback: OnBackPressedCallback? = null
@@ -83,6 +78,13 @@ class WebActivity : ThemedActivity() {
             return
         }
 
+        initialUrl = url
+        WebToolbarHelper.setup(
+            activity = this,
+            toolbar = binding.toolbarWeb,
+            initialUrl = url,
+        ) { binding.webview.url ?: initialUrl }
+
         setupBackHandler()
         setupWebView(requireNotNull(url))
     }
@@ -103,21 +105,6 @@ class WebActivity : ThemedActivity() {
     /**
      * Configura el WebView con la URL indicada.
      *
-     * ## Qué configura
-     *
-     * - **JavaScript habilitado**: necesario para muchas webs
-     *   modernas.
-     * - **DOM Storage habilitado**: necesario para webs que usan
-     *   `localStorage` o `sessionStorage`.
-     * - **Viewport ajustado**: para que el contenido sea responsive.
-     * - **WebViewClient**: actualiza el subtítulo del toolbar con la
-     *   URL cargada.
-     *
-     * ## Qué NO hace
-     *
-     * No sobrescribe `shouldOverrideUrlLoading`. Cualquier navegación
-     * se queda dentro del WebView.
-     *
      * @param url URL inicial a cargar.
      */
     @SuppressLint("SetJavaScriptEnabled")
@@ -129,10 +116,22 @@ class WebActivity : ThemedActivity() {
         webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                binding.toolbarWeb.subtitle = url
+                WebToolbarHelper.updateUrl(binding.toolbarWeb, url)
             }
 
-            override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?,
+            ): Boolean {
+                val targetUrl = request?.url?.toString() ?: return true
+                return !WebUrls.isSafeWebUrl(targetUrl)
+            }
+
+            override fun doUpdateVisitedHistory(
+                view: WebView?,
+                url: String?,
+                isReload: Boolean,
+            ) {
                 super.doUpdateVisitedHistory(view, url, isReload)
                 backCallback?.isEnabled = view?.canGoBack() == true
             }
@@ -142,18 +141,6 @@ class WebActivity : ThemedActivity() {
 
     /**
      * Gestiona el botón "atrás".
-     *
-     * ## Comportamiento
-     *
-     * - Mientras el `WebView` tenga historial al que volver, "atrás"
-     *   retrocede una página.
-     * - Cuando no lo tiene, el callback se deshabilita y el sistema
-     *   aplica su comportamiento normal (cerrar la Activity).
-     *
-     * El estado del callback se actualiza cada vez que cambia el
-     * historial ([WebViewClient.doUpdateVisitedHistory]) en lugar de
-     * deshabilitarlo de forma permanente la primera vez que no hay
-     * historial.
      */
     private fun setupBackHandler() {
         val webViewBackCallback = object : OnBackPressedCallback(false) {

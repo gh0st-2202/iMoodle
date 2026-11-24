@@ -2,7 +2,6 @@ package onion.gh0st.iMoodle.ui.book
 
 import android.os.Bundle
 import android.text.Html
-import android.text.method.LinkMovementMethod
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -16,6 +15,7 @@ import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.FragmentBookBinding
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.web.WebLinks
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
 
@@ -75,7 +75,7 @@ class BookFragment : Fragment(R.layout.fragment_book) {
                             }
                         }
                         binding.txtBookContent.text = HtmlUtils.renderHtml(html)
-                        binding.txtBookContent.movementMethod = LinkMovementMethod.getInstance()
+                        binding.txtBookContent.movementMethod = WebLinks.movementMethod
                     }
                     if (state.hasError) showToast(R.string.error_book_load)
                 }

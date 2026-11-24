@@ -43,8 +43,8 @@ import javax.inject.Singleton
  *
  * ## Qué construye exactamente
  *
- * - Un `CookieManager` vacío (todavía no hay cookies; se llenarán al
- *   hacer la primera petición autenticada).
+ * - Un `CookieManager` que arranca con las cookies del login reciente
+ *   (si lo hubo) y que sigue acumulando las que emita el servidor.
  * - Un `OkHttpClient` clonado del global, con el `CookieManager`
  *   enganchado.
  * - Un `MoodleApiClient` configurado para hablar con la instancia de
@@ -57,11 +57,15 @@ import javax.inject.Singleton
  * @param credentialsStore Almacén cifrado de credenciales. Se inyecta
  *   en el `MoodleApiClient` para que, cuando el token caduque, pueda
  *   pedir uno nuevo sin molestar al usuario.
+ * @param cookieHandover Puente en memoria con las cookies obtenidas en
+ *   el login. En auto-login está vacío y la sesión arranca sin cookies
+ *   web (el `WebCookieRefresher` se encarga de renovarlas después).
  */
 @Singleton
 class MoodleSessionFactory @Inject constructor(
     private val httpClient: OkHttpClient,
     private val credentialsStore: CredentialsStore,
+    private val cookieHandover: AuthCookieHandover,
 ) {
 
     /**
@@ -70,9 +74,9 @@ class MoodleSessionFactory @Inject constructor(
      *
      * ## Qué hace paso a paso
      *
-     * 1. Crea un `CookieManager` vacío con política de aceptar todas
-     *    las cookies. Este gestor acumulará las cookies que el
-     *    servidor de la Junta vaya emitiendo.
+     * 1. Crea un `CookieManager` con política de aceptar todas las
+     *    cookies y, si viene de un login reciente, precarga las
+     *    cookies que [AuthCookieHandover] dejó guardadas.
      * 2. Clona el [httpClient] global y le engancha ese gestor, de
      *    forma que todas las peticiones que haga el nuevo cliente
      *    lleven las cookies automáticamente.
@@ -113,6 +117,11 @@ class MoodleSessionFactory @Inject constructor(
         onInvalidToken: suspend () -> Unit = {},
     ): MoodleSession {
         val cookieManager = CookieManager(null, CookiePolicy.ACCEPT_ALL)
+        cookieHandover.consume(context.provincia.slug).forEach { (uri, cookie) ->
+            // `CookieStore.add` no acepta URI nulo: las cookies sin
+            // dominio explícito no se pueden precargar aquí.
+            if (uri != null) cookieManager.cookieStore.add(uri, cookie)
+        }
         val sessionHttpClient = httpClient.withCookieJar(cookieManager)
         val moodleConfig = MoodleConfig.of(context.provincia)
 

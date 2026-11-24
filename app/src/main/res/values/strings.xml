@@ -22,6 +22,7 @@
     <string name="action_cancel">Cancelar</string>
     <string name="action_logout">Cerrar Sesión</string>
     <string name="action_download">Descargar</string>
+    <string name="action_open">Abrir</string>
     <string name="action_retry">Reintentar</string>
 
     <!-- Mensajes (Toasts) -->
@@ -67,6 +68,9 @@
     <string name="title_generic_module">Detalle del módulo</string>
     <string name="title_web_link">Enlace</string>
     <string name="title_moodle">Moodle</string>
+    <string name="action_open_in_browser">Abrir en el navegador</string>
+    <string name="dialog_open_browser_title">Abrir enlace externo</string>
+    <string name="dialog_open_browser_message">El enlace se abrirá fuera de iMoodle, en tu navegador habitual. ¿Quieres continuar?</string>
     <string name="action_enter_course">Entrar al curso</string>
     <string name="favourite_toggle">Marcar o quitar de favoritos</string>
     <string name="profile_avatar">Foto de perfil</string>
@@ -283,4 +287,10 @@
     <!-- ================================================ -->
     <string name="label_teacher_feedback">Comentario del docente</string>
     <string name="label_graded_files">Archivos corregidos</string>
+
+    <!-- ================================================ -->
+    <!-- WEBVIEW AUTENTICADO DE MOODLE                    -->
+    <!-- ================================================ -->
+    <string name="web_auth_error">No se pudo renovar la sesión con Moodle. Vuelve a intentarlo.</string>
+    <string name="web_auth_retry">Reintentar</string>
 </resources>

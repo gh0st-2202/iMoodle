@@ -1,6 +1,6 @@
 package onion.gh0st.iMoodle.ui.glossary
 
-import android.text.method.LinkMovementMethod
+
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -11,6 +11,7 @@ import onion.gh0st.iMoodle.databinding.ItemGlossaryEntryBinding
 import onion.gh0st.iMoodle.domain.model.glossary.GlossaryEntry
 import onion.gh0st.iMoodle.ui.common.FormatUtils
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.web.WebLinks
 
 /**
  * Adapter de la lista de entradas de un glosario.
@@ -60,7 +61,7 @@ class GlossaryAdapter(
         fun bind(entry: GlossaryEntry) = with(binding) {
             txtGlossaryConcept.text = entry.concept
             txtGlossaryDefinition.text = HtmlUtils.renderHtml(entry.definition)
-            txtGlossaryDefinition.movementMethod = LinkMovementMethod.getInstance()
+            txtGlossaryDefinition.movementMethod = WebLinks.movementMethod
 
             val formattedDate = FormatUtils.formatDateTime(entry.createdAt)
             txtGlossaryAuthor.text = root.context.getString(

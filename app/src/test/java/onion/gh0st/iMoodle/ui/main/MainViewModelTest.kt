@@ -7,6 +7,7 @@ import kotlinx.coroutines.test.runTest
 import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.domain.model.session.SessionEvent
 import onion.gh0st.iMoodle.domain.repository.notification.ScheduleResult
+import onion.gh0st.iMoodle.domain.repository.web.WebCookieRefresher
 import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
 import onion.gh0st.iMoodle.domain.usecase.session.ObserveSessionEvents
 import onion.gh0st.iMoodle.domain.usecase.session.SyncReminders
@@ -42,6 +43,9 @@ class MainViewModelTest {
 
     private fun createViewModel() = MainViewModel(
         syncReminders = SyncReminders(calendarRepo, scheduler),
+        webCookieRefresher = object : WebCookieRefresher {
+            override suspend fun refresh(force: Boolean): Boolean = true
+        },
         observeSession = ObserveSession(sessionRepo),
         observeSessionEvents = ObserveSessionEvents(sessionRepo),
     )

@@ -1,6 +1,6 @@
 package onion.gh0st.iMoodle.ui.forum.discussion
 
-import android.text.method.LinkMovementMethod
+
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -10,6 +10,7 @@ import onion.gh0st.iMoodle.R
 import onion.gh0st.iMoodle.databinding.ItemForumPostBinding
 import onion.gh0st.iMoodle.domain.model.forum.ForumPost
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.web.WebLinks
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -78,7 +79,7 @@ class DiscussionAdapter : ListAdapter<ForumPost, DiscussionAdapter.VH>(DIFF) {
             txtPostAuthor.text = post.author
             txtPostDate.text = formatDate(post.created)
             txtPostContent.text = HtmlUtils.renderHtml(post.message)
-            txtPostContent.movementMethod = LinkMovementMethod.getInstance()
+            txtPostContent.movementMethod = WebLinks.movementMethod
         }
 
         /**

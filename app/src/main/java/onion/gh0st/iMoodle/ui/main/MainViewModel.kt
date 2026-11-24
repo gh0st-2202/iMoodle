@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.domain.model.session.SessionEvent
 import onion.gh0st.iMoodle.domain.repository.notification.ScheduleResult
+import onion.gh0st.iMoodle.domain.repository.web.WebCookieRefresher
 import onion.gh0st.iMoodle.domain.usecase.session.ObserveSession
 import onion.gh0st.iMoodle.domain.usecase.session.ObserveSessionEvents
 import onion.gh0st.iMoodle.domain.usecase.session.SyncReminders
@@ -91,6 +92,7 @@ sealed interface MainUiEvent {
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val syncReminders: SyncReminders,
+    private val webCookieRefresher: WebCookieRefresher,
     observeSession: ObserveSession,
     observeSessionEvents: ObserveSessionEvents,
 ) : ViewModel() {
@@ -148,11 +150,18 @@ class MainViewModel @Inject constructor(
      *
      * Comprueba el flag `started` y delega en [rescheduleReminders],
      * que ejecuta `SyncReminders` y avisa si falta el permiso.
+     *
+     * Aprovecha la misma ocasión para precalentar las cookies web del
+     * WebView en segundo plano: así la primera vez que el usuario abre
+     * un enlace de Moodle no tiene que esperar al login CAS.
      */
     fun syncRemindersOnce() {
         if (started) return
         started = true
         rescheduleReminders()
+        viewModelScope.launch {
+            webCookieRefresher.refresh(force = false)
+        }
     }
 
     /**

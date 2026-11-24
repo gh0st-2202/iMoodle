@@ -1,9 +1,7 @@
 package onion.gh0st.iMoodle.ui.courses.detail
 
-import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
@@ -16,7 +14,6 @@ import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import onion.gh0st.iMoodle.R
-import onion.gh0st.iMoodle.core.runCatchingCancellable
 import onion.gh0st.iMoodle.databinding.FragmentCourseDetailBinding
 import onion.gh0st.iMoodle.domain.model.course.CourseFile
 import onion.gh0st.iMoodle.domain.model.course.CourseModule
@@ -26,6 +23,7 @@ import onion.gh0st.iMoodle.ui.book.BookFragment
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.page.PageFragment
 import onion.gh0st.iMoodle.ui.common.WebUrls
+import onion.gh0st.iMoodle.ui.web.WebLinks
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
 import onion.gh0st.iMoodle.ui.files.CourseFilesFragment
@@ -263,6 +261,7 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
             is ModuleType.Url -> openUrl(moduleType.module)
             is ModuleType.Page -> openPage(moduleType.module)
             is ModuleType.Book -> openBook(moduleType.module)
+            is ModuleType.Scorm -> openScorm(moduleType.module)
             is ModuleType.Forum -> openForum(moduleType.module)
             is ModuleType.Glossary -> openGlossary(moduleType.module)
             is ModuleType.Wiki -> openWiki(moduleType.module)
@@ -331,11 +330,7 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
             when {
                 externalUrl.isNullOrBlank() -> showToast(R.string.error_open_url)
                 !WebUrls.isSafeWebUrl(externalUrl) -> showToast(R.string.error_unsafe_url)
-                else -> runCatchingCancellable {
-                    startActivity(Intent(Intent.ACTION_VIEW, externalUrl.toUri()))
-                }.onFailure {
-                    showToast(R.string.error_no_navigator)
-                }
+                else -> WebLinks.open(requireContext(), externalUrl, module.name)
             }
         }
     }
@@ -413,6 +408,15 @@ class CourseDetailFragment : Fragment(R.layout.fragment_course_detail) {
             )
             addToBackStack(null)
         }
+    }
+
+    /**
+     * Abre un paquete SCORM en Moodle dentro de la app.
+     *
+     * @param module Módulo de tipo SCORM.
+     */
+    private fun openScorm(module: CourseModule) {
+        WebLinks.open(requireContext(), module.url, module.name)
     }
 
     /**

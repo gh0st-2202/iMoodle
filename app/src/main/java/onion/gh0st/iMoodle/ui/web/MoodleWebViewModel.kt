@@ -3,6 +3,7 @@ package onion.gh0st.iMoodle.ui.web
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import onion.gh0st.iMoodle.domain.model.web.WebSession
+import onion.gh0st.iMoodle.domain.repository.web.WebCookieRefresher
 import onion.gh0st.iMoodle.domain.usecase.web.GetWebSession
 import javax.inject.Inject
 
@@ -39,6 +40,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MoodleWebViewModel @Inject constructor(
     private val getWebSession: GetWebSession,
+    private val webCookieRefresher: WebCookieRefresher,
 ) : ViewModel() {
 
     /**
@@ -51,4 +53,13 @@ class MoodleWebViewModel @Inject constructor(
      */
     val currentSession: WebSession?
         get() = getWebSession()
+
+    /**
+     * Renueva la sesión CAS para obtener cookies frescas.
+     *
+     * @param force Fuerza un nuevo login CAS aunque las cookies del
+     *   momento se consideren vigentes.
+     */
+    suspend fun refreshCookies(force: Boolean = false): Boolean =
+        webCookieRefresher.refresh(force)
 }

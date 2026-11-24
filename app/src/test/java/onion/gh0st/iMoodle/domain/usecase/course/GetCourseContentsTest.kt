@@ -94,7 +94,20 @@ class GetCourseContentsTest {
      */
     @Test
     fun `unknown module is classified as Other`() = runTest {
-        repo.courseContents = listOf(section(module(id = 4, modname = "quiz")))
+        repo.courseContents = listOf(section(module(id = 4, modname = "lesson")))
+
+        val sections = useCase(courseId = 1)
+
+        assertTrue(sections[0].modules[0] is ModuleType.Other)
+    }
+
+    /**
+     * Los cuestionarios se tratan como módulos genéricos: no tienen
+     * pantalla propia en la app.
+     */
+    @Test
+    fun `quiz module is classified as Other`() = runTest {
+        repo.courseContents = listOf(section(module(id = 7, modname = "quiz")))
 
         val sections = useCase(courseId = 1)
 

@@ -1,7 +1,6 @@
 package onion.gh0st.iMoodle.ui.wiki
 
 import android.os.Bundle
-import android.text.method.LinkMovementMethod
 import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -17,6 +16,7 @@ import onion.gh0st.iMoodle.domain.model.wiki.WikiPage
 import onion.gh0st.iMoodle.ui.common.FragmentArgs
 import onion.gh0st.iMoodle.ui.common.FormatUtils
 import onion.gh0st.iMoodle.ui.common.HtmlUtils
+import onion.gh0st.iMoodle.ui.web.WebLinks
 import onion.gh0st.iMoodle.ui.common.applySystemBarsInsets
 import onion.gh0st.iMoodle.ui.common.showToast
 
@@ -166,7 +166,7 @@ class WikiPageFragment : Fragment(R.layout.fragment_wiki_page) {
         binding.txtWikiContentEmpty.isVisible = !hasContent
         if (hasContent) {
             binding.txtWikiContent.text = HtmlUtils.renderHtml(content)
-            binding.txtWikiContent.movementMethod = LinkMovementMethod.getInstance()
+            binding.txtWikiContent.movementMethod = WebLinks.movementMethod
         }
     }
 

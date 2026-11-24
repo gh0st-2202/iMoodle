@@ -18,8 +18,8 @@ android {
         applicationId = "onion.gh0st.iMoodle"
         minSdk = 28
         targetSdk = 37
-        versionCode = 28
-        versionName = "2.8"
+        versionCode = 29
+        versionName = "2.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.androidx.webkit)
     implementation(libs.material)
 
     implementation(libs.androidx.room.runtime)

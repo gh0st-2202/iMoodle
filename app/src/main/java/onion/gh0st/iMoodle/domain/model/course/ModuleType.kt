@@ -14,7 +14,7 @@ package onion.gh0st.iMoodle.domain.model.course
  *
  * Porque permite a la UI hacer un `when` **exhaustivo**: el
  * compilador obliga a contemplar todos los tipos. Si en el futuro se
- * añade un tipo nuevo (por ejemplo, `Quiz`), cualquier `when` que no
+ * añade un tipo nuevo (por ejemplo, `H5P`), cualquier `when` que no
  * lo contemple dará error de compilación. Así es imposible olvidarse
  * de actualizar la UI cuando se añade un tipo.
  *
@@ -30,8 +30,8 @@ package onion.gh0st.iMoodle.domain.model.course
  * - **`Page`**: página de contenido (apunte) en HTML.
  * - **`Book`**: libro con capítulos en HTML.
  * - **`Label`**: etiqueta de contenido inline (no navegable).
- * - **`Other`**: cualquier otro tipo (quiz, scorm, lesson…), que
- *   se muestra con una pantalla genérica.
+ * - **`Other`**: cualquier otro tipo (lesson, choice, quiz…), que se
+ *   muestra con una pantalla genérica.
  *
  * ## Quién lo usa
  *
@@ -125,6 +125,15 @@ sealed interface ModuleType {
     data class Book(override val module: CourseModule) : ModuleType
 
     /**
+     * Paquete SCORM (`modname = "scorm"`).
+     *
+     * Se abre en Moodle dentro de la app.
+     *
+     * @property module Módulo original.
+     */
+    data class Scorm(override val module: CourseModule) : ModuleType
+
+    /**
      * Etiqueta de contenido inline (`modname = "label"`).
      *
      * No es navegable: se muestra como texto dentro del curso.
@@ -138,7 +147,7 @@ sealed interface ModuleType {
     ) : ModuleType
 
     /**
-     * Cualquier otro tipo de módulo (`quiz`, `book`, `page`…).
+     * Cualquier otro tipo de módulo (`lesson`, `choice`…).
      *
      * Se muestra con una pantalla genérica que solo muestra el nombre
      * y la descripción.
@@ -170,6 +179,7 @@ sealed interface ModuleType {
         is Url -> copy(module = module)
         is Page -> copy(module = module)
         is Book -> copy(module = module)
+        is Scorm -> copy(module = module)
         is Label -> copy(module = module)
         is Other -> copy(module = module)
     }
@@ -203,6 +213,10 @@ sealed interface ModuleType {
             "url" -> Url(module)
             "page" -> Page(module)
             "book" -> Book(module)
+            // Los cuestionarios se muestran como módulo genérico: la
+            // realización de intentos no está integrada en la app.
+            "quiz" -> Other(module)
+            "scorm" -> Scorm(module)
             "label" -> Label(module, module.description.orEmpty())
             else -> Other(module)
         }

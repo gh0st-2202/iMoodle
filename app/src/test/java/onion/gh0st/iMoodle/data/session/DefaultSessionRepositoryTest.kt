@@ -20,6 +20,7 @@ import okhttp3.OkHttpClient
 import onion.gh0st.iMoodle.MainDispatcherRule
 import onion.gh0st.iMoodle.domain.model.session.CasCredentials
 import onion.gh0st.iMoodle.domain.model.auth.AuthException
+import onion.gh0st.iMoodle.api.moodle.auth.AuthCookieHandover
 import onion.gh0st.iMoodle.api.moodle.auth.MoodleSessionFactory
 import onion.gh0st.iMoodle.domain.model.session.JuntaCredentials
 import onion.gh0st.iMoodle.domain.model.session.Provincia
@@ -65,7 +66,11 @@ class DefaultSessionRepositoryTest {
     private val notificationScheduler = FakeNotificationScheduler()
     private val localData = FakeLocalDataCleaner()
     private val userRepoFactory = FakeUserRepositoryFactory(Result.success(testUser))
-    private val sessionFactory = MoodleSessionFactory(OkHttpClient(), credentialsStore)
+    private val sessionFactory = MoodleSessionFactory(
+        OkHttpClient(),
+        credentialsStore,
+        AuthCookieHandover(),
+    )
 
     private val repo = DefaultSessionRepository(
         authRepo = authRepo,

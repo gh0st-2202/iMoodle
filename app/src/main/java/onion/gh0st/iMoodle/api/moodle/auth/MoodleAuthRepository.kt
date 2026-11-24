@@ -19,6 +19,7 @@ import onion.gh0st.iMoodle.domain.repository.session.AuthRepository
 import onion.gh0st.iMoodle.domain.repository.session.CredentialsStore
 import onion.gh0st.iMoodle.domain.repository.session.TokenStore
 import java.io.IOException
+import java.net.URI
 import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -77,6 +78,7 @@ class MoodleAuthRepository @Inject constructor(
     private val tokenStore: TokenStore,
     private val credentialsStore: CredentialsStore,
     private val httpClient: OkHttpClient,
+    private val cookieHandover: AuthCookieHandover,
 ) : AuthRepository {
 
     /**
@@ -143,6 +145,25 @@ class MoodleAuthRepository @Inject constructor(
             onInvalidToken = onInvalidToken,
         )
         val moodleSession = moodleAuth.login(credentials)
+
+        /*
+         * El `SessionContext` es puro (no puede llevar cookies), pero la
+         * sesión viva que construirá `MoodleSessionFactory` sí las
+         * necesita: sin este puente en memoria el WebView nacería sin
+         * cookies y Moodle lo mandaría al login justo después del
+         * primer login de la app.
+         */
+        cookieHandover.store(
+            provinciaSlug = provincia.slug,
+            cookies = moodleSession.cookieManager.cookieStore.cookies.map { cookie ->
+                val uri = cookie.domain
+                    ?.trimStart('.')
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { URI.create("https://$it") }
+                uri to cookie
+            },
+        )
+
         val sessionContext = SessionContext(
             provincia = provincia,
             user = moodleSession.user,
@@ -283,7 +304,10 @@ class MoodleAuthRepository @Inject constructor(
      *
      * @param provincia Provincia cuya sesión hay que olvidar.
      */
-    override suspend fun logout(provincia: Provincia) = tokenStore.clear(provincia.slug)
+    override suspend fun logout(provincia: Provincia) {
+        cookieHandover.clear()
+        tokenStore.clear(provincia.slug)
+    }
 
     // --- Métodos internos ---
 

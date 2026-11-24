@@ -80,7 +80,7 @@ sealed class CourseDetailItem {
  * ## Sobre el `when` exhaustivo en `iconFor`
  *
  * El `when` de `ModuleType` en `iconFor` es exhaustivo. Si en el
- * futuro se añade un tipo nuevo (por ejemplo, `Quiz`), el
+ * futuro se añade un tipo nuevo (por ejemplo, `H5P`), el
  * compilador obligará a actualizar `iconFor`. Así es imposible
  * olvidarse de un tipo nuevo.
  *
@@ -400,7 +400,7 @@ class CourseDetailAdapter(
          *
          * Porque `ModuleType` es un `sealed interface`. El compilador
          * obliga a contemplar todos los tipos. Si se añade uno nuevo
-         * (por ejemplo, `Quiz`), este método dará error de
+         * (por ejemplo, `H5P`), este método dará error de
          * compilación hasta que se actualice.
          *
          * @param type Tipo de módulo.
@@ -416,6 +416,7 @@ class CourseDetailAdapter(
             is ModuleType.Url -> R.drawable.ic_web
             is ModuleType.Page -> R.drawable.ic_web
             is ModuleType.Book -> R.drawable.ic_courses
+            is ModuleType.Scorm -> R.drawable.ic_scrom
             is ModuleType.Label -> R.drawable.ic_courses
             is ModuleType.Other -> R.drawable.ic_lock
         }

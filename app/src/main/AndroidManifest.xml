@@ -163,10 +163,12 @@
 
         <activity
             android:name=".ui.web.WebActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="false" />
 
         <activity
             android:name=".ui.web.MoodleWebViewActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="false" />
 
         <!-- Receptores -->

@@ -25,6 +25,7 @@ import onion.gh0st.iMoodle.data.auth.EncryptedTokenStore
 import onion.gh0st.iMoodle.data.files.AndroidFileDownloader
 import onion.gh0st.iMoodle.data.favourites.LocalFavouritesRepository
 import onion.gh0st.iMoodle.data.session.DefaultSessionRepository
+import onion.gh0st.iMoodle.data.web.DefaultWebCookieRefresher
 import onion.gh0st.iMoodle.data.update.AndroidApkInstaller
 import onion.gh0st.iMoodle.data.update.GitHubUpdateRepository
 import onion.gh0st.iMoodle.data.web.DefaultWebSessionRepository
@@ -49,6 +50,7 @@ import onion.gh0st.iMoodle.domain.repository.session.TokenStore
 import onion.gh0st.iMoodle.domain.repository.session.UserProfileRepository
 import onion.gh0st.iMoodle.domain.repository.update.ApkInstaller
 import onion.gh0st.iMoodle.domain.repository.update.UpdateRepository
+import onion.gh0st.iMoodle.domain.repository.web.WebCookieRefresher
 import onion.gh0st.iMoodle.domain.repository.web.WebSessionRepository
 import onion.gh0st.iMoodle.domain.repository.wiki.WikiRepository
 import onion.gh0st.iMoodle.notifications.DefaultNotificationScheduler
@@ -196,6 +198,11 @@ abstract class DataModule {
     abstract fun bindWebSessionRepository(
         impl: DefaultWebSessionRepository,
     ): WebSessionRepository
+
+    @Binds @Singleton
+    abstract fun bindWebCookieRefresher(
+        impl: DefaultWebCookieRefresher,
+    ): WebCookieRefresher
 
     /**
      * Vincula el contrato [NotificationScheduler] con su implementación real,
